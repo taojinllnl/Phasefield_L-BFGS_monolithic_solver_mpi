@@ -11,14 +11,14 @@ SET(TARGET "main")
 # the one step-X.cc file, but as you expand your project you may wish
 # to add other source files as well. If your project becomes much larger,
 # you may want to either replace the following statement by something like
-#  FILE(GLOB_RECURSE TARGET_SRC  "source/*.cc")
-#  FILE(GLOB_RECURSE TARGET_INC  "include/*.h")
+#  FILE(GLOB_RECURSE TARGET_SRC  "SourceCode/*.cc")
+#  FILE(GLOB_RECURSE TARGET_INC  "SourceCode/*.h")
 #  SET(TARGET_SRC ${TARGET_SRC}  ${TARGET_INC})
 # or switch altogether to the large project CMakeLists.txt file discussed
 # in the "CMake in user projects" page accessible from the "User info"
 # page of the documentation.
-FILE(GLOB_RECURSE TARGET_SRC  "src/*.cc")
-FILE(GLOB_RECURSE TARGET_INC  "include/*.h")
+FILE(GLOB_RECURSE TARGET_SRC  "SourceCode/*.cc")
+FILE(GLOB_RECURSE TARGET_INC  "SourceCode/*.h")
 SET(TARGET_SRC ${TARGET_SRC}  ${TARGET_INC})
 
 # Usually, you will not need to modify anything beyond this point...
