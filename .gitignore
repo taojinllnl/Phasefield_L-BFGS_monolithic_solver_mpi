@@ -1,10 +1,61 @@
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# IDE
+*.xcodeproj
+
+$build
+build/*
+*.cmake
 CMakeCache.txt
-CMakeFiles/
-Makefile
-cmake_install.cmake
-compile_commands.json
-main
-*.vtu
-*.log
-*.hist
-*.eps
+CMakeFiles/*
+CMakeScripts/*
+Debug/*
+Release/*
+output/*
+
+Makefile                                                                                                                                                               
+cmake_install.cmake                                                                                                                                                           
+compile_commands.json                                                                                                                                                      
+main                                                                                                                                                                        
+*.vtu                                                                                                                                                                                 
+*.log                                                                                                                                                                          
+*.hist                                                                                   
+*.eps 
+
+Source/build/*
+Source/CMakeFiles/*
+Source/CMakeScripts/*
+
+# Mac
+.DS_Store
