@@ -53,9 +53,9 @@ main
 *.hist                                                                                   
 *.eps 
 
-Source/build/*
-Source/CMakeFiles/*
-Source/CMakeScripts/*
+SourceCode/build/*
+SourceCode/CMakeFiles/*
+SourceCode/CMakeScripts/*
 
 # Mac
 .DS_Store
