@@ -94,8 +94,8 @@
 #include <iostream>
 #include <deal.II/base/logstream.h>
 
-#include "SpectrumDecomposition.h"
-#include "Utilities.h"
+#include "../include/SpectrumDecomposition.h"
+#include "../include/Utilities.h"
 
 namespace PhaseField
 {
