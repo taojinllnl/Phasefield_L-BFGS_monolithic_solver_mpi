@@ -104,6 +104,9 @@
 #include "../include/Common/TimerOutputWrapper.h"
 #include "../include/Common/Traits.h"
 
+
+#include "../include/Common/BlockDesc.h"
+
 namespace PhaseField
 {
   using namespace dealii;
@@ -1221,6 +1224,7 @@ namespace PhaseField
       const MPIInfo&                       m_mpiInfo;
       ConditionalOStream&                  m_logfile;
       mutable TimerOutputWrapper<LATraits> m_timer;
+      BlockDesc                            m_blocks_desc;
 
     DoFHandler<dim>                  m_dof_handler;
     FESystem<dim>                    m_fe;
@@ -2065,6 +2069,11 @@ template <typename LATraits, typename Tria>
     , m_logfile(logfile)
     , m_timer(m_logfile, m_mpiInfo,
               TimerOutput::summary, TimerOutput::wall_times)
+    , m_blocks_desc(m_mpiInfo,
+                    {
+                        {dim, "displacement"},
+                        {1,   "phase-field"}
+    })
     , m_dof_handler(m_triangulation)
     , m_fe(FE_Q<dim>(m_parameters.m_poly_degree),
 	   dim, // displacement
