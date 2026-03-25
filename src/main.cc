@@ -1173,7 +1173,8 @@ namespace PhaseField
   class PhaseFieldMonolithicSolve
   {
   public:
-    PhaseFieldMonolithicSolve(const std::string &input_file);
+    PhaseFieldMonolithicSolve(const std::string &input_file,
+                              ConditionalOStream& m_logfile);
 
     virtual ~PhaseFieldMonolithicSolve() = default;
     void run();
@@ -1196,7 +1197,8 @@ namespace PhaseField
       m_quadrature_point_history;
 
     Time                m_time;
-    std::ofstream m_logfile;
+      
+      ConditionalOStream&                  m_logfile;
     mutable TimerOutput m_timer;
 
     DoFHandler<dim>                  m_dof_handler;
@@ -2030,11 +2032,12 @@ namespace PhaseField
 
   // constructor has no return type
   template <int dim>
-  PhaseFieldMonolithicSolve<dim>::PhaseFieldMonolithicSolve(const std::string &input_file)
+  PhaseFieldMonolithicSolve<dim>::PhaseFieldMonolithicSolve(const std::string &input_file,
+                                                            ConditionalOStream&                  m_logfile)
     : m_parameters(input_file)
     , m_triangulation(Triangulation<dim>::maximum_smoothing)
     , m_time(m_parameters.m_end_time)
-    , m_logfile(m_parameters.m_logfile_name)
+    , m_logfile(m_logfile)
     , m_timer(m_logfile, TimerOutput::summary, TimerOutput::wall_times)
     , m_dof_handler(m_triangulation)
     , m_fe(FE_Q<dim>(m_parameters.m_poly_degree),
@@ -6306,20 +6309,26 @@ int main(int argc, char* argv[])
 {
 
   using namespace dealii;
+    using namespace PhaseField;
 
   if (argc != 2)
     AssertThrow(false,
     		ExcMessage("The number of arguments provided to the program has to be 2!"));
+    
+    std::ofstream log_fstream;
+    ConditionalOStream logfile(log_fstream, true);
 
   const unsigned int dim = std::stoi(argv[1]);
   if (dim == 2 )
     {
-      PhaseField::PhaseFieldMonolithicSolve<2> FEQ1Full("parameters.prm");
+      PhaseFieldMonolithicSolve<2> FEQ1Full("parameters.prm",
+                                            logfile);
       FEQ1Full.run();
     }
   else if (dim == 3)
     {
-      PhaseField::PhaseFieldMonolithicSolve<3> SphereInclusion3D("parameters.prm");
+      PhaseFieldMonolithicSolve<3> SphereInclusion3D("parameters.prm",
+                                                     logfile);
       SphereInclusion3D.run();
     }
   else
