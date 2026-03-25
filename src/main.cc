@@ -684,6 +684,12 @@ namespace PhaseField
       static void declare_parameters(ParameterHandler &prm);
 
       void parse_parameters(ParameterHandler &prm);
+        
+        // variables to store the sub-folders
+        std::string subDir;
+        std::string histDir;
+        std::string oriDir;
+        std::string resultsDir;
     };
 
     AllParameters::AllParameters(const std::string &input_file)
@@ -6359,14 +6365,53 @@ int main(int argc, char* argv[])
     if(mpiInfo.rank() == 0)
         mpiInfo.summary(std::cout);
     
-    
+    // create dirctories with sub-directories in the case folder
+    {
+        
+        std::vector<FileSystem::SubDir> subDirs =
+        {
+            //          name of sub-dir   output argument to store sub-dir
+            FileSystem::SubDir("ori",     parameters.oriDir),
+            FileSystem::SubDir("hist",    parameters.histDir),
+            FileSystem::SubDir("results", parameters.resultsDir),
+        };
+        
+        /* create subfolders in a structure under ./parameters.m_output_dir/:
+         *      parameters.subDir/subDirs[0]
+         *      parameters.subDir/subDirs[1]
+         *          ........
+         */
+        FileSystem::outputDirSystem(mpiInfo,
+                                    parameters.m_output_dir,
+                                    parameters.subDir,
+                                    subDirs);
+    }
 
     
     
-    std::ofstream log_fstream;
-    ConditionalOStream logfile(log_fstream, true);
+    std::ofstream      log_fstream;
+    // output the directory inforamtion
+    if(mpiInfo.isRankEqualsTo(0))
+    {
+        std::cout << "\nDir: \t" << parameters.m_output_dir << std::endl
+        << "Type: \t" << parameters.m_mpi_type << std::endl
+        << "Log: \t" << parameters.m_logfile_name << std::endl << std::endl;
+        
+        // only rank 0 creates logfile to avoid overriding in MPI mode
+        log_fstream.open(parameters.m_output_dir
+                         + parameters.m_logfile_name
+                         + "_" + parameters.m_mpi_type
+                         + "_" + std::to_string(mpiInfo.nRanks())
+                         + "_" + parameters.m_type_linear_solver + ".log");
+    }
+    ConditionalOStream logfile(log_fstream, mpiInfo.rank() == 0);
+    
+    // dimension by prm setting
+    const unsigned int dim = parameters.m_dim;
+    AssertThrow(dim == 2 || dim == 3,
+                ExcMessage("Dimension has to be either 2 or 3"));
 
-  const unsigned int dim = std::stoi(argv[1]);
+
   if (dim == 2 )
     {
       PhaseFieldMonolithicSolve<2> FEQ1Full(logfile,
