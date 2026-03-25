@@ -2135,12 +2135,20 @@ template <typename LATraits, typename Tria>
     else
       Assert(false, ExcMessage("The scenario has not been implemented!"));
 
+      unsigned int nCells    = m_triangulation.n_active_cells();
+      unsigned int nVertices = m_triangulation.n_used_vertices();
+      
+      if constexpr (is_mpi){
+          nCells = m_triangulation.n_global_active_cells();
+          
+          nVertices = Utilities::MPI::sum(nVertices,
+                                          *m_mpiInfo.mpiCommPtr());
+      }
+      
     m_logfile << "\t\tTriangulation:"
-              << "\n\t\t\tNumber of active cells: "
-              << m_triangulation.n_active_cells()
-              << "\n\t\t\tNumber of used vertices: "
-              << m_triangulation.n_used_vertices()
-	      << std::endl;
+              << "\n\t\t\tNumber of active cells: "  << nCells
+              << "\n\t\t\tNumber of used vertices: " << nVertices
+          << std::endl;
 
     std::ofstream out("original_mesh.vtu");
     GridOut       grid_out;
@@ -3304,15 +3312,24 @@ template <typename LATraits, typename Tria>
     m_dofs_per_block =
       DoFTools::count_dofs_per_fe_block(m_dof_handler, block_component);
 
+      unsigned int nCells    = m_triangulation.n_active_cells();
+      unsigned int nVertices = m_triangulation.n_used_vertices();
+      unsigned int nLines    = m_triangulation.n_active_lines();
+      unsigned int nFaces    = m_triangulation.n_active_faces();
+      
+      if constexpr (is_mpi){
+          nCells    = m_triangulation.n_global_active_cells();
+          nVertices = Utilities::MPI::sum(nVertices, *m_mpiInfo.mpiCommPtr());
+          nLines    = Utilities::MPI::sum(nLines,    *m_mpiInfo.mpiCommPtr());
+          nFaces    = Utilities::MPI::sum(nFaces,    *m_mpiInfo.mpiCommPtr());
+      }
+      
+
     m_logfile << "\t\tTriangulation:"
-              << "\n\t\t\t Number of active cells: "
-              << m_triangulation.n_active_cells()
-              << "\n\t\t\t Number of used vertices: "
-              << m_triangulation.n_used_vertices()
-              << "\n\t\t\t Number of active edges: "
-              << m_triangulation.n_active_lines()
-              << "\n\t\t\t Number of active faces: "
-              << m_triangulation.n_active_faces()
+              << "\n\t\t\t Number of active cells: "  << nCells
+              << "\n\t\t\t Number of used vertices: " << nVertices
+              << "\n\t\t\t Number of active edges: "  << nLines
+              << "\n\t\t\t Number of active faces: "  << nFaces
               << "\n\t\t\t Number of degrees of freedom (total): "
 	      << m_dof_handler.n_dofs()
 	      << "\n\t\t\t Number of degrees of freedom (disp): "
