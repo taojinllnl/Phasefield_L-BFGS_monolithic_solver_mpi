@@ -5,6 +5,8 @@ subsection Scenario
   # Dimension
   set dimension = 3
   
+  # underlying mpi type: (PETSc|Trilinos|Serial)
+  set mpi type = Trilinos
 
   # Geometry, loading and boundary conditions scenario
   # 1 - square tension (2D unstructured mesh)
