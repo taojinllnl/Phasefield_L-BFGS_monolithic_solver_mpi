@@ -101,6 +101,8 @@
 #include "../include/Common/MPIInfo.h"
 #include "../include/Common/FileSystem.h"
 #include "../include/Common/MPIInfo.h"
+#include "../include/Common/TimerOutputWrapper.h"
+#include "../include/Common/Traits.h"
 
 namespace PhaseField
 {
@@ -1185,9 +1187,14 @@ namespace PhaseField
   class PhaseFieldMonolithicSolve
   {
   public:
-    PhaseFieldMonolithicSolve(ConditionalOStream& logfile,
-                              const Parameters::AllParameters& parameters,
-                              const MPIInfo& mpiInfo);
+      constexpr static int dim = Tria::dimension;
+//      using BSMatrix = ::common::BlockSparseMatrixWrapper<LATraits>;
+//      using BVector  = ::common::BlockVectorWrapper<LATraits>;
+      
+    PhaseFieldMonolithicSolve(const Parameters::AllParameters& parameters,
+                              const MPIInfo& mpiInfo,
+                              ConditionalOStream& logfile,
+                              Tria& triangulation);
 
     virtual ~PhaseFieldMonolithicSolve() = default;
     void run();
@@ -1203,7 +1210,7 @@ namespace PhaseField
     struct ScratchData_UQPH;
 
     const Parameters::AllParameters& m_parameters;
-    Triangulation<dim> m_triangulation;
+    Tria& m_triangulation;
 
     CellDataStorage<typename Triangulation<dim>::cell_iterator,
                     PointHistory<dim>>
@@ -1213,7 +1220,7 @@ namespace PhaseField
       
       const MPIInfo&                       m_mpiInfo;
       ConditionalOStream&                  m_logfile;
-    mutable TimerOutput m_timer;
+      mutable TimerOutputWrapper<LATraits> m_timer;
 
     DoFHandler<dim>                  m_dof_handler;
     FESystem<dim>                    m_fe;
@@ -2052,11 +2059,12 @@ template <typename LATraits, typename Tria>
                             ConditionalOStream& logfile,
                             Tria& tria)
     : m_parameters(parameters)
-    , m_triangulation(Triangulation<dim>::maximum_smoothing)
+    , m_triangulation(tria)
     , m_time(m_parameters.m_end_time)
     , m_mpiInfo(mpiInfo)
     , m_logfile(logfile)
-    , m_timer(m_logfile, TimerOutput::summary, TimerOutput::wall_times)
+    , m_timer(m_logfile, m_mpiInfo,
+              TimerOutput::summary, TimerOutput::wall_times)
     , m_dof_handler(m_triangulation)
     , m_fe(FE_Q<dim>(m_parameters.m_poly_degree),
 	   dim, // displacement
@@ -6486,6 +6494,5 @@ int main(int argc, char* argv[])
             Phasefield3D.run();
         }
     }
-
   return 0;
 }
