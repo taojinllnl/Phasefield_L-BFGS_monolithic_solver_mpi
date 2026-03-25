@@ -7,6 +7,14 @@ subsection Scenario
   
   # underlying mpi type: (PETSc|Trilinos|Serial)
   set mpi type = Trilinos
+  
+  
+  # Configuration directory
+  set Config dir = ./Case_11/adaptive_refine/
+  
+  # Output directory
+  set Output dir = ./output/Case_11/adaptive_refine/
+  
 
   # Geometry, loading and boundary conditions scenario
   # 1 - square tension (2D unstructured mesh)

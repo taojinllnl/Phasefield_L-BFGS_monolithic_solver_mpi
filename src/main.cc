@@ -288,8 +288,9 @@ namespace PhaseField
     struct Scenario
     {
         unsigned int m_dim;
-        
         std::string m_mpi_type;
+        std::string m_config_dir;
+        std::string m_output_dir;
         
       unsigned int m_scenario;
       std::string m_logfile_name;
@@ -329,6 +330,18 @@ namespace PhaseField
                             "PETSc",
                               Patterns::Selection("PETSc|Trilinos|Serial"),
                               "underlying mpi type");
+          
+          prm.declare_entry("Config dir",
+                              "./",
+                              Patterns::FileName(Patterns::FileName::input),
+                              "Configuration directory");
+            
+          prm.declare_entry("Output dir",
+                             "./",
+                                Patterns::FileName(Patterns::FileName::input),
+                                "Output directory");
+          
+          
           
         prm.declare_entry("Scenario number",
                           "1",
@@ -437,6 +450,8 @@ namespace PhaseField
       {
           m_dim  = prm.get_integer("dimension");
           m_mpi_type = prm.get("mpi type");
+          m_config_dir = prm.get("Config dir");
+          m_output_dir = prm.get("Output dir");
           
         m_scenario = prm.get_integer("Scenario number");
         m_logfile_name = prm.get("Log file name");
