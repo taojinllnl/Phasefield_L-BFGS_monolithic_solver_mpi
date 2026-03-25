@@ -1181,7 +1181,7 @@ namespace PhaseField
     double m_history_max_positive_strain_energy;
   };
 
-  template <int dim>
+  template <typename LATraits, typename Tria>
   class PhaseFieldMonolithicSolve
   {
   public:
@@ -1416,8 +1416,8 @@ namespace PhaseField
 					    BlockVector<double> & LBFGS_update_refine);
   }; // class PhaseFieldMonolithicSolve
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::get_error_residual(Errors &error_residual)
+template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::get_error_residual(Errors &error_residual)
   {
     BlockVector<double> error_res(m_dofs_per_block);
 
@@ -1430,8 +1430,8 @@ namespace PhaseField
     error_residual.m_d    = error_res.block(m_d_dof).l2_norm();
   }
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::get_error_update(const BlockVector<double> &newton_update,
+template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::get_error_update(const BlockVector<double> &newton_update,
                                                         Errors & error_update)
   {
     BlockVector<double> error_ud(m_dofs_per_block);
@@ -1444,8 +1444,8 @@ namespace PhaseField
     error_update.m_d    = error_ud.block(m_d_dof).l2_norm();
   }
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::read_material_data(const std::string &data_file,
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::read_material_data(const std::string &data_file,
 				                          const unsigned int total_material_regions)
   {
     std::ifstream myfile (data_file);
@@ -1571,8 +1571,8 @@ namespace PhaseField
       }
   }
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::read_time_data(const std::string &data_file,
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::read_time_data(const std::string &data_file,
 				                      std::vector<std::array<double, 4>> & time_table)
   {
     std::ifstream myfile (data_file);
@@ -1617,8 +1617,8 @@ namespace PhaseField
       }
   }
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::setup_qph()
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::setup_qph()
   {
     m_logfile << "\t\tSetting up quadrature point data ("
 	      << m_n_q_points
@@ -1677,8 +1677,8 @@ namespace PhaseField
       }
   }
 
-  template <int dim>
-  BlockVector<double> PhaseFieldMonolithicSolve<dim>::get_total_solution(
+  template <typename LATraits, typename Tria>
+  BlockVector<double> PhaseFieldMonolithicSolve<LATraits, Tria>::get_total_solution(
     const BlockVector<double> &solution_delta) const
   {
     BlockVector<double> solution_total(m_solution);
@@ -1686,9 +1686,9 @@ namespace PhaseField
     return solution_total;
   }
 
-  template <int dim>
+  template <typename LATraits, typename Tria>
   void
-  PhaseFieldMonolithicSolve<dim>::update_qph_incremental(const BlockVector<double> &solution_delta,
+  PhaseFieldMonolithicSolve<LATraits, Tria>::update_qph_incremental(const BlockVector<double> &solution_delta,
 							 const BlockVector<double> &solution_old,
 							 const bool is_print)
   {
@@ -1730,15 +1730,15 @@ namespace PhaseField
     m_timer.leave_subsection();
   }
 
-  template <int dim>
-  struct PhaseFieldMonolithicSolve<dim>::PerTaskData_UQPH
+  template <typename LATraits, typename Tria>
+  struct PhaseFieldMonolithicSolve<LATraits, Tria>::PerTaskData_UQPH
   {
     void reset()
     {}
   };
 
-  template <int dim>
-  struct PhaseFieldMonolithicSolve<dim>::ScratchData_UQPH
+  template <typename LATraits, typename Tria>
+  struct PhaseFieldMonolithicSolve<LATraits, Tria>::ScratchData_UQPH
   {
     const BlockVector<double> & m_solution_UQPH;
 
@@ -1795,8 +1795,8 @@ namespace PhaseField
     }
   };
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::update_qph_incremental_one_cell(
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::update_qph_incremental_one_cell(
     const typename DoFHandler<dim>::active_cell_iterator &cell,
     ScratchData_UQPH & scratch,
     PerTaskData_UQPH & /*data*/)
@@ -1830,8 +1830,8 @@ namespace PhaseField
 					 scratch.m_delta_time);
   }
 
-  template <int dim>
-  struct PhaseFieldMonolithicSolve<dim>::PerTaskData_ASM
+  template <typename LATraits, typename Tria>
+  struct PhaseFieldMonolithicSolve<LATraits, Tria>::PerTaskData_ASM
   {
     FullMatrix<double>                   m_cell_matrix;
     Vector<double>                       m_cell_rhs;
@@ -1850,8 +1850,8 @@ namespace PhaseField
     }
   };
 
-  template <int dim>
-  struct PhaseFieldMonolithicSolve<dim>::PerTaskData_ASM_RHS_BFGS
+  template <typename LATraits, typename Tria>
+  struct PhaseFieldMonolithicSolve<LATraits, Tria>::PerTaskData_ASM_RHS_BFGS
   {
     Vector<double>                       m_cell_rhs;
     std::vector<types::global_dof_index> m_local_dof_indices;
@@ -1867,8 +1867,8 @@ namespace PhaseField
     }
   };
 
-  template <int dim>
-  struct PhaseFieldMonolithicSolve<dim>::ScratchData_ASM
+  template <typename LATraits, typename Tria>
+  struct PhaseFieldMonolithicSolve<LATraits, Tria>::ScratchData_ASM
   {
     FEValues<dim>     m_fe_values;
     FEFaceValues<dim> m_fe_face_values;
@@ -1956,8 +1956,8 @@ namespace PhaseField
   };
 
 
-  template <int dim>
-  struct PhaseFieldMonolithicSolve<dim>::ScratchData_ASM_RHS_BFGS
+  template <typename LATraits, typename Tria>
+  struct PhaseFieldMonolithicSolve<LATraits, Tria>::ScratchData_ASM_RHS_BFGS
   {
     FEValues<dim>     m_fe_values;
     FEFaceValues<dim> m_fe_face_values;
@@ -2045,11 +2045,12 @@ namespace PhaseField
   };
 
   // constructor has no return type
-  template <int dim>
-  PhaseFieldMonolithicSolve<dim>
-::PhaseFieldMonolithicSolve(ConditionalOStream& logfile,
-                            const Parameters::AllParameters& parameters,
-                            const MPIInfo& mpiInfo)
+  template <typename LATraits, typename Tria>
+  PhaseFieldMonolithicSolve<LATraits, Tria>
+::PhaseFieldMonolithicSolve(const Parameters::AllParameters& parameters,
+                            const MPIInfo& mpiInfo,
+                            ConditionalOStream& logfile,
+                            Tria& tria)
     : m_parameters(parameters)
     , m_triangulation(Triangulation<dim>::maximum_smoothing)
     , m_time(m_parameters.m_end_time)
@@ -2071,8 +2072,8 @@ namespace PhaseField
     , m_vol_reference(0.0)
   {}
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::make_grid()
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid()
   {
     if (m_parameters.m_scenario == 1)
       make_grid_case_1();
@@ -2114,8 +2115,8 @@ namespace PhaseField
     m_logfile << "\t\tGrid:\n\t\t\tReference volume: " << m_vol_reference << std::endl;
   }
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::make_grid_case_1()
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_1()
   {
     for (unsigned int i = 0; i < 80; ++i)
       m_logfile << "*";
@@ -2203,8 +2204,8 @@ namespace PhaseField
   }
 
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::make_grid_case_2()
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_2()
   {
     for (unsigned int i = 0; i < 80; ++i)
       m_logfile << "*";
@@ -2294,8 +2295,8 @@ namespace PhaseField
       }
   }
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::make_grid_case_3()
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_3()
   {
     for (unsigned int i = 0; i < 80; ++i)
       m_logfile << "*";
@@ -2382,8 +2383,8 @@ namespace PhaseField
       }
   }
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::make_grid_case_4()
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_4()
   {
     for (unsigned int i = 0; i < 80; ++i)
       m_logfile << "*";
@@ -2473,8 +2474,8 @@ namespace PhaseField
       }
   }
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::make_grid_case_5()
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_5()
   {
     for (unsigned int i = 0; i < 80; ++i)
       m_logfile << "*";
@@ -2571,8 +2572,8 @@ namespace PhaseField
       }
   }
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::make_grid_case_6()
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_6()
   {
     AssertThrow(dim==3, ExcMessage("The dimension has to be 3D!"));
 
@@ -2695,8 +2696,8 @@ namespace PhaseField
       }
   }
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::make_grid_case_7()
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_7()
   {
     AssertThrow(dim==3, ExcMessage("The dimension has to be 3D!"));
 
@@ -2830,8 +2831,8 @@ namespace PhaseField
   }
 
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::make_grid_case_8()
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_8()
   {
     AssertThrow(dim==3, ExcMessage("The dimension has to be 3D!"));
 
@@ -2979,8 +2980,8 @@ namespace PhaseField
   }
 
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::make_grid_case_9()
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_9()
   {
     AssertThrow(dim==2, ExcMessage("The dimension has to be 2D!"));
 
@@ -3067,8 +3068,8 @@ namespace PhaseField
       }
   }
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::make_grid_case_11()
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_11()
   {
     AssertThrow(dim==3, ExcMessage("The dimension has to be 3D!"));
 
@@ -3203,8 +3204,8 @@ namespace PhaseField
 	}
   }
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::make_grid_case_12()
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_12()
   {
     for (unsigned int i = 0; i < 80; ++i)
       m_logfile << "*";
@@ -3248,8 +3249,8 @@ namespace PhaseField
 	}
   }
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::setup_system()
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::setup_system()
   {
     m_timer.enter_subsection("Setup system");
 
@@ -3309,8 +3310,8 @@ namespace PhaseField
     m_timer.leave_subsection();
   }
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::make_constraints(const unsigned int it_nr)
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::make_constraints(const unsigned int it_nr)
   {
     const bool apply_dirichlet_bc = (it_nr == 0);
 
@@ -3648,8 +3649,8 @@ namespace PhaseField
     m_constraints.close();
   }
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::assemble_system_newton(const BlockVector<double> & solution_old)
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::assemble_system_newton(const BlockVector<double> & solution_old)
   {
     m_timer.enter_subsection("Assemble system");
 
@@ -3695,8 +3696,8 @@ namespace PhaseField
   }
 
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::assemble_system_B0(const BlockVector<double> & solution_old)
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::assemble_system_B0(const BlockVector<double> & solution_old)
   {
     m_timer.enter_subsection("Assemble B0");
 
@@ -3735,8 +3736,8 @@ namespace PhaseField
     m_timer.leave_subsection();
   }
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::assemble_system_rhs_BFGS_parallel(const BlockVector<double> & solution_old,
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::assemble_system_rhs_BFGS_parallel(const BlockVector<double> & solution_old,
 								         BlockVector<double> & system_rhs)
   {
     m_timer.enter_subsection("Assemble RHS");
@@ -3778,8 +3779,8 @@ namespace PhaseField
     m_timer.leave_subsection();
   }
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::assemble_system_rhs_BFGS_one_cell(
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::assemble_system_rhs_BFGS_one_cell(
       const typename DoFHandler<dim>::active_cell_iterator &cell,
       ScratchData_ASM_RHS_BFGS & scratch,
       PerTaskData_ASM_RHS_BFGS & data) const
@@ -3935,8 +3936,8 @@ namespace PhaseField
         }
   }
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::assemble_system_newton_one_cell(
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::assemble_system_newton_one_cell(
       const typename DoFHandler<dim>::active_cell_iterator &cell,
       ScratchData_ASM & scratch,
       PerTaskData_ASM & data) const
@@ -4151,8 +4152,8 @@ namespace PhaseField
         }
   }
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::assemble_system_B0_one_cell(
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::assemble_system_B0_one_cell(
       const typename DoFHandler<dim>::active_cell_iterator &cell,
       ScratchData_ASM & scratch,
       PerTaskData_ASM & data) const
@@ -4273,8 +4274,8 @@ namespace PhaseField
       }  // q_point
   }
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::assemble_system_rhs_BFGS(const BlockVector<double> & solution_old,
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::assemble_system_rhs_BFGS(const BlockVector<double> & solution_old,
 								BlockVector<double> & system_rhs)
   {
     m_timer.enter_subsection("Assemble RHS");
@@ -4459,8 +4460,8 @@ namespace PhaseField
     m_timer.leave_subsection();
   }
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::update_history_field_step()
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::update_history_field_step()
   {
     m_logfile << "\t\tUpdate history variable" << std::endl;
 
@@ -4477,8 +4478,8 @@ namespace PhaseField
       }
   }
 
-  template <int dim>
-  double PhaseFieldMonolithicSolve<dim>::line_search_stepsize_gradient_based(const BlockVector<double> & BFGS_p_vector,
+  template <typename LATraits, typename Tria>
+  double PhaseFieldMonolithicSolve<LATraits, Tria>::line_search_stepsize_gradient_based(const BlockVector<double> & BFGS_p_vector,
 				                                             const BlockVector<double> & solution_delta,
 									     unsigned int & num_ls)
   {
@@ -4545,8 +4546,8 @@ namespace PhaseField
     return alpha;
   }
 
-  template <int dim>
-  double PhaseFieldMonolithicSolve<dim>::line_search_stepsize_strong_wolfe(const double phi_0,
+  template <typename LATraits, typename Tria>
+  double PhaseFieldMonolithicSolve<LATraits, Tria>::line_search_stepsize_strong_wolfe(const double phi_0,
 				                                           const double phi_0_prime,
 				                                           const BlockVector<double> & BFGS_p_vector,
 				                                           const BlockVector<double> & solution_delta,
@@ -4622,8 +4623,8 @@ namespace PhaseField
     return alpha;
   }
 
-  template <int dim>
-  double PhaseFieldMonolithicSolve<dim>::
+  template <typename LATraits, typename Tria>
+  double PhaseFieldMonolithicSolve<LATraits, Tria>::
     line_search_zoom_strong_wolfe(double phi_low, double phi_low_prime, double alpha_low,
 				  double phi_high, double phi_high_prime, double alpha_high,
 				  double phi_0, double phi_0_prime, const BlockVector<double> & BFGS_p_vector,
@@ -4682,8 +4683,8 @@ namespace PhaseField
     return alpha;
   }
 
-  template <int dim>
-  double PhaseFieldMonolithicSolve<dim>::
+  template <typename LATraits, typename Tria>
+  double PhaseFieldMonolithicSolve<LATraits, Tria>::
     line_search_interpolation_cubic(const double alpha_0, const double phi_0, const double phi_0_prime,
   			            const double alpha_1, const double phi_1, const double phi_1_prime)
   {
@@ -4716,8 +4717,8 @@ namespace PhaseField
     return alpha;
   }
 
-  template <int dim>
-  std::pair<double, double> PhaseFieldMonolithicSolve<dim>::
+  template <typename LATraits, typename Tria>
+  std::pair<double, double> PhaseFieldMonolithicSolve<LATraits, Tria>::
     calculate_phi_and_phi_prime(const double alpha,
 				const BlockVector<double> & BFGS_p_vector,
 				const BlockVector<double> & solution_delta)
@@ -4739,8 +4740,8 @@ namespace PhaseField
     return phi_values;
   }
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::LBFGS_B0(BlockVector<double> & LBFGS_r_vector,
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::LBFGS_B0(BlockVector<double> & LBFGS_r_vector,
 						BlockVector<double> & LBFGS_q_vector)
   {
     m_timer.enter_subsection("Solve B0");
@@ -4812,9 +4813,9 @@ namespace PhaseField
     m_timer.leave_subsection();
   }
 
-  template <int dim>
+  template <typename LATraits, typename Tria>
   std::vector<double>
-    PhaseFieldMonolithicSolve<dim>::solve_linear_system(BlockVector<double> & newton_update)
+    PhaseFieldMonolithicSolve<LATraits, Tria>::solve_linear_system(BlockVector<double> & newton_update)
   {
     m_timer.enter_subsection("Solve coupled linear system");
 
@@ -4859,8 +4860,8 @@ namespace PhaseField
     return linear_solver_parameters;
   }
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::print_conv_header_newton()
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::print_conv_header_newton()
   {
     static const unsigned int l_width = 135;
     m_logfile << '\t' << '\t';
@@ -4879,8 +4880,8 @@ namespace PhaseField
     m_logfile << std::endl;
   }
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::print_conv_header_BFGS()
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::print_conv_header_BFGS()
   {
     static const unsigned int l_width = 125;
     m_logfile << '\t' << '\t';
@@ -4899,8 +4900,8 @@ namespace PhaseField
     m_logfile << std::endl;
   }
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::print_conv_header_LBFGS()
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::print_conv_header_LBFGS()
   {
     static const unsigned int l_width = 128;
     m_logfile << '\t' << '\t';
@@ -4919,8 +4920,8 @@ namespace PhaseField
     m_logfile << std::endl;
   }
 
-  template <int dim>
-  bool PhaseFieldMonolithicSolve<dim>::
+  template <typename LATraits, typename Tria>
+  bool PhaseFieldMonolithicSolve<LATraits, Tria>::
     solve_nonlinear_timestep_newton(BlockVector<double> & solution_delta)
   {
     BlockVector<double> newton_update(m_dofs_per_block);
@@ -5048,8 +5049,8 @@ namespace PhaseField
     return false;
   }
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::
   solve_nonlinear_timestep_BFGS(BlockVector<double> & solution_delta)
   {
     AssertThrow(false,
@@ -5244,8 +5245,8 @@ namespace PhaseField
                 ExcMessage("No convergence in BFGS nonlinear solver!"));
   }
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::
   solve_nonlinear_timestep_LBFGS(BlockVector<double> & solution_delta,
 				 BlockVector<double> & LBFGS_update_refine)
   {
@@ -5594,8 +5595,8 @@ namespace PhaseField
                 ExcMessage("No convergence in L-BFGS nonlinear solver!"));
   }
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::output_results() const
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::output_results() const
   {
     m_timer.enter_subsection("Output results");
 
@@ -5674,8 +5675,8 @@ namespace PhaseField
     m_timer.leave_subsection();
   }
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::calculate_reaction_force(unsigned int face_ID)
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::calculate_reaction_force(unsigned int face_ID)
   {
     m_timer.enter_subsection("Calculate reaction force");
 
@@ -5831,8 +5832,8 @@ namespace PhaseField
     m_timer.leave_subsection();
   }
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::write_history_data()
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::write_history_data()
   {
     m_logfile << "\t\tWrite history data ... \n"<<std::endl;
 
@@ -5887,8 +5888,8 @@ namespace PhaseField
       m_logfile << "Unable to open file";
   }
 
-  template <int dim>
-  double PhaseFieldMonolithicSolve<dim>::calculate_energy_functional() const
+  template <typename LATraits, typename Tria>
+  double PhaseFieldMonolithicSolve<LATraits, Tria>::calculate_energy_functional() const
   {
     double energy_functional = 0.0;
 
@@ -5913,9 +5914,9 @@ namespace PhaseField
     return energy_functional;
   }
 
-  template <int dim>
+  template <typename LATraits, typename Tria>
   std::pair<double, double>
-    PhaseFieldMonolithicSolve<dim>::calculate_total_strain_energy_and_crack_energy_dissipation() const
+    PhaseFieldMonolithicSolve<LATraits, Tria>::calculate_total_strain_energy_and_crack_energy_dissipation() const
   {
     double total_strain_energy = 0.0;
     double crack_energy_dissipation = 0.0;
@@ -5942,8 +5943,8 @@ namespace PhaseField
   }
 
 
-  template <int dim>
-  bool PhaseFieldMonolithicSolve<dim>::local_refine_and_solution_transfer(BlockVector<double> & solution_delta,
+  template <typename LATraits, typename Tria>
+  bool PhaseFieldMonolithicSolve<LATraits, Tria>::local_refine_and_solution_transfer(BlockVector<double> & solution_delta,
 									  BlockVector<double> & LBFGS_update_refine)
   {
     // This is the solution at (n+1) obtained from the old (coarse) mesh
@@ -6136,8 +6137,8 @@ namespace PhaseField
     return mesh_is_same;
   }
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::print_parameter_information()
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::print_parameter_information()
   {
     m_logfile << "Scenario number = " << m_parameters.m_scenario << std::endl;
     m_logfile << "Log file = " << m_parameters.m_logfile_name << std::endl;
@@ -6192,8 +6193,8 @@ namespace PhaseField
     m_logfile << "Time data file name = " << m_parameters.m_time_file_name << std::endl;
   }
 
-  template <int dim>
-  void PhaseFieldMonolithicSolve<dim>::run()
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::run()
   {
     print_parameter_information();
 
@@ -6412,24 +6413,78 @@ int main(int argc, char* argv[])
                 ExcMessage("Dimension has to be either 2 or 3"));
 
 
-  if (dim == 2 )
-    {
-      PhaseFieldMonolithicSolve<2> FEQ1Full(logfile,
-                                            parameters,
-                                            mpiInfo);
-      FEQ1Full.run();
-    }
-  else if (dim == 3)
-    {
-      PhaseFieldMonolithicSolve<3> SphereInclusion3D(logfile,
-                                                     parameters,
-                                                     mpiInfo);
-      SphereInclusion3D.run();
-    }
-  else
-    {
-      AssertThrow(false,
-                  ExcMessage("Dimension has to be either 2 or 3"));
+    if(parameters.m_mpi_type == "PETSc") {
+#ifdef HAVE_PETSC
+        // PETSc type mpi
+        if (dim == 2 )
+        {
+            DTria<2> tria(*mpiInfo.mpiCommPtr(),
+                          typename Triangulation<2>::MeshSmoothing(
+                            Triangulation<2>::smoothing_on_refinement |
+                            Triangulation<2>::smoothing_on_coarsening),
+                          DTria<2>::no_automatic_repartitioning);
+            
+            PhaseFieldMonolithicSolve<Traits<TagPETSc>, DTria<2>> Phasefield2D(parameters, mpiInfo, logfile, tria);
+            Phasefield2D.run();
+        }
+        else if (dim == 3)
+        {
+            DTria<3> tria(*mpiInfo.mpiCommPtr(),
+                          typename Triangulation<3>::MeshSmoothing(
+                            Triangulation<3>::smoothing_on_refinement |
+                            Triangulation<3>::smoothing_on_coarsening),
+                          DTria<3>::no_automatic_repartitioning);
+            
+            PhaseFieldMonolithicSolve<Traits<TagPETSc>, DTria<3>> Phasefield3D(parameters, mpiInfo, logfile, tria);
+            Phasefield3D.run();
+        }
+#else
+        std::cout << "[ ERROR ] The selected mpi mode (" << parameters.m_mpi_type << ") is not installed." << std::endl;
+#endif
+    } else if(parameters.m_mpi_type == "Trilinos") {
+#ifdef HAVE_TRILINOS
+        // Trilinos type mpi
+        if (dim == 2 )
+        {
+            DTria<2> tria(*mpiInfo.mpiCommPtr(),
+                          typename Triangulation<2>::MeshSmoothing(
+                            Triangulation<2>::smoothing_on_refinement |
+                            Triangulation<2>::smoothing_on_coarsening),
+                          DTria<2>::no_automatic_repartitioning);
+            
+            PhaseFieldMonolithicSolve<Traits<TagTrilinos>, DTria<2>> Phasefield2D(parameters, mpiInfo, logfile, tria);
+            Phasefield2D.run();
+        }
+        else if (dim == 3)
+        {
+            DTria<3> tria(*mpiInfo.mpiCommPtr(),
+                          typename Triangulation<3>::MeshSmoothing(
+                            Triangulation<3>::smoothing_on_refinement |
+                            Triangulation<3>::smoothing_on_coarsening),
+                          DTria<3>::no_automatic_repartitioning);
+            
+            PhaseFieldMonolithicSolve<Traits<TagTrilinos>, DTria<3>> Phasefield3D(parameters, mpiInfo, logfile, tria);
+            Phasefield3D.run();
+        }
+#else
+        std::cout << "[ ERROR ] The selected mpi mode (" << parameters.m_mpi_type << ") is not installed." << std::endl;
+#endif
+    } else {
+        // Serial type
+        if (dim == 2 )
+        {
+            RTria<2> tria(Triangulation<2>::maximum_smoothing);
+            
+            PhaseFieldMonolithicSolve<Traits<TagSerial>, RTria<2>> Phasefield2D(parameters, mpiInfo, logfile, tria);
+            Phasefield2D.run();
+        }
+        else if (dim == 3)
+        {
+            RTria<3> tria(Triangulation<3>::maximum_smoothing);
+            
+            PhaseFieldMonolithicSolve<Traits<TagSerial>, RTria<3>> Phasefield3D(parameters, mpiInfo, logfile, tria);
+            Phasefield3D.run();
+        }
     }
 
   return 0;
