@@ -1173,8 +1173,7 @@ namespace PhaseField
   class PhaseFieldMonolithicSolve
   {
   public:
-    PhaseFieldMonolithicSolve(const std::string &input_file,
-                              ConditionalOStream& logfile,
+    PhaseFieldMonolithicSolve(ConditionalOStream& logfile,
                               const Parameters::AllParameters& parameters);
 
     virtual ~PhaseFieldMonolithicSolve() = default;
@@ -2034,8 +2033,7 @@ namespace PhaseField
   // constructor has no return type
   template <int dim>
   PhaseFieldMonolithicSolve<dim>
-::PhaseFieldMonolithicSolve(const std::string&  input_file,
-                            ConditionalOStream& logfile,
+::PhaseFieldMonolithicSolve(ConditionalOStream& logfile,
                             const Parameters::AllParameters& parameters)
     : m_parameters(parameters)
     , m_triangulation(Triangulation<dim>::maximum_smoothing)
@@ -6331,15 +6329,13 @@ int main(int argc, char* argv[])
   const unsigned int dim = std::stoi(argv[1]);
   if (dim == 2 )
     {
-      PhaseFieldMonolithicSolve<2> FEQ1Full("parameters.prm",
-                                            logfile,
+      PhaseFieldMonolithicSolve<2> FEQ1Full(logfile,
                                             parameters);
       FEQ1Full.run();
     }
   else if (dim == 3)
     {
-      PhaseFieldMonolithicSolve<3> SphereInclusion3D("parameters.prm",
-                                                     logfile,
+      PhaseFieldMonolithicSolve<3> SphereInclusion3D(logfile,
                                                      parameters);
       SphereInclusion3D.run();
     }
