@@ -287,6 +287,9 @@ namespace PhaseField
   {
     struct Scenario
     {
+        unsigned int m_dim;
+        
+        
       unsigned int m_scenario;
       std::string m_logfile_name;
       bool m_output_iteration_history;
