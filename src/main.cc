@@ -107,6 +107,9 @@
 
 #include "../include/Common/BlockDesc.h"
 
+#include "../include/Common/BlockVectorWrapper.h"
+#include "../include/Common/BlockSparseMatrixWrapper.h"
+
 namespace PhaseField
 {
   using namespace dealii;
@@ -1191,8 +1194,12 @@ namespace PhaseField
   {
   public:
       constexpr static int dim = Tria::dimension;
-//      using BSMatrix = ::common::BlockSparseMatrixWrapper<LATraits>;
-//      using BVector  = ::common::BlockVectorWrapper<LATraits>;
+      using BSMatrix = ::common::BlockSparseMatrixWrapper<LATraits>;
+      using BVector  = ::common::BlockVectorWrapper<LATraits>;
+      
+      // variable to tell if this is class is for mpi mode
+      static constexpr bool is_mpi =
+          !std::is_same_v<typename LATraits::TMTag, TagSerial>;
       
     PhaseFieldMonolithicSolve(const Parameters::AllParameters& parameters,
                               const MPIInfo& mpiInfo,
@@ -1252,10 +1259,16 @@ namespace PhaseField
     double m_vol_reference;
 
     AffineConstraints<double> m_constraints;
-    BlockSparsityPattern      m_sparsity_pattern;
-    BlockSparseMatrix<double> m_tangent_matrix;
-    BlockVector<double>       m_system_rhs;
-    BlockVector<double>       m_solution;
+      
+//    BlockSparsityPattern      m_sparsity_pattern;
+//    BlockSparseMatrix<double> m_tangent_matrix;
+//    BlockVector<double>       m_system_rhs;
+//    BlockVector<double>       m_solution;
+      
+      BSMatrix                  m_tangent_matrix;
+      BVector                   m_system_rhs;
+      BVector                   m_solution;
+      
     SparseDirectUMFPACK       m_A_direct;
 
 
@@ -2087,6 +2100,11 @@ template <typename LATraits, typename Tria>
     , m_qf_face(m_parameters.m_quad_order)
     , m_n_q_points(m_qf_cell.size())
     , m_vol_reference(0.0)
+    , m_tangent_matrix(m_mpiInfo,
+                   m_blocks_desc,
+                   [](unsigned int, unsigned int){return DoFTools::always;})
+    , m_system_rhs(m_mpiInfo, m_blocks_desc, /*relevance=*/ false)
+    , m_solution(m_mpiInfo, m_blocks_desc, /*relevance=*/ true)
   {}
 
   template <typename LATraits, typename Tria>
@@ -3303,24 +3321,28 @@ template <typename LATraits, typename Tria>
 	      << m_dofs_per_block[m_d_dof]
               << std::endl;
 
-    m_tangent_matrix.clear();
-    {
-      BlockDynamicSparsityPattern dsp(m_dofs_per_block, m_dofs_per_block);
-
-      Table<2, DoFTools::Coupling> coupling(m_n_components, m_n_components);
-      for (unsigned int ii = 0; ii < m_n_components; ++ii)
-        for (unsigned int jj = 0; jj < m_n_components; ++jj)
-          coupling[ii][jj] = DoFTools::always;
-
-      DoFTools::make_sparsity_pattern(
-        m_dof_handler, coupling, dsp, m_constraints, false);
-      m_sparsity_pattern.copy_from(dsp);
-    }
-
-    m_tangent_matrix.reinit(m_sparsity_pattern);
-
-    m_system_rhs.reinit(m_dofs_per_block);
-    m_solution.reinit(m_dofs_per_block);
+//    m_tangent_matrix.clear();
+//    {
+//      BlockDynamicSparsityPattern dsp(m_dofs_per_block, m_dofs_per_block);
+//
+//      Table<2, DoFTools::Coupling> coupling(m_n_components, m_n_components);
+//      for (unsigned int ii = 0; ii < m_n_components; ++ii)
+//        for (unsigned int jj = 0; jj < m_n_components; ++jj)
+//          coupling[ii][jj] = DoFTools::always;
+//
+//      DoFTools::make_sparsity_pattern(
+//        m_dof_handler, coupling, dsp, m_constraints, false);
+//      m_sparsity_pattern.copy_from(dsp);
+//    }
+//
+//    m_tangent_matrix.reinit(m_sparsity_pattern);
+//
+//    m_system_rhs.reinit(m_dofs_per_block);
+//    m_solution.reinit(m_dofs_per_block);
+      m_tangent_matrix.initalize(m_dof_handler, m_constraints, false);
+      
+      m_system_rhs.initialize();
+      m_solution.initialize();
 
     setup_qph();
 
