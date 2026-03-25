@@ -99,10 +99,13 @@
 
 
 #include "../include/Common/MPIInfo.h"
+#include "../include/Common/FileSystem.h"
+#include "../include/Common/MPIInfo.h"
 
 namespace PhaseField
 {
   using namespace dealii;
+  using namespace common;
 
   // body force
   template <int dim>
@@ -1177,7 +1180,8 @@ namespace PhaseField
   {
   public:
     PhaseFieldMonolithicSolve(ConditionalOStream& logfile,
-                              const Parameters::AllParameters& parameters);
+                              const Parameters::AllParameters& parameters,
+                              const MPIInfo& mpiInfo);
 
     virtual ~PhaseFieldMonolithicSolve() = default;
     void run();
@@ -1201,6 +1205,7 @@ namespace PhaseField
 
     Time                m_time;
       
+      const MPIInfo&                       m_mpiInfo;
       ConditionalOStream&                  m_logfile;
     mutable TimerOutput m_timer;
 
@@ -2037,10 +2042,12 @@ namespace PhaseField
   template <int dim>
   PhaseFieldMonolithicSolve<dim>
 ::PhaseFieldMonolithicSolve(ConditionalOStream& logfile,
-                            const Parameters::AllParameters& parameters)
+                            const Parameters::AllParameters& parameters,
+                            const MPIInfo& mpiInfo)
     : m_parameters(parameters)
     , m_triangulation(Triangulation<dim>::maximum_smoothing)
     , m_time(m_parameters.m_end_time)
+    , m_mpiInfo(mpiInfo)
     , m_logfile(logfile)
     , m_timer(m_logfile, TimerOutput::summary, TimerOutput::wall_times)
     , m_dof_handler(m_triangulation)
@@ -6363,13 +6370,15 @@ int main(int argc, char* argv[])
   if (dim == 2 )
     {
       PhaseFieldMonolithicSolve<2> FEQ1Full(logfile,
-                                            parameters);
+                                            parameters,
+                                            mpiInfo);
       FEQ1Full.run();
     }
   else if (dim == 3)
     {
       PhaseFieldMonolithicSolve<3> SphereInclusion3D(logfile,
-                                                     parameters);
+                                                     parameters,
+                                                     mpiInfo);
       SphereInclusion3D.run();
     }
   else
