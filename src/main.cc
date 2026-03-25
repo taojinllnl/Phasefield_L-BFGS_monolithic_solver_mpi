@@ -97,6 +97,9 @@
 #include "../include/SpectrumDecomposition.h"
 #include "../include/Utilities.h"
 
+
+#include "../include/Common/MPIInfo.h"
+
 namespace PhaseField
 {
   using namespace dealii;
@@ -6311,6 +6314,7 @@ int main(int argc, char* argv[])
 
   using namespace dealii;
     using namespace PhaseField;
+    using namespace common;
 
     if (argc < 2)
       AssertThrow(false,
@@ -6321,6 +6325,35 @@ int main(int argc, char* argv[])
     // read prm by input command
   Parameters::AllParameters parameters(argv[argc-1]);
     
+    // initialize MPI by prm settings
+    MPIInfo mpiInfo(parameters.m_mpi_type == "PETSc" ||
+                    parameters.m_mpi_type == "Trilinos",
+                    argc-1, argv);
+    
+    
+    /**
+     *
+     * Print MPI / non-MPI runtime information at rank 0.
+     *
+     * In serial mode, only non-MPI information is printed to the terminal.
+     * In MPI mode, runtime MPI configuration information is printed.
+     *
+     * [ Warning ]
+     * Whether the MPI functionality is initialized, the mode is only determined by the settings in `.prm` via `MPIInfo`.
+     * If `Serial` is specified in the `.prm` file but the executable is launched via `mpiexec` or `mpirun`, MPI will NOT be initialized inside the program.
+     * In this case, the launcher will start multiple independent instances of the same executable.
+     *
+     * As a consequence, the program is executed repeatedly for `n` times,
+     * where `n` is the number of processes requested by `mpiexec` or `mpirun`.
+     * The program does not automatically detect or prevent this situation.
+     * If this is unintended, please terminate the job immediately.
+     *
+     */
+    if(mpiInfo.rank() == 0)
+        mpiInfo.summary(std::cout);
+    
+    
+
     
     
     std::ofstream log_fstream;
