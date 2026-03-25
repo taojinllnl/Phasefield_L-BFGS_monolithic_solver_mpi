@@ -315,6 +315,12 @@ namespace PhaseField
     {
       prm.enter_subsection("Scenario");
       {
+          
+          prm.declare_entry("dimension",
+                              "2",
+                              Patterns::Integer(2),
+                              "dimension of the problem");
+          
         prm.declare_entry("Scenario number",
                           "1",
                           Patterns::Integer(0),
@@ -420,6 +426,7 @@ namespace PhaseField
     {
       prm.enter_subsection("Scenario");
       {
+          m_dim  = prm.get_integer("dimension");
         m_scenario = prm.get_integer("Scenario number");
         m_logfile_name = prm.get("Log file name");
         m_output_iteration_history = prm.get_bool("Output iteration history");

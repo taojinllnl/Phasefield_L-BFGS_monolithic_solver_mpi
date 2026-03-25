@@ -1,6 +1,11 @@
 # Listing of Parameters
 # ---------------------
-subsection Scenario  
+subsection Scenario
+
+  # Dimension
+  set dimension = 3
+  
+
   # Geometry, loading and boundary conditions scenario
   # 1 - square tension (2D unstructured mesh)
   # 2 - square shear   (2D unstructured mesh)
