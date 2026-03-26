@@ -5586,7 +5586,8 @@ PhaseFieldMonolithicSolve<LATraits, Tria>
 
         LBFGS_r_vector *= -1.0; // this is the p_vector (search direction)
 
-        m_constraints.distribute(LBFGS_r_vector);
+//        m_constraints.distribute(LBFGS_r_vector);
+          LBFGS_r_vector.distributeCst(m_constraints);
 
         // We need a line search algorithm to decide line_search_parameter
         unsigned int num_line_search = 0;
