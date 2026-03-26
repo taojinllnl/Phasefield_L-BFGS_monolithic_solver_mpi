@@ -3350,9 +3350,6 @@ PhaseFieldMonolithicSolve<LATraits, Tria>
   {
     m_timer.enter_subsection("Setup system");
 
-    std::vector<unsigned int> block_component(m_n_components,
-                                              m_u_dof); // displacement
-    block_component[m_d_component] = m_d_dof;           // phasefield
 
     m_dof_handler.distribute_dofs(m_fe);
     DoFRenumbering::Cuthill_McKee(m_dof_handler);
