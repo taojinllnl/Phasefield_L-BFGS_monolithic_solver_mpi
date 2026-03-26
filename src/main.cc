@@ -1809,7 +1809,7 @@ PhaseFieldMonolithicSolve<LATraits, Tria>
   template <typename LATraits, typename Tria>
   struct PhaseFieldMonolithicSolve<LATraits, Tria>::ScratchData_UQPH
   {
-    const BlockVector<double> & m_solution_UQPH;
+    const BVector & m_solution_UQPH;
 
     std::vector<SymmetricTensor<2, dim>> m_solution_symm_grads_u_cell;
     std::vector<double>         m_solution_values_phasefield_cell;
