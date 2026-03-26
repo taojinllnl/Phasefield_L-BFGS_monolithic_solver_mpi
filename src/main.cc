@@ -3752,344 +3752,346 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_12()
     m_timer.leave_subsection();
   }
 
-  template <typename LATraits, typename Tria>
-  void PhaseFieldMonolithicSolve<LATraits, Tria>::make_constraints(const unsigned int it_nr)
-  {
+template <typename LATraits, typename Tria>
+void PhaseFieldMonolithicSolve<LATraits, Tria>
+::make_constraints(const unsigned int it_nr)
+{
     const bool apply_dirichlet_bc = (it_nr == 0);
-
+    
     if (it_nr > 1)
-      {
-	if (m_parameters.m_output_iteration_history)
-          m_logfile << " --- " << std::flush;
+    {
+        if (m_parameters.m_output_iteration_history)
+            m_logfile << " --- " << std::flush;
         return;
-      }
-
+    }
+    
     if (m_parameters.m_output_iteration_history)
-      m_logfile << " CST " << std::flush;
-
+        m_logfile << " CST " << std::flush;
+    
     if (apply_dirichlet_bc)
-      {
-	m_constraints.clear();
-	DoFTools::make_hanging_node_constraints(m_dof_handler,
-						m_constraints);
-
-	const FEValuesExtractors::Scalar x_displacement(0);
-	const FEValuesExtractors::Scalar y_displacement(1);
-	const FEValuesExtractors::Scalar z_displacement(2);
-
-	const FEValuesExtractors::Vector displacements(0);
-	const FEValuesExtractors::Scalar phasefield(dim);
-
-	if (   m_parameters.m_scenario == 1
-	    || m_parameters.m_scenario == 3)
-	  {
-	    // Dirichlet B,C. bottom surface
-	    const int boundary_id_bottom_surface = 0;
-	    VectorTools::interpolate_boundary_values(m_dof_handler,
-						     boundary_id_bottom_surface,
-						     Functions::ZeroFunction<dim>(m_n_components),
-						     m_constraints,
-						     m_fe.component_mask(y_displacement));
-
-	    typename Triangulation<dim>::active_vertex_iterator vertex_itr;
-	    vertex_itr = m_triangulation.begin_active_vertex();
-	    std::vector<types::global_dof_index> node_xy(m_fe.dofs_per_vertex);
-
-	    for (; vertex_itr != m_triangulation.end_vertex(); ++vertex_itr)
-	      {
-		if (   (std::fabs(vertex_itr->vertex()[0] - 0.0) < 1.0e-9)
-		    && (std::fabs(vertex_itr->vertex()[1] - 0.0) < 1.0e-9) )
-		  {
-		    node_xy = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
-		  }
-	      }
-	    m_constraints.add_line(node_xy[0]);
-	    m_constraints.set_inhomogeneity(node_xy[0], 0.0);
-
-	    m_constraints.add_line(node_xy[1]);
-	    m_constraints.set_inhomogeneity(node_xy[1], 0.0);
-
-	    const int boundary_id_top_surface = 1;
-	    /*
-	    VectorTools::interpolate_boundary_values(m_dof_handler,
-						     boundary_id_top_surface,
-						     Functions::ZeroFunction<dim>(m_n_components),
-						     m_constraints,
-						     m_fe.component_mask(x_displacement));
-	    */
+    {
+        
+        m_constraints.clear();
+        DoFTools::make_hanging_node_constraints(m_dof_handler,
+                                                m_constraints);
+        
+        const FEValuesExtractors::Scalar x_displacement(0);
+        const FEValuesExtractors::Scalar y_displacement(1);
+        const FEValuesExtractors::Scalar z_displacement(2);
+        
+        const FEValuesExtractors::Vector displacements(0);
+        const FEValuesExtractors::Scalar phasefield(dim);
+        
+        if (   m_parameters.m_scenario == 1
+            || m_parameters.m_scenario == 3)
+        {
+            // Dirichlet B,C. bottom surface
+            const int boundary_id_bottom_surface = 0;
+            VectorTools::interpolate_boundary_values(m_dof_handler,
+                                                     boundary_id_bottom_surface,
+                                                     Functions::ZeroFunction<dim>(m_n_components),
+                                                     m_constraints,
+                                                     m_fe.component_mask(y_displacement));
+            
+            typename Triangulation<dim>::active_vertex_iterator vertex_itr;
+            vertex_itr = m_triangulation.begin_active_vertex();
+            std::vector<types::global_dof_index> node_xy(m_fe.dofs_per_vertex);
+            
+            for (; vertex_itr != m_triangulation.end_vertex(); ++vertex_itr)
+            {
+                if (   (std::fabs(vertex_itr->vertex()[0] - 0.0) < 1.0e-9)
+                    && (std::fabs(vertex_itr->vertex()[1] - 0.0) < 1.0e-9) )
+                {
+                    node_xy = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
+                }
+            }
+            m_constraints.add_line(node_xy[0]);
+            m_constraints.set_inhomogeneity(node_xy[0], 0.0);
+            
+            m_constraints.add_line(node_xy[1]);
+            m_constraints.set_inhomogeneity(node_xy[1], 0.0);
+            
+            const int boundary_id_top_surface = 1;
+            /*
+             VectorTools::interpolate_boundary_values(m_dof_handler,
+             boundary_id_top_surface,
+             Functions::ZeroFunction<dim>(m_n_components),
+             m_constraints,
+             m_fe.component_mask(x_displacement));
+             */
             const double time_inc = m_time.get_delta_t();
             double disp_magnitude = m_time.get_magnitude();
-	    VectorTools::interpolate_boundary_values(m_dof_handler,
-						     boundary_id_top_surface,
-						     Functions::ConstantFunction<dim>(
-						       disp_magnitude*time_inc, m_n_components),
-						     m_constraints,
-						     m_fe.component_mask(y_displacement));
-	  }
-	else if (   m_parameters.m_scenario == 2
-	         || m_parameters.m_scenario == 4)
-	  {
-	    // Dirichlet B,C. bottom surface
-	    const int boundary_id_bottom_surface = 0;
-	    VectorTools::interpolate_boundary_values(m_dof_handler,
-						     boundary_id_bottom_surface,
-						     Functions::ZeroFunction<dim>(m_n_components),
-						     m_constraints,
-						     m_fe.component_mask(displacements));
-
-	    const int boundary_id_top_surface = 1;
-	    VectorTools::interpolate_boundary_values(m_dof_handler,
-						     boundary_id_top_surface,
-						     Functions::ZeroFunction<dim>(m_n_components),
-						     m_constraints,
-						     m_fe.component_mask(y_displacement));
-
-	    const double time_inc = m_time.get_delta_t();
-	    double disp_magnitude = m_time.get_magnitude();
-	    VectorTools::interpolate_boundary_values(m_dof_handler,
-						     boundary_id_top_surface,
-						     Functions::ConstantFunction<dim>(
-						       disp_magnitude*time_inc, m_n_components),
-						     m_constraints,
-						     m_fe.component_mask(x_displacement));
-
-	    const int boundary_id_side_surfaces = 2;
-	    VectorTools::interpolate_boundary_values(m_dof_handler,
-						     boundary_id_side_surfaces,
-						     Functions::ZeroFunction<dim>(m_n_components),
-						     m_constraints,
-						     m_fe.component_mask(y_displacement));
-	  }
-	else if (m_parameters.m_scenario == 5)
-	  {
-	    typename Triangulation<dim>::active_vertex_iterator vertex_itr;
-	    vertex_itr = m_triangulation.begin_active_vertex();
-	    std::vector<types::global_dof_index> node_bottomleft(m_fe.dofs_per_vertex);
-	    std::vector<types::global_dof_index> node_bottomright(m_fe.dofs_per_vertex);
-	    std::vector<types::global_dof_index> node_topcenter(m_fe.dofs_per_vertex);
-
-	    for (; vertex_itr != m_triangulation.end_vertex(); ++vertex_itr)
-	      {
-		if (   (std::fabs(vertex_itr->vertex()[0] - 0.0) < 1.0e-9)
-		    && (std::fabs(vertex_itr->vertex()[1] - 0.0) < 1.0e-9) )
-		  {
-		    node_bottomleft = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
-		  }
-		if (   (std::fabs(vertex_itr->vertex()[0] - 8.0) < 1.0e-9)
-		    && (std::fabs(vertex_itr->vertex()[1] - 0.0) < 1.0e-9) )
-		  {
-		    node_bottomright = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
-		  }
-		if (   (std::fabs(vertex_itr->vertex()[0] - 4.0) < 1.0e-9)
-		    && (std::fabs(vertex_itr->vertex()[1] - 2.0) < 1.0e-9) )
-		  {
-		    node_topcenter = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
-		  }
-	      }
-	    // bottom-left node fixed in both x- and y-directions
-	    m_constraints.add_line(node_bottomleft[0]);
-	    m_constraints.set_inhomogeneity(node_bottomleft[0], 0.0);
-
-	    m_constraints.add_line(node_bottomleft[1]);
-	    m_constraints.set_inhomogeneity(node_bottomleft[1], 0.0);
-
-	    // bottom-right node only fixed in y-direction
-	    m_constraints.add_line(node_bottomright[1]);
-	    m_constraints.set_inhomogeneity(node_bottomright[1], 0.0);
-
-	    // top-center node applied with y-displacement
-	    const double time_inc = m_time.get_delta_t();
-	    double disp_magnitude = m_time.get_magnitude();
-
-	    m_constraints.add_line(node_topcenter[1]);
-	    m_constraints.set_inhomogeneity(node_topcenter[1], disp_magnitude*time_inc);
-	  }
-	else if (   m_parameters.m_scenario == 6
-	         || m_parameters.m_scenario == 7
-		 || m_parameters.m_scenario == 8)
-	  {
-	    const int x0_surface = 0;
-	    VectorTools::interpolate_boundary_values(m_dof_handler,
-						     x0_surface,
-						     Functions::ZeroFunction<dim>(m_n_components),
-						     m_constraints,
-						     m_fe.component_mask(x_displacement));
-	    const int y0_surface = 1;
-	    VectorTools::interpolate_boundary_values(m_dof_handler,
-						     y0_surface,
-						     Functions::ZeroFunction<dim>(m_n_components),
-						     m_constraints,
-						     m_fe.component_mask(y_displacement));
-	    const int z0_surface = 2;
-	    VectorTools::interpolate_boundary_values(m_dof_handler,
-						     z0_surface,
-						     Functions::ZeroFunction<dim>(m_n_components),
-						     m_constraints,
-						     m_fe.component_mask(z_displacement));
-
-	    const int z1_surface = 3;
-	    const double time_inc = m_time.get_delta_t();
-	    double disp_magnitude = m_time.get_magnitude();
-	    VectorTools::interpolate_boundary_values(m_dof_handler,
-						     z1_surface,
-						     Functions::ConstantFunction<dim>(
-						       disp_magnitude*time_inc, m_n_components),
-						     m_constraints,
-						     m_fe.component_mask(z_displacement));
-	  }
-	else if (m_parameters.m_scenario == 9)
-	  {
-	    // Dirichlet B,C. bottom surface
-	    const int boundary_id_bottom_surface = 0;
-	    VectorTools::interpolate_boundary_values(m_dof_handler,
-						     boundary_id_bottom_surface,
-						     Functions::ZeroFunction<dim>(m_n_components),
-						     m_constraints,
-						     m_fe.component_mask(displacements));
-
-	    typename Triangulation<dim>::active_vertex_iterator vertex_itr;
-	    vertex_itr = m_triangulation.begin_active_vertex();
-	    std::vector<types::global_dof_index> node_disp_control(m_fe.dofs_per_vertex);
-
-	    for (; vertex_itr != m_triangulation.end_vertex(); ++vertex_itr)
-	      {
-		if (   (std::fabs(vertex_itr->vertex()[0] - 470.0) < 1.0e-9)
-		    && (std::fabs(vertex_itr->vertex()[1] - 250.0) < 1.0e-9) )
-		  {
-		    node_disp_control = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
-	            // node applied with y-displacement
-		    const double time_inc = m_time.get_delta_t();
-		    double disp_magnitude = m_time.get_magnitude();
-
-		    m_constraints.add_line(node_disp_control[1]);
-		    m_constraints.set_inhomogeneity(node_disp_control[1], disp_magnitude*time_inc);
-		  }
-	      }
-	  }
-	else if (m_parameters.m_scenario == 11)
-	  {
-	    // Dirichlet B,C. right surface
-	    const int boundary_id_right_surface = 0;
-	    VectorTools::interpolate_boundary_values(m_dof_handler,
-						     boundary_id_right_surface,
-						     Functions::ZeroFunction<dim>(m_n_components),
-						     m_constraints,
-						     m_fe.component_mask(displacements));
-
-	    // Dirichlet B,C. left surface
-	    const int boundary_id_left_surface = 1;
-	    VectorTools::interpolate_boundary_values(m_dof_handler,
-						     boundary_id_left_surface,
-						     Functions::ZeroFunction<dim>(m_n_components),
-						     m_constraints,
-						     m_fe.component_mask(x_displacement));
-
-	    typename Triangulation<dim>::active_vertex_iterator vertex_itr;
-	    vertex_itr = m_triangulation.begin_active_vertex();
-	    std::vector<types::global_dof_index> node_rotate(m_fe.dofs_per_vertex);
-	    double node_dist = 0.0;
-	    double disp_mag = 0.0;
-	    double angle_theta = 0.0;
-	    double disp_y = 0;
-	    double disp_z = 0;
-
-	    for (; vertex_itr != m_triangulation.end_vertex(); ++vertex_itr)
-	      {
-		if (std::fabs(vertex_itr->vertex()[0] - 0.0) < 1.0e-9)
-		  {
-		    node_rotate = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
-		    node_dist = std::sqrt(  vertex_itr->vertex()[1] * vertex_itr->vertex()[1]
-					  + vertex_itr->vertex()[2] * vertex_itr->vertex()[2]);
-
-		    angle_theta = m_time.get_delta_t() * m_time.get_magnitude();
-		    disp_mag = node_dist * std::tan(angle_theta);
-
-		    if (node_dist > 0)
-		      {
-			disp_y = vertex_itr->vertex()[2]/node_dist * disp_mag;
-			disp_z = -vertex_itr->vertex()[1]/node_dist * disp_mag;
-		      }
-		    else
-		      {
-			disp_y = 0.0;
-			disp_z = 0.0;
-		      }
-
-		    m_constraints.add_line(node_rotate[1]);
-		    m_constraints.set_inhomogeneity(node_rotate[1], disp_y);
-
-		    m_constraints.add_line(node_rotate[2]);
-		    m_constraints.set_inhomogeneity(node_rotate[2], disp_z);
-		  }
-	      }
-	  }
-	else if (m_parameters.m_scenario == 12)
-	  {
-	    // Dirichlet B.C. left surface (x = 0)
-	    const int boundary_id_left_surface = 0;
-	    VectorTools::interpolate_boundary_values(m_dof_handler,
-						     boundary_id_left_surface,
-						     Functions::ZeroFunction<dim>(m_n_components),
-						     m_constraints,
-						     m_fe.component_mask(displacements));
-	    VectorTools::interpolate_boundary_values(m_dof_handler,
-						     boundary_id_left_surface,
-						     Functions::ZeroFunction<dim>(m_n_components),
-						     m_constraints,
-						     m_fe.component_mask(phasefield));
-
-	    const int boundary_id_right_surface = 1;
-	    VectorTools::interpolate_boundary_values(m_dof_handler,
-						     boundary_id_right_surface,
-						     Functions::ZeroFunction<dim>(m_n_components),
-						     m_constraints,
-						     m_fe.component_mask(y_displacement));
-	    VectorTools::interpolate_boundary_values(m_dof_handler,
-						     boundary_id_right_surface,
-						     Functions::ZeroFunction<dim>(m_n_components),
-						     m_constraints,
-						     m_fe.component_mask(phasefield));
-
-	    const double time_inc = m_time.get_delta_t();
-	    double disp_magnitude = m_time.get_magnitude();
-	    VectorTools::interpolate_boundary_values(m_dof_handler,
-						     boundary_id_right_surface,
-						     Functions::ConstantFunction<dim>(
-						       disp_magnitude*time_inc, m_n_components),
-						     m_constraints,
-						     m_fe.component_mask(x_displacement));
-
-	    const int boundary_id_bottom_surfaces = 2;
-	    VectorTools::interpolate_boundary_values(m_dof_handler,
-						     boundary_id_bottom_surfaces,
-						     Functions::ZeroFunction<dim>(m_n_components),
-						     m_constraints,
-						     m_fe.component_mask(y_displacement));
-
-	    const int boundary_id_top_surfaces = 3;
-	    VectorTools::interpolate_boundary_values(m_dof_handler,
-						     boundary_id_top_surfaces,
-						     Functions::ZeroFunction<dim>(m_n_components),
-						     m_constraints,
-						     m_fe.component_mask(y_displacement));
-	  }
-	else
-	  Assert(false, ExcMessage("The scenario has not been implemented!"));
-      }
+            VectorTools::interpolate_boundary_values(m_dof_handler,
+                                                     boundary_id_top_surface,
+                                                     Functions::ConstantFunction<dim>(
+                                                                                      disp_magnitude*time_inc, m_n_components),
+                                                     m_constraints,
+                                                     m_fe.component_mask(y_displacement));
+        }
+        else if (   m_parameters.m_scenario == 2
+                 || m_parameters.m_scenario == 4)
+        {
+            // Dirichlet B,C. bottom surface
+            const int boundary_id_bottom_surface = 0;
+            VectorTools::interpolate_boundary_values(m_dof_handler,
+                                                     boundary_id_bottom_surface,
+                                                     Functions::ZeroFunction<dim>(m_n_components),
+                                                     m_constraints,
+                                                     m_fe.component_mask(displacements));
+            
+            const int boundary_id_top_surface = 1;
+            VectorTools::interpolate_boundary_values(m_dof_handler,
+                                                     boundary_id_top_surface,
+                                                     Functions::ZeroFunction<dim>(m_n_components),
+                                                     m_constraints,
+                                                     m_fe.component_mask(y_displacement));
+            
+            const double time_inc = m_time.get_delta_t();
+            double disp_magnitude = m_time.get_magnitude();
+            VectorTools::interpolate_boundary_values(m_dof_handler,
+                                                     boundary_id_top_surface,
+                                                     Functions::ConstantFunction<dim>(
+                                                                                      disp_magnitude*time_inc, m_n_components),
+                                                     m_constraints,
+                                                     m_fe.component_mask(x_displacement));
+            
+            const int boundary_id_side_surfaces = 2;
+            VectorTools::interpolate_boundary_values(m_dof_handler,
+                                                     boundary_id_side_surfaces,
+                                                     Functions::ZeroFunction<dim>(m_n_components),
+                                                     m_constraints,
+                                                     m_fe.component_mask(y_displacement));
+        }
+        else if (m_parameters.m_scenario == 5)
+        {
+            typename Triangulation<dim>::active_vertex_iterator vertex_itr;
+            vertex_itr = m_triangulation.begin_active_vertex();
+            std::vector<types::global_dof_index> node_bottomleft(m_fe.dofs_per_vertex);
+            std::vector<types::global_dof_index> node_bottomright(m_fe.dofs_per_vertex);
+            std::vector<types::global_dof_index> node_topcenter(m_fe.dofs_per_vertex);
+            
+            for (; vertex_itr != m_triangulation.end_vertex(); ++vertex_itr)
+            {
+                if (   (std::fabs(vertex_itr->vertex()[0] - 0.0) < 1.0e-9)
+                    && (std::fabs(vertex_itr->vertex()[1] - 0.0) < 1.0e-9) )
+                {
+                    node_bottomleft = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
+                }
+                if (   (std::fabs(vertex_itr->vertex()[0] - 8.0) < 1.0e-9)
+                    && (std::fabs(vertex_itr->vertex()[1] - 0.0) < 1.0e-9) )
+                {
+                    node_bottomright = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
+                }
+                if (   (std::fabs(vertex_itr->vertex()[0] - 4.0) < 1.0e-9)
+                    && (std::fabs(vertex_itr->vertex()[1] - 2.0) < 1.0e-9) )
+                {
+                    node_topcenter = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
+                }
+            }
+            // bottom-left node fixed in both x- and y-directions
+            m_constraints.add_line(node_bottomleft[0]);
+            m_constraints.set_inhomogeneity(node_bottomleft[0], 0.0);
+            
+            m_constraints.add_line(node_bottomleft[1]);
+            m_constraints.set_inhomogeneity(node_bottomleft[1], 0.0);
+            
+            // bottom-right node only fixed in y-direction
+            m_constraints.add_line(node_bottomright[1]);
+            m_constraints.set_inhomogeneity(node_bottomright[1], 0.0);
+            
+            // top-center node applied with y-displacement
+            const double time_inc = m_time.get_delta_t();
+            double disp_magnitude = m_time.get_magnitude();
+            
+            m_constraints.add_line(node_topcenter[1]);
+            m_constraints.set_inhomogeneity(node_topcenter[1], disp_magnitude*time_inc);
+        }
+        else if (   m_parameters.m_scenario == 6
+                 || m_parameters.m_scenario == 7
+                 || m_parameters.m_scenario == 8)
+        {
+            const int x0_surface = 0;
+            VectorTools::interpolate_boundary_values(m_dof_handler,
+                                                     x0_surface,
+                                                     Functions::ZeroFunction<dim>(m_n_components),
+                                                     m_constraints,
+                                                     m_fe.component_mask(x_displacement));
+            const int y0_surface = 1;
+            VectorTools::interpolate_boundary_values(m_dof_handler,
+                                                     y0_surface,
+                                                     Functions::ZeroFunction<dim>(m_n_components),
+                                                     m_constraints,
+                                                     m_fe.component_mask(y_displacement));
+            const int z0_surface = 2;
+            VectorTools::interpolate_boundary_values(m_dof_handler,
+                                                     z0_surface,
+                                                     Functions::ZeroFunction<dim>(m_n_components),
+                                                     m_constraints,
+                                                     m_fe.component_mask(z_displacement));
+            
+            const int z1_surface = 3;
+            const double time_inc = m_time.get_delta_t();
+            double disp_magnitude = m_time.get_magnitude();
+            VectorTools::interpolate_boundary_values(m_dof_handler,
+                                                     z1_surface,
+                                                     Functions::ConstantFunction<dim>(
+                                                                                      disp_magnitude*time_inc, m_n_components),
+                                                     m_constraints,
+                                                     m_fe.component_mask(z_displacement));
+        }
+        else if (m_parameters.m_scenario == 9)
+        {
+            // Dirichlet B,C. bottom surface
+            const int boundary_id_bottom_surface = 0;
+            VectorTools::interpolate_boundary_values(m_dof_handler,
+                                                     boundary_id_bottom_surface,
+                                                     Functions::ZeroFunction<dim>(m_n_components),
+                                                     m_constraints,
+                                                     m_fe.component_mask(displacements));
+            
+            typename Triangulation<dim>::active_vertex_iterator vertex_itr;
+            vertex_itr = m_triangulation.begin_active_vertex();
+            std::vector<types::global_dof_index> node_disp_control(m_fe.dofs_per_vertex);
+            
+            for (; vertex_itr != m_triangulation.end_vertex(); ++vertex_itr)
+            {
+                if (   (std::fabs(vertex_itr->vertex()[0] - 470.0) < 1.0e-9)
+                    && (std::fabs(vertex_itr->vertex()[1] - 250.0) < 1.0e-9) )
+                {
+                    node_disp_control = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
+                    // node applied with y-displacement
+                    const double time_inc = m_time.get_delta_t();
+                    double disp_magnitude = m_time.get_magnitude();
+                    
+                    m_constraints.add_line(node_disp_control[1]);
+                    m_constraints.set_inhomogeneity(node_disp_control[1], disp_magnitude*time_inc);
+                }
+            }
+        }
+        else if (m_parameters.m_scenario == 11)
+        {
+            // Dirichlet B,C. right surface
+            const int boundary_id_right_surface = 0;
+            VectorTools::interpolate_boundary_values(m_dof_handler,
+                                                     boundary_id_right_surface,
+                                                     Functions::ZeroFunction<dim>(m_n_components),
+                                                     m_constraints,
+                                                     m_fe.component_mask(displacements));
+            
+            // Dirichlet B,C. left surface
+            const int boundary_id_left_surface = 1;
+            VectorTools::interpolate_boundary_values(m_dof_handler,
+                                                     boundary_id_left_surface,
+                                                     Functions::ZeroFunction<dim>(m_n_components),
+                                                     m_constraints,
+                                                     m_fe.component_mask(x_displacement));
+            
+            typename Triangulation<dim>::active_vertex_iterator vertex_itr;
+            vertex_itr = m_triangulation.begin_active_vertex();
+            std::vector<types::global_dof_index> node_rotate(m_fe.dofs_per_vertex);
+            double node_dist = 0.0;
+            double disp_mag = 0.0;
+            double angle_theta = 0.0;
+            double disp_y = 0;
+            double disp_z = 0;
+            
+            for (; vertex_itr != m_triangulation.end_vertex(); ++vertex_itr)
+            {
+                if (std::fabs(vertex_itr->vertex()[0] - 0.0) < 1.0e-9)
+                {
+                    node_rotate = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
+                    node_dist = std::sqrt(  vertex_itr->vertex()[1] * vertex_itr->vertex()[1]
+                                          + vertex_itr->vertex()[2] * vertex_itr->vertex()[2]);
+                    
+                    angle_theta = m_time.get_delta_t() * m_time.get_magnitude();
+                    disp_mag = node_dist * std::tan(angle_theta);
+                    
+                    if (node_dist > 0)
+                    {
+                        disp_y = vertex_itr->vertex()[2]/node_dist * disp_mag;
+                        disp_z = -vertex_itr->vertex()[1]/node_dist * disp_mag;
+                    }
+                    else
+                    {
+                        disp_y = 0.0;
+                        disp_z = 0.0;
+                    }
+                    
+                    m_constraints.add_line(node_rotate[1]);
+                    m_constraints.set_inhomogeneity(node_rotate[1], disp_y);
+                    
+                    m_constraints.add_line(node_rotate[2]);
+                    m_constraints.set_inhomogeneity(node_rotate[2], disp_z);
+                }
+            }
+        }
+        else if (m_parameters.m_scenario == 12)
+        {
+            // Dirichlet B.C. left surface (x = 0)
+            const int boundary_id_left_surface = 0;
+            VectorTools::interpolate_boundary_values(m_dof_handler,
+                                                     boundary_id_left_surface,
+                                                     Functions::ZeroFunction<dim>(m_n_components),
+                                                     m_constraints,
+                                                     m_fe.component_mask(displacements));
+            VectorTools::interpolate_boundary_values(m_dof_handler,
+                                                     boundary_id_left_surface,
+                                                     Functions::ZeroFunction<dim>(m_n_components),
+                                                     m_constraints,
+                                                     m_fe.component_mask(phasefield));
+            
+            const int boundary_id_right_surface = 1;
+            VectorTools::interpolate_boundary_values(m_dof_handler,
+                                                     boundary_id_right_surface,
+                                                     Functions::ZeroFunction<dim>(m_n_components),
+                                                     m_constraints,
+                                                     m_fe.component_mask(y_displacement));
+            VectorTools::interpolate_boundary_values(m_dof_handler,
+                                                     boundary_id_right_surface,
+                                                     Functions::ZeroFunction<dim>(m_n_components),
+                                                     m_constraints,
+                                                     m_fe.component_mask(phasefield));
+            
+            const double time_inc = m_time.get_delta_t();
+            double disp_magnitude = m_time.get_magnitude();
+            VectorTools::interpolate_boundary_values(m_dof_handler,
+                                                     boundary_id_right_surface,
+                                                     Functions::ConstantFunction<dim>(
+                                                                                      disp_magnitude*time_inc, m_n_components),
+                                                     m_constraints,
+                                                     m_fe.component_mask(x_displacement));
+            
+            const int boundary_id_bottom_surfaces = 2;
+            VectorTools::interpolate_boundary_values(m_dof_handler,
+                                                     boundary_id_bottom_surfaces,
+                                                     Functions::ZeroFunction<dim>(m_n_components),
+                                                     m_constraints,
+                                                     m_fe.component_mask(y_displacement));
+            
+            const int boundary_id_top_surfaces = 3;
+            VectorTools::interpolate_boundary_values(m_dof_handler,
+                                                     boundary_id_top_surfaces,
+                                                     Functions::ZeroFunction<dim>(m_n_components),
+                                                     m_constraints,
+                                                     m_fe.component_mask(y_displacement));
+        }
+        else
+            Assert(false, ExcMessage("The scenario has not been implemented!"));
+    }
     else  // inhomogeneous constraints
-      {
+    {
         if (m_constraints.has_inhomogeneities())
-          {
+        {
             AffineConstraints<double> homogeneous_constraints(m_constraints);
             for (unsigned int dof = 0; dof != m_dof_handler.n_dofs(); ++dof)
-              if (homogeneous_constraints.is_inhomogeneously_constrained(dof))
-                homogeneous_constraints.set_inhomogeneity(dof, 0.0);
+                if (homogeneous_constraints.is_inhomogeneously_constrained(dof))
+                    homogeneous_constraints.set_inhomogeneity(dof, 0.0);
             m_constraints.clear();
             m_constraints.copy_from(homogeneous_constraints);
-          }
-      }
+        }
+    }
     m_constraints.close();
-  }
+}
 
   template <typename LATraits, typename Tria>
   void PhaseFieldMonolithicSolve<LATraits, Tria>::assemble_system_newton(const BVector & solution_old)
