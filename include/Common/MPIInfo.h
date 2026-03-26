@@ -29,11 +29,12 @@
  */
 
 
+namespace common {
 class MPIInfo
 {
 private:
     const bool                                                __MPISupport;
-
+    
     std::unique_ptr<dealii::Utilities::MPI::MPI_InitFinalize> __mpiInitPtr;
     std::unique_ptr<MPI_Comm>                                 __mpiCommPtr;
     
@@ -61,5 +62,6 @@ public:
     
 };
 
+}
 
 #endif /* MPIInfo_h */

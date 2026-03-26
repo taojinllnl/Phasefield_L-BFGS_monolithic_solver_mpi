@@ -24,7 +24,7 @@
 
 
 
-namespace la
+namespace common
 {
 
 
@@ -58,8 +58,8 @@ private:
     const bool __hasRelevance;
     mutable std::unique_ptr<VecType> __relevancePtr{};
     
-    const MPIInfo&      __mpiInfo;
-    const BlockDesc&    __blockDesc;
+    const common::MPIInfo&      __mpiInfo;
+    const common::BlockDesc&    __blockDesc;
     
     
     void __initRelevance();
@@ -73,8 +73,8 @@ public:
     BlockVectorWrapper(const BlockVectorWrapper& other);
     BlockVectorWrapper(BlockVectorWrapper&& other) noexcept;
     
-    BlockVectorWrapper(const MPIInfo& mpiInfo,
-                       const BlockDesc& blockDesc,
+    BlockVectorWrapper(const common::MPIInfo& mpiInfo,
+                       const common::BlockDesc& blockDesc,
                        const bool hasRelevance=false);
     
     const typename TraitsType::Vector& updateRelevance();

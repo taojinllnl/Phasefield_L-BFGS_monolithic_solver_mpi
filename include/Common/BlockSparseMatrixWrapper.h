@@ -22,7 +22,7 @@
 
 #include "BlockDesc.h"
 
-namespace la
+namespace common
 {
 
 

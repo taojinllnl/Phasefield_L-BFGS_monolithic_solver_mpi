@@ -46,6 +46,8 @@
  * 3. Getters for DoFs-related data return raw pointers (may be `nullptr`). Call `updateDoFsInfo()` first to update the cached data and check the pointers for `nullptr`.
  */
 
+namespace common{
+
 class BlockDesc
 {
 private:
@@ -66,12 +68,12 @@ public:
     
 private:
     static unsigned int __nComponentsInit(const std::vector<Block>& blocks);
-
+    
     static std::vector<std::array<unsigned int, 2>>
     __dimRangeInit(const std::vector<Block>& blocks);
     
     static std::vector<unsigned int> __groupIDsInit(const std::vector<Block>& blocks);
-
+    
     static std::vector<Block> __blockInit(const std::initializer_list<InitType>& blocks);
     
 private:
@@ -79,7 +81,7 @@ private:
     const MPIInfo&                                        __mpiInfo;
     
     const std::vector<Block>                              __blocks;
- 
+    
     // the number of blocks
     const std::size_t                                    __nBlocks;
     
@@ -96,7 +98,7 @@ private:
     std::unique_ptr<std::vector<dealii::types::global_dof_index>> __dofs_per_block{};
     
     
-
+    
     std::unique_ptr<std::vector<IndexSet>>  __owned_partitioning{};
     
     std::unique_ptr<IndexSet>               __localRelevantDoFs{};
@@ -117,7 +119,7 @@ public:
     const std::vector<unsigned int>& groupIDs() const;
     unsigned int ithGroupID(const unsigned int ithComponent) const;
     unsigned int ithGroupID(const std::string& name) const;
-
+    
     
     template <int dim, int spacedim=dim>
     void updateDoFsInfo(dealii::DoFHandler<dim, spacedim>& dof_handler);
@@ -137,8 +139,8 @@ template <int dim, int spacedim>
 void BlockDesc::updateDoFsInfo(dealii::DoFHandler<dim, spacedim>& dof_handler)
 {
     using namespace dealii;
-
-
+    
+    
     if(!__dofs_per_block)
     {
         __dofs_per_block = std::make_unique<std::vector<dealii::types::global_dof_index>>();
@@ -146,7 +148,7 @@ void BlockDesc::updateDoFsInfo(dealii::DoFHandler<dim, spacedim>& dof_handler)
     
     // the __dofs_per_block is rand-independent
     (*__dofs_per_block) = DoFTools::count_dofs_per_fe_block(dof_handler, __groupIDs);
-
+    
     
     if (__mpiInfo.isMPI())
     {
@@ -154,7 +156,7 @@ void BlockDesc::updateDoFsInfo(dealii::DoFHandler<dim, spacedim>& dof_handler)
         if (!__owned_partitioning)
         {
             __owned_partitioning =
-                std::make_unique<std::vector<IndexSet>>(__nBlocks);
+            std::make_unique<std::vector<IndexSet>>(__nBlocks);
             __owned_partitioning->resize(__nBlocks);
         }
         else if (__owned_partitioning->size() != __nBlocks)
@@ -199,7 +201,7 @@ void BlockDesc::updateDoFsInfo(dealii::DoFHandler<dim, spacedim>& dof_handler)
                                           dofsOffsets[i+1]);
             (*__relevant_partitioning)[i]
             = __localRelevantDoFs->get_view(dofsOffsets[i],
-                                             dofsOffsets[i+1]);
+                                            dofsOffsets[i+1]);
         }
         /*  *  *  *   *   *   *   *   *  MPI  *   *   *   *   *   *   *   *   */
     }
@@ -207,6 +209,6 @@ void BlockDesc::updateDoFsInfo(dealii::DoFHandler<dim, spacedim>& dof_handler)
     
 }
 
-
+}
 
 #endif /* BlockDesc_hpp */

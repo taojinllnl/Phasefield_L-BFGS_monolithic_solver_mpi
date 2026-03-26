@@ -23,6 +23,7 @@
  *
  */
 
+namespace common {
 
 template <typename LATraits>
 class TimerOutputWrapper
@@ -70,5 +71,7 @@ public:
     void reset ();
     
 };
+
+}
 
 #endif /* TimerOutputWrapper_h */
