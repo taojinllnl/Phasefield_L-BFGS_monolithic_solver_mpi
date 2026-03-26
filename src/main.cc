@@ -1817,7 +1817,7 @@ PhaseFieldMonolithicSolve<LATraits, Tria>
 
     FEValues<dim> m_fe_values;
 
-    const BlockVector<double>&       m_solution_previous_step;
+    const BVector&       m_solution_previous_step;
     std::vector<double>              m_phasefield_previous_step_cell;
 
     const double                     m_delta_time;
@@ -1825,8 +1825,8 @@ PhaseFieldMonolithicSolve<LATraits, Tria>
     ScratchData_UQPH(const FiniteElement<dim> & fe_cell,
                      const QGauss<dim> &        qf_cell,
                      const UpdateFlags          uf_cell,
-                     const BlockVector<double> &solution_total,
-		     const BlockVector<double> &solution_old,
+                     const BVector &solution_total,
+		     const BVector &solution_old,
 		     const double delta_time)
       : m_solution_UQPH(solution_total)
       , m_solution_symm_grads_u_cell(qf_cell.size())
