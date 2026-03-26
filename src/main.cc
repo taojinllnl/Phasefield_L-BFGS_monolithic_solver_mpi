@@ -3353,14 +3353,27 @@ PhaseFieldMonolithicSolve<LATraits, Tria>
 
     m_dof_handler.distribute_dofs(m_fe);
     DoFRenumbering::Cuthill_McKee(m_dof_handler);
-    DoFRenumbering::component_wise(m_dof_handler, block_component);
+    DoFRenumbering::component_wise(m_dof_handler, m_blocks_desc.groupIDs());
 
-    m_constraints.clear();
-    DoFTools::make_hanging_node_constraints(m_dof_handler, m_constraints);
-    m_constraints.close();
+      m_blocks_desc.updateDoFsInfo(m_dof_handler);
 
-    m_dofs_per_block =
-      DoFTools::count_dofs_per_fe_block(m_dof_handler, block_component);
+      
+      m_constraints.clear();
+        if constexpr (is_mpi)
+        {
+            bcs::CstHelper::cstReinit(m_constraints,
+                                      m_dof_handler.locally_owned_dofs(),
+                                      *m_blocks_desc.localRelevantPartition(),
+                                      *m_mpiInfo.mpiCommPtr());
+        }
+      DoFTools::make_hanging_node_constraints(m_dof_handler, m_constraints);
+        if constexpr (is_mpi){
+            m_constraints.make_consistent_in_parallel(m_dof_handler.locally_owned_dofs(),
+                                                    *m_blocks_desc.localRelevantPartition(),
+                                                    *m_mpiInfo.mpiCommPtr());
+        }
+        m_constraints.close();
+
 
       unsigned int nCells    = m_triangulation.n_active_cells();
       unsigned int nVertices = m_triangulation.n_used_vertices();
@@ -3375,37 +3388,20 @@ PhaseFieldMonolithicSolve<LATraits, Tria>
       }
       
 
-    m_logfile << "\t\tTriangulation:"
-              << "\n\t\t\t Number of active cells: "  << nCells
-              << "\n\t\t\t Number of used vertices: " << nVertices
-              << "\n\t\t\t Number of active edges: "  << nLines
-              << "\n\t\t\t Number of active faces: "  << nFaces
-              << "\n\t\t\t Number of degrees of freedom (total): "
-	      << m_dof_handler.n_dofs()
-	      << "\n\t\t\t Number of degrees of freedom (disp): "
-	      << m_dofs_per_block[m_u_dof]
-	      << "\n\t\t\t Number of degrees of freedom (phasefield): "
-	      << m_dofs_per_block[m_d_dof]
-              << std::endl;
+      m_logfile << "\t\tTriangulation:"
+                  << "\n\t\t\t Number of active cells: "  << nCells
+                  << "\n\t\t\t Number of used vertices: " << nVertices
+                  << "\n\t\t\t Number of active edges: "  << nLines
+                  << "\n\t\t\t Number of active faces: "  << nFaces
+                  << "\n\t\t\t Number of degrees of freedom (total): "
+                  << m_dof_handler.n_dofs()
+                  << "\n\t\t\t Number of degrees of freedom (disp): "
+                  << (*m_blocks_desc.dofsPerBlockPtr())[m_u_dof]
+                  << "\n\t\t\t Number of degrees of freedom (phasefield): "
+                  << (*m_blocks_desc.dofsPerBlockPtr())[m_d_dof]
+                  << std::endl;
 
-//    m_tangent_matrix.clear();
-//    {
-//      BlockDynamicSparsityPattern dsp(m_dofs_per_block, m_dofs_per_block);
-//
-//      Table<2, DoFTools::Coupling> coupling(m_n_components, m_n_components);
-//      for (unsigned int ii = 0; ii < m_n_components; ++ii)
-//        for (unsigned int jj = 0; jj < m_n_components; ++jj)
-//          coupling[ii][jj] = DoFTools::always;
-//
-//      DoFTools::make_sparsity_pattern(
-//        m_dof_handler, coupling, dsp, m_constraints, false);
-//      m_sparsity_pattern.copy_from(dsp);
-//    }
-//
-//    m_tangent_matrix.reinit(m_sparsity_pattern);
-//
-//    m_system_rhs.reinit(m_dofs_per_block);
-//    m_solution.reinit(m_dofs_per_block);
+      
       m_tangent_matrix.initalize(m_dof_handler, m_constraints, false);
       
       m_system_rhs.initialize();
