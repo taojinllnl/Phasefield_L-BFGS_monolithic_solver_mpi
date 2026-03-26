@@ -5163,12 +5163,12 @@ template <typename LATraits, typename Tria>
 
   template <typename LATraits, typename Tria>
   void PhaseFieldMonolithicSolve<LATraits, Tria>::
-  solve_nonlinear_timestep_BFGS(BlockVector<double> & solution_delta)
+  solve_nonlinear_timestep_BFGS(BVector & solution_delta)
   {
     AssertThrow(false,
                 ExcMessage("BFGS requires too much memory. Please use L-BFGS!"));
-
-    BlockVector<double> BFGS_update(m_dofs_per_block);
+/*
+    BVector BFGS_update(m_dofs_per_block);
 
     m_error_residual.reset();
     m_error_residual_0.reset();
@@ -5355,6 +5355,7 @@ template <typename LATraits, typename Tria>
 
     AssertThrow(BFGS_iteration < m_parameters.m_max_iterations_BFGS,
                 ExcMessage("No convergence in BFGS nonlinear solver!"));
+ */
   }
 
   template <typename LATraits, typename Tria>
