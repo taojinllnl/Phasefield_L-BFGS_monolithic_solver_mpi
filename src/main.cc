@@ -5637,7 +5637,9 @@ PhaseFieldMonolithicSolve<LATraits, Tria>
           }
           
         LBFGS_r_vector *= line_search_parameter;
+          LBFGS_r_vector.updateRelevance();
         LBFGS_update = LBFGS_r_vector;
+          LBFGS_update.updateRelevance();
 
         get_error_update(LBFGS_update, m_error_update);
         if (LBFGS_iteration == 1)
@@ -5650,6 +5652,7 @@ PhaseFieldMonolithicSolve<LATraits, Tria>
           m_error_update_norm.normalize(m_error_update_0);
 
         solution_delta += LBFGS_update;
+          solution_delta.updateRelevance();
         update_qph_incremental(solution_delta, m_solution, false);
 
         LBFGS_y_vector = m_system_rhs;
