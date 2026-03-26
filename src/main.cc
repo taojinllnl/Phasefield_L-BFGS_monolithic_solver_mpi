@@ -1463,11 +1463,14 @@ using namespace bcs;
 template <typename LATraits, typename Tria>
   void PhaseFieldMonolithicSolve<LATraits, Tria>::get_error_residual(Errors &error_residual)
   {
-    BlockVector<double> error_res(m_dofs_per_block);
+      BVector error_res(m_mpiInfo, m_blocks_desc, /*relevance=*/false);
+        error_res.initialize();
 
-    for (unsigned int i = 0; i < m_dof_handler.n_dofs(); ++i)
-      if (!m_constraints.is_constrained(i))
-        error_res(i) = m_system_rhs(i);
+//    for (unsigned int i = 0; i < m_dof_handler.n_dofs(); ++i)
+//      if (!m_constraints.is_constrained(i))
+//        error_res(i) = m_system_rhs(i);
+      error_res.base() = m_system_rhs.base();
+      m_constraints.set_zero(error_res.base());
 
     error_residual.m_norm = error_res.l2_norm();
     error_residual.m_u    = error_res.block(m_u_dof).l2_norm();
@@ -1475,7 +1478,7 @@ template <typename LATraits, typename Tria>
   }
 
 template <typename LATraits, typename Tria>
-  void PhaseFieldMonolithicSolve<LATraits, Tria>::get_error_update(const BlockVector<double> &newton_update,
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::get_error_update(const BVector &newton_update,
                                                         Errors & error_update)
   {
     BlockVector<double> error_ud(m_dofs_per_block);
