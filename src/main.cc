@@ -4125,12 +4125,38 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
     {
         if (m_constraints.has_inhomogeneities())
         {
-            AffineConstraints<double> homogeneous_constraints(m_constraints);
-            for (unsigned int dof = 0; dof != m_dof_handler.n_dofs(); ++dof)
-                if (homogeneous_constraints.is_inhomogeneously_constrained(dof))
-                    homogeneous_constraints.set_inhomogeneity(dof, 0.0);
+            AffineConstraints<double> homoCst(m_constraints);
+            if constexpr (is_mpi)
+            {
+                std::vector<IndexSet::size_type> indices;
+                m_dof_handler.locally_owned_dofs().fill_index_vector(indices);
+                
+                for (unsigned int dof : indices)
+                    if (homoCst.is_inhomogeneously_constrained(dof))
+                        homoCst.set_inhomogeneity(dof, 0.0);
+            } else {
+                for (unsigned int dof = 0; dof != m_dof_handler.n_dofs(); ++dof)
+                    if (homoCst.is_inhomogeneously_constrained(dof))
+                        homoCst.set_inhomogeneity(dof, 0.0);
+            }
+            
+            if constexpr (is_mpi)
+            {
+                homoCst.make_consistent_in_parallel(m_dof_handler.locally_owned_dofs(),
+                                                    *m_blocks_desc.localRelevantPartition(),
+                                                    *m_mpiInfo.mpiCommPtr());
+            }
+            
+            homoCst.close();
             m_constraints.clear();
-            m_constraints.copy_from(homogeneous_constraints);
+//            if constexpr (is_mpi)
+//            {
+//                CstHelper::cstReinit(m_constraints,
+//                                     m_dof_handler.locally_owned_dofs(),
+//                                     DoFTools::extract_locally_relevant_dofs(m_dof_handler),
+//                                     *m_mpiInfo.mpiCommPtr());
+//            }
+            m_constraints.copy_from(homoCst);
         }
     }
     m_constraints.close();
