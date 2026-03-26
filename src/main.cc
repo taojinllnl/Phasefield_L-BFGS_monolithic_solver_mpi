@@ -110,10 +110,17 @@
 #include "../include/Common/BlockVectorWrapper.h"
 #include "../include/Common/BlockSparseMatrixWrapper.h"
 
+#include "../include/Common/CstHelper.h"
+
+#include "../include/OutputHelper.h"
+
+#include "../include/LASolver.h"
+
 namespace PhaseField
 {
   using namespace dealii;
   using namespace common;
+using namespace bcs;
 
   // body force
   template <int dim>
