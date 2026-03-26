@@ -1,8 +1,7 @@
 //
-//  LASolver.h
+//  LASolver.hpp
 //  main
 //
-//  Created by Ethan Lee on 2026-03-23.
 //
 
 #ifndef LASolver_hpp
