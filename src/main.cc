@@ -5344,8 +5344,8 @@ PhaseFieldMonolithicSolve<LATraits, Tria>
 
   template <typename LATraits, typename Tria>
   void PhaseFieldMonolithicSolve<LATraits, Tria>::
-  solve_nonlinear_timestep_LBFGS(BlockVector<double> & solution_delta,
-				 BlockVector<double> & LBFGS_update_refine)
+  solve_nonlinear_timestep_LBFGS(BVector & solution_delta,
+				 BVector & LBFGS_update_refine)
   {
     // Define an index to track how many times the line search parameter
     // is smaller than a threshold (1.0e-3) CONSECUTIVELY. If the line
