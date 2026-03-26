@@ -5034,9 +5034,10 @@ template <typename LATraits, typename Tria>
 
   template <typename LATraits, typename Tria>
   bool PhaseFieldMonolithicSolve<LATraits, Tria>::
-    solve_nonlinear_timestep_newton(BlockVector<double> & solution_delta)
+    solve_nonlinear_timestep_newton(BVector & solution_delta)
   {
-    BlockVector<double> newton_update(m_dofs_per_block);
+        /*
+    BVector newton_update(m_dofs_per_block);
 
     m_error_residual.reset();
     m_error_residual_0.reset();
@@ -5158,7 +5159,9 @@ template <typename LATraits, typename Tria>
 
     //AssertThrow(newton_iteration < m_parameters.m_max_iterations_NR,
     //            ExcMessage("No convergence in Newton-Raphson nonlinear solver!"));
+         */
     return false;
+         
   }
 
   template <typename LATraits, typename Tria>
