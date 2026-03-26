@@ -4927,7 +4927,7 @@ template <typename LATraits, typename Tria>
 
   template <typename LATraits, typename Tria>
   std::vector<double>
-    PhaseFieldMonolithicSolve<LATraits, Tria>::solve_linear_system(BlockVector<double> & newton_update)
+    PhaseFieldMonolithicSolve<LATraits, Tria>::solve_linear_system(BVector & newton_update)
   {
     m_timer.enter_subsection("Solve coupled linear system");
 
@@ -4960,14 +4960,14 @@ template <typename LATraits, typename Tria>
       linear_solver_parameters[1] = solver_control.last_step();
       linear_solver_parameters[2] = solver_control.last_value();
     }
-*/
+
     SparseDirectUMFPACK A_direct;
     A_direct.initialize(m_tangent_matrix);
     A_direct.vmult(newton_update,
 		   m_system_rhs);
 
     m_constraints.distribute(newton_update);
-
+ */
     m_timer.leave_subsection();
     return linear_solver_parameters;
   }
