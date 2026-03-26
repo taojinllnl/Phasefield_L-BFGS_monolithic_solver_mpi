@@ -6096,6 +6096,16 @@ template <typename LATraits, typename Tria>
                   break;
               }
           }
+        
+        
+        if constexpr (is_mpi)
+        {
+            // accumulate local flag over all ranks
+            const unsigned int local_flag = cell_refine_flag ? 1u : 0u;
+            const unsigned int global_flag =
+                Utilities::MPI::sum(local_flag, *m_mpiInfo.mpiCommPtr());
+            cell_refine_flag = (global_flag > 0u);
+        }
           
           // if any cell is refined, we need to project the solution
           // to the newly refined mesh
