@@ -4861,18 +4861,23 @@ PhaseFieldMonolithicSolve<LATraits, Tria>
   template <typename LATraits, typename Tria>
   std::pair<double, double> PhaseFieldMonolithicSolve<LATraits, Tria>::
     calculate_phi_and_phi_prime(const double alpha,
-				const BlockVector<double> & BFGS_p_vector,
-				const BlockVector<double> & solution_delta)
+				const BVector & BFGS_p_vector,
+				const BVector & solution_delta)
   {
     // the first component is phi(alpha), the second component is phi_prime(alpha),
     std::pair<double, double> phi_values;
 
-    BlockVector<double> solution_delta_trial(solution_delta);
+        BVector solution_delta_trial(m_mpiInfo, m_blocks_desc, /*relevance=*/true);
+        solution_delta_trial.initialize();
+        solution_delta_trial.base() = solution_delta.base();
     solution_delta_trial.add(alpha, BFGS_p_vector);
+
+        solution_delta_trial.updateRelevance();
 
     update_qph_incremental(solution_delta_trial, m_solution, false);
 
-    BlockVector<double> system_rhs(m_dofs_per_block);
+        BVector system_rhs(m_mpiInfo, m_blocks_desc, /*relevance=*/false);
+        system_rhs.initialize();
     assemble_system_rhs_BFGS_parallel(m_solution, system_rhs);
     //m_constraints.condense(system_rhs);
 
