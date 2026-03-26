@@ -3770,6 +3770,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
     
     if (apply_dirichlet_bc)
     {
+        set_bcs_id();
         
         m_constraints.clear();
         DoFTools::make_hanging_node_constraints(m_dof_handler,
