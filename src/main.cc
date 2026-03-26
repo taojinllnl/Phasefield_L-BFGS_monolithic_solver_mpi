@@ -4679,10 +4679,12 @@ PhaseFieldMonolithicSolve<LATraits, Tria>
         // BFGS_p_vector is the search direction
         solution_delta_trial = solution_delta;
         solution_delta_trial.add(alpha, BFGS_p_vector);
+          solution_delta_trial.updateRelevance();
+          
         update_qph_incremental(solution_delta_trial, m_solution, false);
         assemble_system_rhs_BFGS_parallel(m_solution, g_new);
 
-        y_old = g_new - g_old;
+        y_old.base() = g_new.base() - g_old.base();
 
         delta_alpha_old = delta_alpha_new;
       }
