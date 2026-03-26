@@ -4630,18 +4630,22 @@ PhaseFieldMonolithicSolve<LATraits, Tria>
     g_old.base() = m_system_rhs.base();
     
     // BFGS_p_vector is the search direction
-    BlockVector<double> solution_delta_trial(solution_delta);
+    BVector solution_delta_trial(m_mpiInfo, m_blocks_desc, /*relevance=*/true);
+    solution_delta_trial.initialize();
+    solution_delta_trial.base() = solution_delta.base();
     // take a full step size 1.0
     solution_delta_trial.add(1.0, BFGS_p_vector);
 
     update_qph_incremental(solution_delta_trial, m_solution, false);
 
-    BlockVector<double> g_new(m_dofs_per_block);
+      BVector g_new(m_mpiInfo, m_blocks_desc, /*relevance=*/false);
+        g_new.initialize();
     assemble_system_rhs_BFGS_parallel(m_solution, g_new);
 
-    BlockVector<double> y_old(m_dofs_per_block);
+      BVector y_old(m_mpiInfo, m_blocks_desc, /*relevance=*/false);
+        y_old.initialize();
 
-    y_old = g_new - g_old;
+    y_old.base() = g_new.base() - g_old.base();
 
     double alpha = 1.0;
 
