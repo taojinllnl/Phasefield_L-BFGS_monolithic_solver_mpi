@@ -315,6 +315,7 @@ namespace PhaseField
       std::string m_type_line_search;
       std::string m_type_linear_solver;
       std::string m_refinement_strategy;
+        double m_repartition_ratio;
       unsigned int m_LBFGS_m;
       unsigned int m_global_refine_times;
       unsigned int m_local_prerefine_times;
@@ -403,6 +404,11 @@ namespace PhaseField
                           Patterns::Selection("pre-refine|adaptive-refine"),
                           "Mesh refinement strategy: pre-refine or adaptive-refine");
 
+          prm.declare_entry("Repartitioning ratio",
+                            "2.0",
+                            Patterns::Double(0.0),
+                            "The threshold for repartitioning");
+          
         prm.declare_entry("LBFGS m",
                           "40",
                           Patterns::Integer(0),
@@ -476,6 +482,7 @@ namespace PhaseField
         m_type_line_search = prm.get("Line search type");
         m_type_linear_solver = prm.get("Linear solver type");
         m_refinement_strategy = prm.get("Mesh refinement strategy");
+          m_repartition_ratio = prm.get_double("Repartitioning ratio");
         m_LBFGS_m = prm.get_integer("LBFGS m");
         m_global_refine_times = prm.get_integer("Global refinement times");
         m_local_prerefine_times = prm.get_integer("Local prerefinement times");
