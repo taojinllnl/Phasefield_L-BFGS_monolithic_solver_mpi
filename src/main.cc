@@ -2417,1139 +2417,1139 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::set_bcs_id()
     m_logfile << "\t\tGrid:\n\t\t\tReference volume: " << m_vol_reference << std::endl;
   }
 
-  template <typename LATraits, typename Tria>
-  void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_1()
-  {
+template <typename LATraits, typename Tria>
+void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_1()
+{
     for (unsigned int i = 0; i < 80; ++i)
-      m_logfile << "*";
+        m_logfile << "*";
     m_logfile << std::endl;
     m_logfile << "\t\t\tSquare tension (unstructured)" << std::endl;
     for (unsigned int i = 0; i < 80; ++i)
-      m_logfile << "*";
+        m_logfile << "*";
     m_logfile << std::endl;
-
+    
     AssertThrow(dim==2, ExcMessage("The dimension has to be 2D!"));
-
+    
     GridIn<dim> gridin;
     gridin.attach_triangulation(m_triangulation);
     std::ifstream f("square_tension_unstructured.msh");
     gridin.read_msh(f);
-
-//    for (const auto &cell : m_triangulation.active_cell_iterators())
-//      for (const auto &face : cell->face_iterators())
-//	{
-//	  if (face->at_boundary() == true)
-//	    {
-//	      if (std::fabs(face->center()[1] + 0.5 ) < 1.0e-9 )
-//		face->set_boundary_id(0);
-//	      else if (std::fabs(face->center()[1] - 0.5 ) < 1.0e-9)
-//	        face->set_boundary_id(1);
-//	      else
-//	        face->set_boundary_id(2);
-//	    }
-//	}
-
+    
+    //    for (const auto &cell : m_triangulation.active_cell_iterators())
+    //      for (const auto &face : cell->face_iterators())
+    //	{
+    //	  if (face->at_boundary() == true)
+    //	    {
+    //	      if (std::fabs(face->center()[1] + 0.5 ) < 1.0e-9 )
+    //		face->set_boundary_id(0);
+    //	      else if (std::fabs(face->center()[1] - 0.5 ) < 1.0e-9)
+    //	        face->set_boundary_id(1);
+    //	      else
+    //	        face->set_boundary_id(2);
+    //	    }
+    //	}
+    
     m_triangulation.refine_global(m_parameters.m_global_refine_times);
-
+    
     if (m_parameters.m_refinement_strategy == "pre-refine")
-      {
-	unsigned int material_id;
-	double length_scale;
-	for (unsigned int i = 0; i < m_parameters.m_local_prerefine_times; i++)
-	  {
-	    for (const auto &cell : m_triangulation.active_cell_iterators())
-	      {
-		if (   std::fabs(cell->center()[1]) < 0.01
-		    && cell->center()[0] > 0.495)
-		  {
-		    material_id = cell->material_id();
-		    length_scale = m_material_data[material_id][2];
-		    if (  std::sqrt(cell->measure())
-			> length_scale * m_parameters.m_allowed_max_h_l_ratio )
-		      cell->set_refine_flag();
-		  }
-	      }
-	    m_triangulation.execute_coarsening_and_refinement();
-	  }
-      }
+    {
+        unsigned int material_id;
+        double length_scale;
+        for (unsigned int i = 0; i < m_parameters.m_local_prerefine_times; i++)
+        {
+            for (const auto &cell : m_triangulation.active_cell_iterators())
+            {
+                if (   std::fabs(cell->center()[1]) < 0.01
+                    && cell->center()[0] > 0.495)
+                {
+                    material_id = cell->material_id();
+                    length_scale = m_material_data[material_id][2];
+                    if (  std::sqrt(cell->measure())
+                        > length_scale * m_parameters.m_allowed_max_h_l_ratio )
+                        cell->set_refine_flag();
+                }
+            }
+            m_triangulation.execute_coarsening_and_refinement();
+        }
+    }
     else if (m_parameters.m_refinement_strategy == "adaptive-refine")
-      {
-	unsigned int material_id;
-	double length_scale;
-	bool initiation_point_refine_unfinished = true;
-	while (initiation_point_refine_unfinished)
-	  {
-	    initiation_point_refine_unfinished = false;
-	    for (const auto &cell : m_triangulation.active_cell_iterators())
-	      {
-		if (   std::fabs(cell->center()[1] - 0.0) < 0.05
-		    && std::fabs(cell->center()[0] - 0.5) < 0.05)
-		  {
-		    material_id = cell->material_id();
-		    length_scale = m_material_data[material_id][2];
-		    if (  std::sqrt(cell->measure())
-			> length_scale * m_parameters.m_allowed_max_h_l_ratio )
-		      {
-		        cell->set_refine_flag();
-		        initiation_point_refine_unfinished = true;
-		      }
-		  }
-	      }
-	    m_triangulation.execute_coarsening_and_refinement();
-	  }
-      }
+    {
+        unsigned int material_id;
+        double length_scale;
+        bool initiation_point_refine_unfinished = true;
+        while (initiation_point_refine_unfinished)
+        {
+            initiation_point_refine_unfinished = false;
+            for (const auto &cell : m_triangulation.active_cell_iterators())
+            {
+                if (   std::fabs(cell->center()[1] - 0.0) < 0.05
+                    && std::fabs(cell->center()[0] - 0.5) < 0.05)
+                {
+                    material_id = cell->material_id();
+                    length_scale = m_material_data[material_id][2];
+                    if (  std::sqrt(cell->measure())
+                        > length_scale * m_parameters.m_allowed_max_h_l_ratio )
+                    {
+                        cell->set_refine_flag();
+                        initiation_point_refine_unfinished = true;
+                    }
+                }
+            }
+            m_triangulation.execute_coarsening_and_refinement();
+        }
+    }
     else
-      {
-	AssertThrow(false,
-	            ExcMessage("Selected mesh refinement strategy not implemented!"));
-      }
-  }
+    {
+        AssertThrow(false,
+                    ExcMessage("Selected mesh refinement strategy not implemented!"));
+    }
+}
 
 
-  template <typename LATraits, typename Tria>
-  void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_2()
-  {
+template <typename LATraits, typename Tria>
+void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_2()
+{
     for (unsigned int i = 0; i < 80; ++i)
-      m_logfile << "*";
+        m_logfile << "*";
     m_logfile << std::endl;
     m_logfile << "\t\t\t\tSquare shear (unstructured)" << std::endl;
     for (unsigned int i = 0; i < 80; ++i)
-      m_logfile << "*";
+        m_logfile << "*";
     m_logfile << std::endl;
-
+    
     AssertThrow(dim==2, ExcMessage("The dimension has to be 2D!"));
-
+    
     GridIn<dim> gridin;
     gridin.attach_triangulation(m_triangulation);
     std::ifstream f("square_shear_unstructured.msh");
     gridin.read_msh(f);
-
-//    for (const auto &cell : m_triangulation.active_cell_iterators())
-//      for (const auto &face : cell->face_iterators())
-//	{
-//	  if (face->at_boundary() == true)
-//	    {
-//	      if (std::fabs(face->center()[1] + 0.5 ) < 1.0e-9 )
-//		face->set_boundary_id(0);
-//	      else if (std::fabs(face->center()[1] - 0.5 ) < 1.0e-9)
-//	        face->set_boundary_id(1);
-//	      else if (   (std::fabs(face->center()[0] - 0.0 ) < 1.0e-9)
-//		       || (std::fabs(face->center()[0] - 1.0 ) < 1.0e-9))
-//	        face->set_boundary_id(2);
-//	      else
-//	        face->set_boundary_id(3);
-//	    }
-//	}
-
+    
+    //    for (const auto &cell : m_triangulation.active_cell_iterators())
+    //      for (const auto &face : cell->face_iterators())
+    //	{
+    //	  if (face->at_boundary() == true)
+    //	    {
+    //	      if (std::fabs(face->center()[1] + 0.5 ) < 1.0e-9 )
+    //		face->set_boundary_id(0);
+    //	      else if (std::fabs(face->center()[1] - 0.5 ) < 1.0e-9)
+    //	        face->set_boundary_id(1);
+    //	      else if (   (std::fabs(face->center()[0] - 0.0 ) < 1.0e-9)
+    //		       || (std::fabs(face->center()[0] - 1.0 ) < 1.0e-9))
+    //	        face->set_boundary_id(2);
+    //	      else
+    //	        face->set_boundary_id(3);
+    //	    }
+    //	}
+    
     m_triangulation.refine_global(m_parameters.m_global_refine_times);
-
+    
     if (m_parameters.m_refinement_strategy == "pre-refine")
-      {
-	unsigned int material_id;
-	double length_scale;
-	for (unsigned int i = 0; i < m_parameters.m_local_prerefine_times; i++)
-	  {
-	    for (const auto &cell : m_triangulation.active_cell_iterators())
-	      {
-		if (    (cell->center()[0] > 0.45)
-		     && (cell->center()[1] < 0.05) )
-		  {
-		    material_id = cell->material_id();
-		    length_scale = m_material_data[material_id][2];
-		    if (  std::sqrt(cell->measure())
-			> length_scale * m_parameters.m_allowed_max_h_l_ratio )
-		      cell->set_refine_flag();
-		  }
-	      }
-	    m_triangulation.execute_coarsening_and_refinement();
-	  }
-      }
+    {
+        unsigned int material_id;
+        double length_scale;
+        for (unsigned int i = 0; i < m_parameters.m_local_prerefine_times; i++)
+        {
+            for (const auto &cell : m_triangulation.active_cell_iterators())
+            {
+                if (    (cell->center()[0] > 0.45)
+                    && (cell->center()[1] < 0.05) )
+                {
+                    material_id = cell->material_id();
+                    length_scale = m_material_data[material_id][2];
+                    if (  std::sqrt(cell->measure())
+                        > length_scale * m_parameters.m_allowed_max_h_l_ratio )
+                        cell->set_refine_flag();
+                }
+            }
+            m_triangulation.execute_coarsening_and_refinement();
+        }
+    }
     else if (m_parameters.m_refinement_strategy == "adaptive-refine")
-      {
-	unsigned int material_id;
-	double length_scale;
-	bool initiation_point_refine_unfinished = true;
-	while (initiation_point_refine_unfinished)
-	  {
-	    initiation_point_refine_unfinished = false;
-	    for (const auto &cell : m_triangulation.active_cell_iterators())
-	      {
-		if (    std::fabs(cell->center()[0] - 0.5) < 0.025
-		     && cell->center()[1] < 0.0 && cell->center()[1] > -0.025)
-		  {
-		    material_id = cell->material_id();
-		    length_scale = m_material_data[material_id][2];
-		    if (  std::sqrt(cell->measure())
-			> length_scale * m_parameters.m_allowed_max_h_l_ratio )
-		      {
-		        cell->set_refine_flag();
-		        initiation_point_refine_unfinished = true;
-		      }
-		  }
-	      }
-	    m_triangulation.execute_coarsening_and_refinement();
-	  }
-      }
+    {
+        unsigned int material_id;
+        double length_scale;
+        bool initiation_point_refine_unfinished = true;
+        while (initiation_point_refine_unfinished)
+        {
+            initiation_point_refine_unfinished = false;
+            for (const auto &cell : m_triangulation.active_cell_iterators())
+            {
+                if (    std::fabs(cell->center()[0] - 0.5) < 0.025
+                    && cell->center()[1] < 0.0 && cell->center()[1] > -0.025)
+                {
+                    material_id = cell->material_id();
+                    length_scale = m_material_data[material_id][2];
+                    if (  std::sqrt(cell->measure())
+                        > length_scale * m_parameters.m_allowed_max_h_l_ratio )
+                    {
+                        cell->set_refine_flag();
+                        initiation_point_refine_unfinished = true;
+                    }
+                }
+            }
+            m_triangulation.execute_coarsening_and_refinement();
+        }
+    }
     else
-      {
-	AssertThrow(false,
-	            ExcMessage("Selected mesh refinement strategy not implemented!"));
-      }
-  }
+    {
+        AssertThrow(false,
+                    ExcMessage("Selected mesh refinement strategy not implemented!"));
+    }
+}
 
-  template <typename LATraits, typename Tria>
-  void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_3()
-  {
+template <typename LATraits, typename Tria>
+void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_3()
+{
     for (unsigned int i = 0; i < 80; ++i)
-      m_logfile << "*";
+        m_logfile << "*";
     m_logfile << std::endl;
     m_logfile << "\t\t\tSquare tension (structured)" << std::endl;
     for (unsigned int i = 0; i < 80; ++i)
-      m_logfile << "*";
+        m_logfile << "*";
     m_logfile << std::endl;
-
+    
     AssertThrow(dim==2, ExcMessage("The dimension has to be 2D!"));
-
+    
     GridIn<dim> gridin;
     gridin.attach_triangulation(m_triangulation);
     std::ifstream f("square_tension_structured.msh");
     gridin.read_msh(f);
-
-//    for (const auto &cell : m_triangulation.active_cell_iterators())
-//      for (const auto &face : cell->face_iterators())
-//	{
-//	  if (face->at_boundary() == true)
-//	    {
-//	      if (std::fabs(face->center()[1] - 0.0 ) < 1.0e-9 )
-//		face->set_boundary_id(0);
-//	      else if (std::fabs(face->center()[1] - 1.0 ) < 1.0e-9)
-//	        face->set_boundary_id(1);
-//	      else
-//	        face->set_boundary_id(2);
-//	    }
-//	}
-
+    
+    //    for (const auto &cell : m_triangulation.active_cell_iterators())
+    //      for (const auto &face : cell->face_iterators())
+    //	{
+    //	  if (face->at_boundary() == true)
+    //	    {
+    //	      if (std::fabs(face->center()[1] - 0.0 ) < 1.0e-9 )
+    //		face->set_boundary_id(0);
+    //	      else if (std::fabs(face->center()[1] - 1.0 ) < 1.0e-9)
+    //	        face->set_boundary_id(1);
+    //	      else
+    //	        face->set_boundary_id(2);
+    //	    }
+    //	}
+    
     m_triangulation.refine_global(m_parameters.m_global_refine_times);
-
+    
     if (m_parameters.m_refinement_strategy == "pre-refine")
-      {
-	unsigned int material_id;
-	double length_scale;
-	for (unsigned int i = 0; i < m_parameters.m_local_prerefine_times; i++)
-	  {
-	    for (const auto &cell : m_triangulation.active_cell_iterators())
-	      {
-		if (    (std::fabs(cell->center()[1] - 0.5) < 0.025)
-		     && (cell->center()[0] > 0.475) )
-		  {
-		    material_id = cell->material_id();
-		    length_scale = m_material_data[material_id][2];
-		    if (  std::sqrt(cell->measure())
-			> length_scale * m_parameters.m_allowed_max_h_l_ratio )
-		      cell->set_refine_flag();
-		  }
-	      }
-	    m_triangulation.execute_coarsening_and_refinement();
-	  }
-      }
+    {
+        unsigned int material_id;
+        double length_scale;
+        for (unsigned int i = 0; i < m_parameters.m_local_prerefine_times; i++)
+        {
+            for (const auto &cell : m_triangulation.active_cell_iterators())
+            {
+                if (    (std::fabs(cell->center()[1] - 0.5) < 0.025)
+                    && (cell->center()[0] > 0.475) )
+                {
+                    material_id = cell->material_id();
+                    length_scale = m_material_data[material_id][2];
+                    if (  std::sqrt(cell->measure())
+                        > length_scale * m_parameters.m_allowed_max_h_l_ratio )
+                        cell->set_refine_flag();
+                }
+            }
+            m_triangulation.execute_coarsening_and_refinement();
+        }
+    }
     else if (m_parameters.m_refinement_strategy == "adaptive-refine")
-      {
-	unsigned int material_id;
-	double length_scale;
-	bool initiation_point_refine_unfinished = true;
-	while (initiation_point_refine_unfinished)
-	  {
-	    initiation_point_refine_unfinished = false;
-	    for (const auto &cell : m_triangulation.active_cell_iterators())
-	      {
-		if (    std::fabs(cell->center()[0] - 0.5) < 0.025
-		     && std::fabs(cell->center()[1] - 0.5) < 0.025 )
-		  {
-		    material_id = cell->material_id();
-		    length_scale = m_material_data[material_id][2];
-		    if (  std::sqrt(cell->measure())
-			> length_scale * m_parameters.m_allowed_max_h_l_ratio )
-		      {
-		        cell->set_refine_flag();
-		        initiation_point_refine_unfinished = true;
-		      }
-		  }
-	      }
-	    m_triangulation.execute_coarsening_and_refinement();
-	  }
-      }
+    {
+        unsigned int material_id;
+        double length_scale;
+        bool initiation_point_refine_unfinished = true;
+        while (initiation_point_refine_unfinished)
+        {
+            initiation_point_refine_unfinished = false;
+            for (const auto &cell : m_triangulation.active_cell_iterators())
+            {
+                if (    std::fabs(cell->center()[0] - 0.5) < 0.025
+                    && std::fabs(cell->center()[1] - 0.5) < 0.025 )
+                {
+                    material_id = cell->material_id();
+                    length_scale = m_material_data[material_id][2];
+                    if (  std::sqrt(cell->measure())
+                        > length_scale * m_parameters.m_allowed_max_h_l_ratio )
+                    {
+                        cell->set_refine_flag();
+                        initiation_point_refine_unfinished = true;
+                    }
+                }
+            }
+            m_triangulation.execute_coarsening_and_refinement();
+        }
+    }
     else
-      {
-	AssertThrow(false,
-	            ExcMessage("Selected mesh refinement strategy not implemented!"));
-      }
-  }
+    {
+        AssertThrow(false,
+                    ExcMessage("Selected mesh refinement strategy not implemented!"));
+    }
+}
 
-  template <typename LATraits, typename Tria>
-  void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_4()
-  {
+template <typename LATraits, typename Tria>
+void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_4()
+{
     for (unsigned int i = 0; i < 80; ++i)
-      m_logfile << "*";
+        m_logfile << "*";
     m_logfile << std::endl;
     m_logfile << "\t\t\t\tSquare shear (structured)" << std::endl;
     for (unsigned int i = 0; i < 80; ++i)
-      m_logfile << "*";
+        m_logfile << "*";
     m_logfile << std::endl;
-
+    
     AssertThrow(dim==2, ExcMessage("The dimension has to be 2D!"));
-
+    
     GridIn<dim> gridin;
     gridin.attach_triangulation(m_triangulation);
     std::ifstream f("square_shear_structured.msh");
     gridin.read_msh(f);
-
-//    for (const auto &cell : m_triangulation.active_cell_iterators())
-//      for (const auto &face : cell->face_iterators())
-//	{
-//	  if (face->at_boundary() == true)
-//	    {
-//	      if (std::fabs(face->center()[1] - 0.0 ) < 1.0e-9 )
-//		face->set_boundary_id(0);
-//	      else if (std::fabs(face->center()[1] - 1.0 ) < 1.0e-9)
-//	        face->set_boundary_id(1);
-//	      else if (   (std::fabs(face->center()[0] - 0.0 ) < 1.0e-9)
-//		       || (std::fabs(face->center()[0] - 1.0 ) < 1.0e-9))
-//	        face->set_boundary_id(2);
-//	      else
-//	        face->set_boundary_id(3);
-//	    }
-//	}
-
+    
+    //    for (const auto &cell : m_triangulation.active_cell_iterators())
+    //      for (const auto &face : cell->face_iterators())
+    //	{
+    //	  if (face->at_boundary() == true)
+    //	    {
+    //	      if (std::fabs(face->center()[1] - 0.0 ) < 1.0e-9 )
+    //		face->set_boundary_id(0);
+    //	      else if (std::fabs(face->center()[1] - 1.0 ) < 1.0e-9)
+    //	        face->set_boundary_id(1);
+    //	      else if (   (std::fabs(face->center()[0] - 0.0 ) < 1.0e-9)
+    //		       || (std::fabs(face->center()[0] - 1.0 ) < 1.0e-9))
+    //	        face->set_boundary_id(2);
+    //	      else
+    //	        face->set_boundary_id(3);
+    //	    }
+    //	}
+    
     m_triangulation.refine_global(m_parameters.m_global_refine_times);
-
+    
     if (m_parameters.m_refinement_strategy == "pre-refine")
-      {
-	unsigned int material_id;
-	double length_scale;
-	for (unsigned int i = 0; i < m_parameters.m_local_prerefine_times; i++)
-	  {
-	    for (const auto &cell : m_triangulation.active_cell_iterators())
-	      {
-		if (    (cell->center()[0] > 0.475)
-		     && (cell->center()[1] < 0.525) )
-		  {
-		    material_id = cell->material_id();
-		    length_scale = m_material_data[material_id][2];
-		    if (  std::sqrt(cell->measure())
-			> length_scale * m_parameters.m_allowed_max_h_l_ratio )
-		      cell->set_refine_flag();
-		  }
-	      }
-	    m_triangulation.execute_coarsening_and_refinement();
-	  }
-      }
+    {
+        unsigned int material_id;
+        double length_scale;
+        for (unsigned int i = 0; i < m_parameters.m_local_prerefine_times; i++)
+        {
+            for (const auto &cell : m_triangulation.active_cell_iterators())
+            {
+                if (    (cell->center()[0] > 0.475)
+                    && (cell->center()[1] < 0.525) )
+                {
+                    material_id = cell->material_id();
+                    length_scale = m_material_data[material_id][2];
+                    if (  std::sqrt(cell->measure())
+                        > length_scale * m_parameters.m_allowed_max_h_l_ratio )
+                        cell->set_refine_flag();
+                }
+            }
+            m_triangulation.execute_coarsening_and_refinement();
+        }
+    }
     else if (m_parameters.m_refinement_strategy == "adaptive-refine")
-      {
-	unsigned int material_id;
-	double length_scale;
-	bool initiation_point_refine_unfinished = true;
-	while (initiation_point_refine_unfinished)
-	  {
-	    initiation_point_refine_unfinished = false;
-	    for (const auto &cell : m_triangulation.active_cell_iterators())
-	      {
-		if (    std::fabs(cell->center()[0] - 0.5) < 0.025
-		     && cell->center()[1] < 0.5 && cell->center()[1] > 0.475 )
-		  {
-		    material_id = cell->material_id();
-		    length_scale = m_material_data[material_id][2];
-		    if (  std::sqrt(cell->measure())
-			> length_scale * m_parameters.m_allowed_max_h_l_ratio )
-		      {
-		        cell->set_refine_flag();
-		        initiation_point_refine_unfinished = true;
-		      }
-		  }
-	      }
-	    m_triangulation.execute_coarsening_and_refinement();
-	  }
-      }
+    {
+        unsigned int material_id;
+        double length_scale;
+        bool initiation_point_refine_unfinished = true;
+        while (initiation_point_refine_unfinished)
+        {
+            initiation_point_refine_unfinished = false;
+            for (const auto &cell : m_triangulation.active_cell_iterators())
+            {
+                if (    std::fabs(cell->center()[0] - 0.5) < 0.025
+                    && cell->center()[1] < 0.5 && cell->center()[1] > 0.475 )
+                {
+                    material_id = cell->material_id();
+                    length_scale = m_material_data[material_id][2];
+                    if (  std::sqrt(cell->measure())
+                        > length_scale * m_parameters.m_allowed_max_h_l_ratio )
+                    {
+                        cell->set_refine_flag();
+                        initiation_point_refine_unfinished = true;
+                    }
+                }
+            }
+            m_triangulation.execute_coarsening_and_refinement();
+        }
+    }
     else
-      {
-	AssertThrow(false,
-	            ExcMessage("Selected mesh refinement strategy not implemented!"));
-      }
-  }
+    {
+        AssertThrow(false,
+                    ExcMessage("Selected mesh refinement strategy not implemented!"));
+    }
+}
 
-  template <typename LATraits, typename Tria>
-  void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_5()
-  {
+template <typename LATraits, typename Tria>
+void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_5()
+{
     for (unsigned int i = 0; i < 80; ++i)
-      m_logfile << "*";
+        m_logfile << "*";
     m_logfile << std::endl;
     m_logfile << "\t\t\t\tThree-point bending (structured)" << std::endl;
     for (unsigned int i = 0; i < 80; ++i)
-      m_logfile << "*";
+        m_logfile << "*";
     m_logfile << std::endl;
-
+    
     AssertThrow(dim==2, ExcMessage("The dimension has to be 2D!"));
-
+    
     GridIn<dim> gridin;
     gridin.attach_triangulation(m_triangulation);
     std::ifstream f("three_point_bending_structured.msh");
     gridin.read_msh(f);
-
-//    for (const auto &cell : m_triangulation.active_cell_iterators())
-//      for (const auto &face : cell->face_iterators())
-//	{
-//	  if (face->at_boundary() == true)
-//	    {
-//	      if (std::fabs(face->center()[1] - 0.0 ) < 1.0e-9 )
-//		face->set_boundary_id(0);
-//	      else if (std::fabs(face->center()[1] - 2.0 ) < 1.0e-9)
-//	        face->set_boundary_id(1);
-//	      else
-//	        face->set_boundary_id(2);
-//	    }
-//	}
-
+    
+    //    for (const auto &cell : m_triangulation.active_cell_iterators())
+    //      for (const auto &face : cell->face_iterators())
+    //	{
+    //	  if (face->at_boundary() == true)
+    //	    {
+    //	      if (std::fabs(face->center()[1] - 0.0 ) < 1.0e-9 )
+    //		face->set_boundary_id(0);
+    //	      else if (std::fabs(face->center()[1] - 2.0 ) < 1.0e-9)
+    //	        face->set_boundary_id(1);
+    //	      else
+    //	        face->set_boundary_id(2);
+    //	    }
+    //	}
+    
     m_triangulation.refine_global(m_parameters.m_global_refine_times);
-
+    
     if (m_parameters.m_refinement_strategy == "pre-refine")
-      {
-	for (const auto &cell : m_triangulation.active_cell_iterators())
-	  {
-	    if (    std::fabs(cell->center()[0] - 4.0) < 0.075
-		 && cell->center()[1] < 1.6)
-	      {
-		cell->set_refine_flag();
-	      }
-	  }
-	m_triangulation.execute_coarsening_and_refinement();
-
-	unsigned int material_id;
-	double length_scale;
-	for (unsigned int i = 0; i < m_parameters.m_local_prerefine_times; i++)
-	  {
-	    for (const auto &cell : m_triangulation.active_cell_iterators())
-	      {
-		if (    std::fabs(cell->center()[0] - 4.0) < 0.05
-		     && cell->center()[1] < 1.6)
-		  {
-		    material_id = cell->material_id();
-		    length_scale = m_material_data[material_id][2];
-		    if (  std::sqrt(cell->measure())
-			> length_scale * m_parameters.m_allowed_max_h_l_ratio )
-		      cell->set_refine_flag();
-		  }
-	      }
-	    m_triangulation.execute_coarsening_and_refinement();
-	  }
-      }
+    {
+        for (const auto &cell : m_triangulation.active_cell_iterators())
+        {
+            if (    std::fabs(cell->center()[0] - 4.0) < 0.075
+                && cell->center()[1] < 1.6)
+            {
+                cell->set_refine_flag();
+            }
+        }
+        m_triangulation.execute_coarsening_and_refinement();
+        
+        unsigned int material_id;
+        double length_scale;
+        for (unsigned int i = 0; i < m_parameters.m_local_prerefine_times; i++)
+        {
+            for (const auto &cell : m_triangulation.active_cell_iterators())
+            {
+                if (    std::fabs(cell->center()[0] - 4.0) < 0.05
+                    && cell->center()[1] < 1.6)
+                {
+                    material_id = cell->material_id();
+                    length_scale = m_material_data[material_id][2];
+                    if (  std::sqrt(cell->measure())
+                        > length_scale * m_parameters.m_allowed_max_h_l_ratio )
+                        cell->set_refine_flag();
+                }
+            }
+            m_triangulation.execute_coarsening_and_refinement();
+        }
+    }
     else if (m_parameters.m_refinement_strategy == "adaptive-refine")
-      {
-	unsigned int material_id;
-	double length_scale;
-	bool initiation_point_refine_unfinished = true;
-	while (initiation_point_refine_unfinished)
-	  {
-	    initiation_point_refine_unfinished = false;
-	    for (const auto &cell : m_triangulation.active_cell_iterators())
-	      {
-		if (    std::fabs(cell->center()[0] - 4.0) < 0.075
-		     && std::fabs(cell->center()[1] - 0.4) < 0.075 )
-		  {
-		    material_id = cell->material_id();
-		    length_scale = m_material_data[material_id][2];
-		    if (  std::sqrt(cell->measure())
-			> length_scale * m_parameters.m_allowed_max_h_l_ratio )
-		      {
-		        cell->set_refine_flag();
-		        initiation_point_refine_unfinished = true;
-		      }
-		  }
-	      }
-	    m_triangulation.execute_coarsening_and_refinement();
-	  }
-      }
+    {
+        unsigned int material_id;
+        double length_scale;
+        bool initiation_point_refine_unfinished = true;
+        while (initiation_point_refine_unfinished)
+        {
+            initiation_point_refine_unfinished = false;
+            for (const auto &cell : m_triangulation.active_cell_iterators())
+            {
+                if (    std::fabs(cell->center()[0] - 4.0) < 0.075
+                    && std::fabs(cell->center()[1] - 0.4) < 0.075 )
+                {
+                    material_id = cell->material_id();
+                    length_scale = m_material_data[material_id][2];
+                    if (  std::sqrt(cell->measure())
+                        > length_scale * m_parameters.m_allowed_max_h_l_ratio )
+                    {
+                        cell->set_refine_flag();
+                        initiation_point_refine_unfinished = true;
+                    }
+                }
+            }
+            m_triangulation.execute_coarsening_and_refinement();
+        }
+    }
     else
-      {
-	AssertThrow(false,
-	            ExcMessage("Selected mesh refinement strategy not implemented!"));
-      }
-  }
+    {
+        AssertThrow(false,
+                    ExcMessage("Selected mesh refinement strategy not implemented!"));
+    }
+}
 
-  template <typename LATraits, typename Tria>
-  void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_6()
-  {
+template <typename LATraits, typename Tria>
+void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_6()
+{
     AssertThrow(dim==3, ExcMessage("The dimension has to be 3D!"));
-
+    
     for (unsigned int i = 0; i < 80; ++i)
-      m_logfile << "*";
+        m_logfile << "*";
     m_logfile << std::endl;
     m_logfile << "\t\t\t\tSphere inclusion (3D structured)" << std::endl;
     for (unsigned int i = 0; i < 80; ++i)
-      m_logfile << "*";
+        m_logfile << "*";
     m_logfile << std::endl;
-
+    
     Triangulation<dim> tria_inner;
     GridGenerator::hyper_ball(tria_inner, Point<dim>(), 0.5);
-
+    
     Triangulation<dim> tria_outer;
     GridGenerator::hyper_shell(
-      tria_outer, Point<dim>(), 0.5, std::sqrt(dim), 2 * dim);
-
+                               tria_outer, Point<dim>(), 0.5, std::sqrt(dim), 2 * dim);
+    
     Triangulation<dim> tmp_triangulation;
-
+    
     GridGenerator::merge_triangulations(tria_inner, tria_outer, tmp_triangulation);
-
+    
     tmp_triangulation.reset_all_manifolds();
     tmp_triangulation.set_all_manifold_ids(0);
-
+    
     for (const auto &cell : tmp_triangulation.cell_iterators())
-      {
+    {
         for (const auto &face : cell->face_iterators())
-          {
+        {
             bool face_at_sphere_boundary = true;
             for (const auto v : face->vertex_indices())
-              {
+            {
                 if (std::abs(face->vertex(v).norm_square() - 0.25) > 1e-12)
-                  face_at_sphere_boundary = false;
-              }
+                    face_at_sphere_boundary = false;
+            }
             if (face_at_sphere_boundary)
-              face->set_all_manifold_ids(1);
-          }
+                face->set_all_manifold_ids(1);
+        }
         if (cell->center().norm_square() < 0.25)
-          cell->set_material_id(1);
+            cell->set_material_id(1);
         else
-          cell->set_material_id(0);
-      }
-
+            cell->set_material_id(0);
+    }
+    
     tmp_triangulation.set_manifold(1, SphericalManifold<dim>());
-
+    
     TransfiniteInterpolationManifold<dim> transfinite_manifold;
     transfinite_manifold.initialize(tmp_triangulation);
     tmp_triangulation.set_manifold(0, transfinite_manifold);
-
+    
     tmp_triangulation.refine_global(m_parameters.m_global_refine_times);
-
+    
     std::set<typename Triangulation< dim >::active_cell_iterator >
-      cells_to_remove;
-
+    cells_to_remove;
+    
     for (const auto &cell : tmp_triangulation.active_cell_iterators())
-      {
-	if (   cell->center()[0] < 0.0
-	    || cell->center()[1] < 0.0
-	    || cell->center()[2] < 0.0)
-	  {
-	    cells_to_remove.insert(cell);
-	  }
-      }
-
+    {
+        if (   cell->center()[0] < 0.0
+            || cell->center()[1] < 0.0
+            || cell->center()[2] < 0.0)
+        {
+            cells_to_remove.insert(cell);
+        }
+    }
+    
     GridGenerator::create_triangulation_with_removed_cells(tmp_triangulation,
-							   cells_to_remove,
-							   m_triangulation);
-
-//    for (const auto &cell : m_triangulation.active_cell_iterators())
-//      for (const auto &face : cell->face_iterators())
-//	{
-//	  if (face->at_boundary() == true)
-//	    {
-//	      if (std::fabs(face->center()[0] - 0.0 ) < 1.0e-9 )
-//		face->set_boundary_id(0);
-//	      else if (std::fabs(face->center()[1] - 0.0 ) < 1.0e-9)
-//		face->set_boundary_id(1);
-//	      else if (std::fabs(face->center()[2] - 0.0 ) < 1.0e-9)
-//		face->set_boundary_id(2);
-//	      else if (std::fabs(face->center()[2] - 1.0 ) < 1.0e-9)
-//		face->set_boundary_id(3);
-//	      else
-//		face->set_boundary_id(4);
-//	    }
-//	}
-
+                                                           cells_to_remove,
+                                                           m_triangulation);
+    
+    //    for (const auto &cell : m_triangulation.active_cell_iterators())
+    //      for (const auto &face : cell->face_iterators())
+    //	{
+    //	  if (face->at_boundary() == true)
+    //	    {
+    //	      if (std::fabs(face->center()[0] - 0.0 ) < 1.0e-9 )
+    //		face->set_boundary_id(0);
+    //	      else if (std::fabs(face->center()[1] - 0.0 ) < 1.0e-9)
+    //		face->set_boundary_id(1);
+    //	      else if (std::fabs(face->center()[2] - 0.0 ) < 1.0e-9)
+    //		face->set_boundary_id(2);
+    //	      else if (std::fabs(face->center()[2] - 1.0 ) < 1.0e-9)
+    //		face->set_boundary_id(3);
+    //	      else
+    //		face->set_boundary_id(4);
+    //	    }
+    //	}
+    
     if (m_parameters.m_refinement_strategy == "adaptive-refine")
-      {
-	unsigned int material_id;
-	double length_scale;
-	bool initiation_point_refine_unfinished = true;
-	while (initiation_point_refine_unfinished)
-	  {
-	    initiation_point_refine_unfinished = false;
-	    for (const auto &cell : m_triangulation.active_cell_iterators())
-	      {
-		if (    cell->center()[2] > 0.525
-		     && cell->center()[2] < 0.575
-		     && cell->center()[0] < 0.05
-		     && cell->center()[1] < 0.05 )
-		  {
-		    material_id = cell->material_id();
-		    length_scale = m_material_data[material_id][2];
-		    if (  std::cbrt(cell->measure())
-			> length_scale * m_parameters.m_allowed_max_h_l_ratio )
-		      {
-			cell->set_refine_flag();
-			initiation_point_refine_unfinished = true;
-		      }
-		  }
-	      }
-	    m_triangulation.execute_coarsening_and_refinement();
-	  }
-      }
+    {
+        unsigned int material_id;
+        double length_scale;
+        bool initiation_point_refine_unfinished = true;
+        while (initiation_point_refine_unfinished)
+        {
+            initiation_point_refine_unfinished = false;
+            for (const auto &cell : m_triangulation.active_cell_iterators())
+            {
+                if (    cell->center()[2] > 0.525
+                    && cell->center()[2] < 0.575
+                    && cell->center()[0] < 0.05
+                    && cell->center()[1] < 0.05 )
+                {
+                    material_id = cell->material_id();
+                    length_scale = m_material_data[material_id][2];
+                    if (  std::cbrt(cell->measure())
+                        > length_scale * m_parameters.m_allowed_max_h_l_ratio )
+                    {
+                        cell->set_refine_flag();
+                        initiation_point_refine_unfinished = true;
+                    }
+                }
+            }
+            m_triangulation.execute_coarsening_and_refinement();
+        }
+    }
     else
-      {
-	AssertThrow(false,
-		    ExcMessage("Selected mesh refinement strategy not implemented!"));
-      }
-  }
+    {
+        AssertThrow(false,
+                    ExcMessage("Selected mesh refinement strategy not implemented!"));
+    }
+}
 
-  template <typename LATraits, typename Tria>
-  void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_7()
-  {
+template <typename LATraits, typename Tria>
+void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_7()
+{
     AssertThrow(dim==3, ExcMessage("The dimension has to be 3D!"));
-
+    
     for (unsigned int i = 0; i < 80; ++i)
-      m_logfile << "*";
+        m_logfile << "*";
     m_logfile << std::endl;
     m_logfile << "\t\t\t\tSphere inclusion (3D structured version 2)" << std::endl;
     for (unsigned int i = 0; i < 80; ++i)
-      m_logfile << "*";
+        m_logfile << "*";
     m_logfile << std::endl;
-
+    
     Triangulation<dim> tria_inner;
     GridGenerator::hyper_ball(tria_inner, Point<dim>(), 0.49);
-
+    
     Triangulation<dim> tria_outer;
     GridGenerator::hyper_shell(
-      tria_outer, Point<dim>(), 0.49, std::sqrt(dim)*0.5, 2 * dim);
-
+                               tria_outer, Point<dim>(), 0.49, std::sqrt(dim)*0.5, 2 * dim);
+    
     Triangulation<dim> cube1;
     GridGenerator::hyper_rectangle(cube1, Point<dim>(0, 0, 0.5), Point<dim>(1, 1, 1.5));
     Triangulation<dim> cube2;
     GridGenerator::hyper_rectangle(cube2, Point<dim>(0, 0.5, -0.5), Point<dim>(1, 1.5, 0.5));
     Triangulation<dim> cube3;
     GridGenerator::hyper_rectangle(cube3, Point<dim>(0.5, -0.5, -0.5), Point<dim>(1.5, 0.5, 0.5));
-
+    
     Triangulation<dim> tmp_triangulation;
     GridGenerator::merge_triangulations({&tria_inner, &tria_outer,
-                                         &cube1, &cube2, &cube3}, tmp_triangulation);
-
+        &cube1, &cube2, &cube3}, tmp_triangulation);
+    
     tmp_triangulation.reset_all_manifolds();
     tmp_triangulation.set_all_manifold_ids(0);
-
+    
     for (const auto &cell : tmp_triangulation.cell_iterators())
-      {
+    {
         for (const auto &face : cell->face_iterators())
-          {
+        {
             bool face_at_sphere_boundary = true;
             for (const auto v : face->vertex_indices())
-              {
+            {
                 if (std::abs(face->vertex(v).norm_square() - 0.49 * 0.49) > 1e-12)
-                  face_at_sphere_boundary = false;
-              }
+                    face_at_sphere_boundary = false;
+            }
             if (face_at_sphere_boundary)
-              face->set_all_manifold_ids(1);
-          }
+                face->set_all_manifold_ids(1);
+        }
         if (cell->center().norm_square() < 0.1)
-          cell->set_material_id(1);
+            cell->set_material_id(1);
         else
-          cell->set_material_id(0);
-      }
-
+            cell->set_material_id(0);
+    }
+    
     tmp_triangulation.set_manifold(1, SphericalManifold<dim>());
-
+    
     TransfiniteInterpolationManifold<dim> transfinite_manifold;
     transfinite_manifold.initialize(tmp_triangulation);
     tmp_triangulation.set_manifold(0, transfinite_manifold);
-
+    
     tmp_triangulation.refine_global(m_parameters.m_global_refine_times);
-
+    
     std::set<typename Triangulation< dim >::active_cell_iterator >
-      cells_to_remove;
-
+    cells_to_remove;
+    
     for (const auto &cell : tmp_triangulation.active_cell_iterators())
-      {
-	if (   cell->center()[0] < 0.0
-	    || cell->center()[1] < 0.0
-	    || cell->center()[2] < 0.0
-	    || cell->center()[0] > 1.0
-	    || cell->center()[1] > 1.0
-	    || cell->center()[2] > 1.0)
-	  {
-	    cells_to_remove.insert(cell);
-	  }
-      }
-
+    {
+        if (   cell->center()[0] < 0.0
+            || cell->center()[1] < 0.0
+            || cell->center()[2] < 0.0
+            || cell->center()[0] > 1.0
+            || cell->center()[1] > 1.0
+            || cell->center()[2] > 1.0)
+        {
+            cells_to_remove.insert(cell);
+        }
+    }
+    
     GridGenerator::create_triangulation_with_removed_cells(tmp_triangulation,
-							   cells_to_remove,
-							   m_triangulation);
-
-//    for (const auto &cell : m_triangulation.active_cell_iterators())
-//      for (const auto &face : cell->face_iterators())
-//	{
-//	  if (face->at_boundary() == true)
-//	    {
-//	      if (std::fabs(face->center()[0] - 0.0 ) < 1.0e-9 )
-//		face->set_boundary_id(0);
-//	      else if (std::fabs(face->center()[1] - 0.0 ) < 1.0e-9)
-//		face->set_boundary_id(1);
-//	      else if (std::fabs(face->center()[2] - 0.0 ) < 1.0e-9)
-//		face->set_boundary_id(2);
-//	      else if (std::fabs(face->center()[2] - 1.0 ) < 1.0e-9)
-//		face->set_boundary_id(3);
-//	      else
-//		face->set_boundary_id(4);
-//	    }
-//	}
-
+                                                           cells_to_remove,
+                                                           m_triangulation);
+    
+    //    for (const auto &cell : m_triangulation.active_cell_iterators())
+    //      for (const auto &face : cell->face_iterators())
+    //	{
+    //	  if (face->at_boundary() == true)
+    //	    {
+    //	      if (std::fabs(face->center()[0] - 0.0 ) < 1.0e-9 )
+    //		face->set_boundary_id(0);
+    //	      else if (std::fabs(face->center()[1] - 0.0 ) < 1.0e-9)
+    //		face->set_boundary_id(1);
+    //	      else if (std::fabs(face->center()[2] - 0.0 ) < 1.0e-9)
+    //		face->set_boundary_id(2);
+    //	      else if (std::fabs(face->center()[2] - 1.0 ) < 1.0e-9)
+    //		face->set_boundary_id(3);
+    //	      else
+    //		face->set_boundary_id(4);
+    //	    }
+    //	}
+    
     if (m_parameters.m_refinement_strategy == "adaptive-refine")
-      {
-	unsigned int material_id;
-	double length_scale;
-	bool initiation_point_refine_unfinished = true;
-	while (initiation_point_refine_unfinished)
-	  {
-	    initiation_point_refine_unfinished = false;
-	    for (const auto &cell : m_triangulation.active_cell_iterators())
-	      {
-		if (    cell->center()[2] > 0.505
-		     && cell->center()[2] < 0.575
-		     && cell->center()[0] < 0.05
-		     && cell->center()[1] < 0.05 )
-		  {
-		    material_id = cell->material_id();
-		    length_scale = m_material_data[material_id][2];
-		    if (  std::cbrt(cell->measure())
-			> length_scale * m_parameters.m_allowed_max_h_l_ratio )
-		      {
-			cell->set_refine_flag();
-			initiation_point_refine_unfinished = true;
-		      }
-		  }
-	      }
-	    m_triangulation.execute_coarsening_and_refinement();
-	  }
-      }
+    {
+        unsigned int material_id;
+        double length_scale;
+        bool initiation_point_refine_unfinished = true;
+        while (initiation_point_refine_unfinished)
+        {
+            initiation_point_refine_unfinished = false;
+            for (const auto &cell : m_triangulation.active_cell_iterators())
+            {
+                if (    cell->center()[2] > 0.505
+                    && cell->center()[2] < 0.575
+                    && cell->center()[0] < 0.05
+                    && cell->center()[1] < 0.05 )
+                {
+                    material_id = cell->material_id();
+                    length_scale = m_material_data[material_id][2];
+                    if (  std::cbrt(cell->measure())
+                        > length_scale * m_parameters.m_allowed_max_h_l_ratio )
+                    {
+                        cell->set_refine_flag();
+                        initiation_point_refine_unfinished = true;
+                    }
+                }
+            }
+            m_triangulation.execute_coarsening_and_refinement();
+        }
+    }
     else
-      {
-	AssertThrow(false,
-		    ExcMessage("Selected mesh refinement strategy not implemented!"));
-      }
-  }
+    {
+        AssertThrow(false,
+                    ExcMessage("Selected mesh refinement strategy not implemented!"));
+    }
+}
 
 
-  template <typename LATraits, typename Tria>
-  void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_8()
-  {
+template <typename LATraits, typename Tria>
+void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_8()
+{
     AssertThrow(dim==3, ExcMessage("The dimension has to be 3D!"));
-
+    
     for (unsigned int i = 0; i < 80; ++i)
-      m_logfile << "*";
+        m_logfile << "*";
     m_logfile << std::endl;
     m_logfile << "\t\t\t\tSphere inclusion (3D structured version 2 with barriers)" << std::endl;
     for (unsigned int i = 0; i < 80; ++i)
-      m_logfile << "*";
+        m_logfile << "*";
     m_logfile << std::endl;
-
+    
     Triangulation<dim> tria_inner;
     GridGenerator::hyper_ball(tria_inner, Point<dim>(), 0.49);
-
+    
     Triangulation<dim> tria_outer;
     GridGenerator::hyper_shell(
-      tria_outer, Point<dim>(), 0.49, std::sqrt(dim)*0.5, 2 * dim);
-
+                               tria_outer, Point<dim>(), 0.49, std::sqrt(dim)*0.5, 2 * dim);
+    
     Triangulation<dim> cube1;
     GridGenerator::hyper_rectangle(cube1, Point<dim>(0, 0, 0.5), Point<dim>(1, 1, 1.5));
     Triangulation<dim> cube2;
     GridGenerator::hyper_rectangle(cube2, Point<dim>(0, 0.5, -0.5), Point<dim>(1, 1.5, 0.5));
     Triangulation<dim> cube3;
     GridGenerator::hyper_rectangle(cube3, Point<dim>(0.5, -0.5, -0.5), Point<dim>(1.5, 0.5, 0.5));
-
+    
     Triangulation<dim> tmp_triangulation;
     GridGenerator::merge_triangulations({&tria_inner, &tria_outer,
-                                         &cube1, &cube2, &cube3}, tmp_triangulation);
-
+        &cube1, &cube2, &cube3}, tmp_triangulation);
+    
     tmp_triangulation.reset_all_manifolds();
     tmp_triangulation.set_all_manifold_ids(0);
-
+    
     for (const auto &cell : tmp_triangulation.cell_iterators())
-      {
+    {
         for (const auto &face : cell->face_iterators())
-          {
+        {
             bool face_at_sphere_boundary = true;
             for (const auto v : face->vertex_indices())
-              {
+            {
                 if (std::abs(face->vertex(v).norm_square() - 0.49 * 0.49) > 1e-12)
-                  face_at_sphere_boundary = false;
-              }
+                    face_at_sphere_boundary = false;
+            }
             if (face_at_sphere_boundary)
-              face->set_all_manifold_ids(1);
-          }
+                face->set_all_manifold_ids(1);
+        }
         if (cell->center().norm_square() < 0.1)
-          cell->set_material_id(1);
+            cell->set_material_id(1);
         else
-          cell->set_material_id(0);
-      }
-
+            cell->set_material_id(0);
+    }
+    
     tmp_triangulation.set_manifold(1, SphericalManifold<dim>());
-
+    
     TransfiniteInterpolationManifold<dim> transfinite_manifold;
     transfinite_manifold.initialize(tmp_triangulation);
     tmp_triangulation.set_manifold(0, transfinite_manifold);
-
+    
     tmp_triangulation.refine_global(m_parameters.m_global_refine_times);
-
+    
     // some extra barriers
     for (const auto &cell : tmp_triangulation.cell_iterators())
-      {
+    {
         if (    std::fabs(cell->center()[1] - 0.75) < 0.05
-             && std::fabs(cell->center()[2] - 0.5625) < 0.05
-             && std::fabs(cell->center()[0] - 0.0) < 0.2)
-          cell->set_material_id(1);
-
+            && std::fabs(cell->center()[2] - 0.5625) < 0.05
+            && std::fabs(cell->center()[0] - 0.0) < 0.2)
+            cell->set_material_id(1);
+        
         if (    std::fabs(cell->center()[1] - 0.0) < 0.2
-             && std::fabs(cell->center()[2] - 0.5) < 0.1
-             && std::fabs(cell->center()[0] - 0.75) < 0.05)
-          cell->set_material_id(1);
-      }
-
+            && std::fabs(cell->center()[2] - 0.5) < 0.1
+            && std::fabs(cell->center()[0] - 0.75) < 0.05)
+            cell->set_material_id(1);
+    }
+    
     std::set<typename Triangulation< dim >::active_cell_iterator >
-      cells_to_remove;
-
+    cells_to_remove;
+    
     for (const auto &cell : tmp_triangulation.active_cell_iterators())
-      {
-	if (   cell->center()[0] < 0.0
-	    || cell->center()[1] < 0.0
-	    || cell->center()[2] < 0.0
-	    || cell->center()[0] > 1.0
-	    || cell->center()[1] > 1.0
-	    || cell->center()[2] > 1.0)
-	  {
-	    cells_to_remove.insert(cell);
-	  }
-      }
-
+    {
+        if (   cell->center()[0] < 0.0
+            || cell->center()[1] < 0.0
+            || cell->center()[2] < 0.0
+            || cell->center()[0] > 1.0
+            || cell->center()[1] > 1.0
+            || cell->center()[2] > 1.0)
+        {
+            cells_to_remove.insert(cell);
+        }
+    }
+    
     GridGenerator::create_triangulation_with_removed_cells(tmp_triangulation,
-							   cells_to_remove,
-							   m_triangulation);
-
-//    for (const auto &cell : m_triangulation.active_cell_iterators())
-//      for (const auto &face : cell->face_iterators())
-//	{
-//	  if (face->at_boundary() == true)
-//	    {
-//	      if (std::fabs(face->center()[0] - 0.0 ) < 1.0e-9 )
-//		face->set_boundary_id(0);
-//	      else if (std::fabs(face->center()[1] - 0.0 ) < 1.0e-9)
-//		face->set_boundary_id(1);
-//	      else if (std::fabs(face->center()[2] - 0.0 ) < 1.0e-9)
-//		face->set_boundary_id(2);
-//	      else if (std::fabs(face->center()[2] - 1.0 ) < 1.0e-9)
-//		face->set_boundary_id(3);
-//	      else
-//		face->set_boundary_id(4);
-//	    }
-//	}
-
+                                                           cells_to_remove,
+                                                           m_triangulation);
+    
+    //    for (const auto &cell : m_triangulation.active_cell_iterators())
+    //      for (const auto &face : cell->face_iterators())
+    //	{
+    //	  if (face->at_boundary() == true)
+    //	    {
+    //	      if (std::fabs(face->center()[0] - 0.0 ) < 1.0e-9 )
+    //		face->set_boundary_id(0);
+    //	      else if (std::fabs(face->center()[1] - 0.0 ) < 1.0e-9)
+    //		face->set_boundary_id(1);
+    //	      else if (std::fabs(face->center()[2] - 0.0 ) < 1.0e-9)
+    //		face->set_boundary_id(2);
+    //	      else if (std::fabs(face->center()[2] - 1.0 ) < 1.0e-9)
+    //		face->set_boundary_id(3);
+    //	      else
+    //		face->set_boundary_id(4);
+    //	    }
+    //	}
+    
     if (m_parameters.m_refinement_strategy == "adaptive-refine")
-      {
-	unsigned int material_id;
-	double length_scale;
-	bool initiation_point_refine_unfinished = true;
-	while (initiation_point_refine_unfinished)
-	  {
-	    initiation_point_refine_unfinished = false;
-	    for (const auto &cell : m_triangulation.active_cell_iterators())
-	      {
-		if (    cell->center()[2] > 0.505
-		     && cell->center()[2] < 0.575
-		     && cell->center()[0] < 0.05
-		     && cell->center()[1] < 0.05 )
-		  {
-		    material_id = cell->material_id();
-		    length_scale = m_material_data[material_id][2];
-		    if (  std::cbrt(cell->measure())
-			> length_scale * m_parameters.m_allowed_max_h_l_ratio )
-		      {
-			cell->set_refine_flag();
-			initiation_point_refine_unfinished = true;
-		      }
-		  }
-	      }
-	    m_triangulation.execute_coarsening_and_refinement();
-	  }
-      }
+    {
+        unsigned int material_id;
+        double length_scale;
+        bool initiation_point_refine_unfinished = true;
+        while (initiation_point_refine_unfinished)
+        {
+            initiation_point_refine_unfinished = false;
+            for (const auto &cell : m_triangulation.active_cell_iterators())
+            {
+                if (    cell->center()[2] > 0.505
+                    && cell->center()[2] < 0.575
+                    && cell->center()[0] < 0.05
+                    && cell->center()[1] < 0.05 )
+                {
+                    material_id = cell->material_id();
+                    length_scale = m_material_data[material_id][2];
+                    if (  std::cbrt(cell->measure())
+                        > length_scale * m_parameters.m_allowed_max_h_l_ratio )
+                    {
+                        cell->set_refine_flag();
+                        initiation_point_refine_unfinished = true;
+                    }
+                }
+            }
+            m_triangulation.execute_coarsening_and_refinement();
+        }
+    }
     else
-      {
-	AssertThrow(false,
-		    ExcMessage("Selected mesh refinement strategy not implemented!"));
-      }
-  }
+    {
+        AssertThrow(false,
+                    ExcMessage("Selected mesh refinement strategy not implemented!"));
+    }
+}
 
 
-  template <typename LATraits, typename Tria>
-  void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_9()
-  {
+template <typename LATraits, typename Tria>
+void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_9()
+{
     AssertThrow(dim==2, ExcMessage("The dimension has to be 2D!"));
-
+    
     for (unsigned int i = 0; i < 80; ++i)
-      m_logfile << "*";
+        m_logfile << "*";
     m_logfile << std::endl;
     m_logfile << "\t\t\t\tL-shape bending (2D structured)" << std::endl;
     for (unsigned int i = 0; i < 80; ++i)
-      m_logfile << "*";
+        m_logfile << "*";
     m_logfile << std::endl;
-
+    
     GridIn<dim> gridin;
     gridin.attach_triangulation(m_triangulation);
     std::ifstream f("L-Shape.msh");
     gridin.read_msh(f);
-
-//    for (const auto &cell : m_triangulation.active_cell_iterators())
-//      for (const auto &face : cell->face_iterators())
-//	{
-//	  if (face->at_boundary() == true)
-//	    {
-//	      if (std::fabs(face->center()[1] - 0.0 ) < 1.0e-9 )
-//		face->set_boundary_id(0);
-//	      else
-//	        face->set_boundary_id(1);
-//	    }
-//	}
-
+    
+    //    for (const auto &cell : m_triangulation.active_cell_iterators())
+    //      for (const auto &face : cell->face_iterators())
+    //	{
+    //	  if (face->at_boundary() == true)
+    //	    {
+    //	      if (std::fabs(face->center()[1] - 0.0 ) < 1.0e-9 )
+    //		face->set_boundary_id(0);
+    //	      else
+    //	        face->set_boundary_id(1);
+    //	    }
+    //	}
+    
     m_triangulation.refine_global(m_parameters.m_global_refine_times);
-
+    
     if (m_parameters.m_refinement_strategy == "pre-refine")
-      {
-	unsigned int material_id;
-	double length_scale;
-	for (unsigned int i = 0; i < m_parameters.m_local_prerefine_times; i++)
-	  {
-	    for (const auto &cell : m_triangulation.active_cell_iterators())
-	      {
-		if (    (cell->center()[1] > 242.0)
-		     && (cell->center()[1] < 312.5)
-		     && (cell->center()[0] < 258.0) )
-		  {
-		    material_id = cell->material_id();
-		    length_scale = m_material_data[material_id][2];
-		    if (  std::sqrt(cell->measure())
-			> length_scale * m_parameters.m_allowed_max_h_l_ratio )
-		      cell->set_refine_flag();
-		  }
-	      }
-	    m_triangulation.execute_coarsening_and_refinement();
-	  }
-      }
+    {
+        unsigned int material_id;
+        double length_scale;
+        for (unsigned int i = 0; i < m_parameters.m_local_prerefine_times; i++)
+        {
+            for (const auto &cell : m_triangulation.active_cell_iterators())
+            {
+                if (    (cell->center()[1] > 242.0)
+                    && (cell->center()[1] < 312.5)
+                    && (cell->center()[0] < 258.0) )
+                {
+                    material_id = cell->material_id();
+                    length_scale = m_material_data[material_id][2];
+                    if (  std::sqrt(cell->measure())
+                        > length_scale * m_parameters.m_allowed_max_h_l_ratio )
+                        cell->set_refine_flag();
+                }
+            }
+            m_triangulation.execute_coarsening_and_refinement();
+        }
+    }
     else if (m_parameters.m_refinement_strategy == "adaptive-refine")
-      {
-	unsigned int material_id;
-	double length_scale;
-	bool initiation_point_refine_unfinished = true;
-	while (initiation_point_refine_unfinished)
-	  {
-	    initiation_point_refine_unfinished = false;
-	    for (const auto &cell : m_triangulation.active_cell_iterators())
-	      {
-		if (             (cell->center()[0] - 250) < 0.0
-		     &&          (cell->center()[0] - 240) > 0.0
-		     && std::fabs(cell->center()[1] - 250) < 10.0 )
-		  {
-		    material_id = cell->material_id();
-		    length_scale = m_material_data[material_id][2];
-		    if (  std::sqrt(cell->measure())
-			> length_scale * m_parameters.m_allowed_max_h_l_ratio )
-		      {
-		        cell->set_refine_flag();
-		        initiation_point_refine_unfinished = true;
-		      }
-		  }
-	      }
-	    m_triangulation.execute_coarsening_and_refinement();
-	  }
-      }
+    {
+        unsigned int material_id;
+        double length_scale;
+        bool initiation_point_refine_unfinished = true;
+        while (initiation_point_refine_unfinished)
+        {
+            initiation_point_refine_unfinished = false;
+            for (const auto &cell : m_triangulation.active_cell_iterators())
+            {
+                if (             (cell->center()[0] - 250) < 0.0
+                    &&          (cell->center()[0] - 240) > 0.0
+                    && std::fabs(cell->center()[1] - 250) < 10.0 )
+                {
+                    material_id = cell->material_id();
+                    length_scale = m_material_data[material_id][2];
+                    if (  std::sqrt(cell->measure())
+                        > length_scale * m_parameters.m_allowed_max_h_l_ratio )
+                    {
+                        cell->set_refine_flag();
+                        initiation_point_refine_unfinished = true;
+                    }
+                }
+            }
+            m_triangulation.execute_coarsening_and_refinement();
+        }
+    }
     else
-      {
-	AssertThrow(false,
-	            ExcMessage("Selected mesh refinement strategy not implemented!"));
-      }
-  }
+    {
+        AssertThrow(false,
+                    ExcMessage("Selected mesh refinement strategy not implemented!"));
+    }
+}
 
-  template <typename LATraits, typename Tria>
-  void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_11()
-  {
+template <typename LATraits, typename Tria>
+void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_11()
+{
     AssertThrow(dim==3, ExcMessage("The dimension has to be 3D!"));
-
+    
     for (unsigned int i = 0; i < 80; ++i)
-      m_logfile << "*";
+        m_logfile << "*";
     m_logfile << std::endl;
     m_logfile << "\t\t\t\tBrokenshire torsion (3D structured)" << std::endl;
     for (unsigned int i = 0; i < 80; ++i)
-      m_logfile << "*";
+        m_logfile << "*";
     m_logfile << std::endl;
-
+    
     Triangulation<2> triangulation_2d;
-
+    
     double const length = 200.0;
     double const width = 50.0;
     double const height = 50.0;
     double const delta_L = 25.0;
     double const tan_theta = delta_L / (0.5*width);
-
+    
     std::vector<unsigned int> repetitions(2, 1);
     repetitions[0] = 20;
     repetitions[1] = 5;
-
+    
     Point<2> point1(0.0, 0.0);
     Point<2> point2(length, width);
-
+    
     GridGenerator::subdivided_hyper_rectangle(triangulation_2d,
-					      repetitions,
-					      point1,
-					      point2 );
-
+                                              repetitions,
+                                              point1,
+                                              point2 );
+    
     typename Triangulation<2>::vertex_iterator vertex_ptr;
     vertex_ptr = triangulation_2d.begin_active_vertex();
     while (vertex_ptr != triangulation_2d.end_vertex())
-      {
-	Point<2> & vertex_point = vertex_ptr->vertex();
-
-	const double delta_x = (vertex_point(1) - 0.5*width) * tan_theta;
-
-	if (std::fabs(vertex_point(0) - 0.5*length) < 1.0e-6)
-	  {
-	    vertex_point(0) += delta_x;
-	  }
-	else if (std::fabs(vertex_point(0) + length/repetitions[0] - 0.5*length) < 1.0e-6)
-	  {
-	    vertex_point(0) += (delta_x + length/repetitions[0]*0.5);
-	  }
-	else if (std::fabs(vertex_point(0) - length/repetitions[0] - 0.5*length) < 1.0e-6)
-	  {
-	    vertex_point(0) += (delta_x - length/repetitions[0]*0.5);
-	  }
-	else if (vertex_point(0) < 0.5*length - length/repetitions[0] - 1.0e-6)
-	  {
-	    vertex_point(0) += (delta_x + length/repetitions[0]*0.5) * vertex_point(0)/(0.5*length - length/repetitions[0]);
-	  }
-	else if (vertex_point(0) > 0.5*length + length/repetitions[0] + 1.0e-6)
-	  {
-	    vertex_point(0) += (delta_x - length/repetitions[0]*0.5) * (length - vertex_point(0))/(0.5*length - length/repetitions[0]);
-	  }
-
-	++vertex_ptr;
-      }
-
+    {
+        Point<2> & vertex_point = vertex_ptr->vertex();
+        
+        const double delta_x = (vertex_point(1) - 0.5*width) * tan_theta;
+        
+        if (std::fabs(vertex_point(0) - 0.5*length) < 1.0e-6)
+        {
+            vertex_point(0) += delta_x;
+        }
+        else if (std::fabs(vertex_point(0) + length/repetitions[0] - 0.5*length) < 1.0e-6)
+        {
+            vertex_point(0) += (delta_x + length/repetitions[0]*0.5);
+        }
+        else if (std::fabs(vertex_point(0) - length/repetitions[0] - 0.5*length) < 1.0e-6)
+        {
+            vertex_point(0) += (delta_x - length/repetitions[0]*0.5);
+        }
+        else if (vertex_point(0) < 0.5*length - length/repetitions[0] - 1.0e-6)
+        {
+            vertex_point(0) += (delta_x + length/repetitions[0]*0.5) * vertex_point(0)/(0.5*length - length/repetitions[0]);
+        }
+        else if (vertex_point(0) > 0.5*length + length/repetitions[0] + 1.0e-6)
+        {
+            vertex_point(0) += (delta_x - length/repetitions[0]*0.5) * (length - vertex_point(0))/(0.5*length - length/repetitions[0]);
+        }
+        
+        ++vertex_ptr;
+    }
+    
     Triangulation<dim> tmp_triangulation;
     const unsigned int n_layer = repetitions[1] + 1;
     GridGenerator::extrude_triangulation(triangulation_2d, n_layer, height, tmp_triangulation);
-
+    
     tmp_triangulation.refine_global(m_parameters.m_global_refine_times);
-
+    
     std::set<typename Triangulation< dim >::active_cell_iterator >
-      cells_to_remove;
-
+    cells_to_remove;
+    
     for (const auto &cell : tmp_triangulation.active_cell_iterators())
-      {
-	if (    (std::fabs(cell->center()[0] - (cell->center()[1] - 0.5*width)*tan_theta - 0.5*length) < 2.5)
-	     && cell->center()[2] > 0.5* height  )
-	  {
-	    cells_to_remove.insert(cell);
-	  }
-      }
-
+    {
+        if (    (std::fabs(cell->center()[0] - (cell->center()[1] - 0.5*width)*tan_theta - 0.5*length) < 2.5)
+            && cell->center()[2] > 0.5* height  )
+        {
+            cells_to_remove.insert(cell);
+        }
+    }
+    
     GridGenerator::create_triangulation_with_removed_cells(tmp_triangulation,
-							   cells_to_remove,
-							   m_triangulation);
-
+                                                           cells_to_remove,
+                                                           m_triangulation);
+    
     if (m_parameters.m_refinement_strategy == "adaptive-refine")
-      {
-	unsigned int material_id;
-	double length_scale;
-	bool initiation_point_refine_unfinished = true;
-	while (initiation_point_refine_unfinished)
-	  {
-	    initiation_point_refine_unfinished = false;
-	    for (const auto &cell : m_triangulation.active_cell_iterators())
-	      {
-		if (  (std::fabs(cell->center()[0] - (cell->center()[1] - 0.5*width)*tan_theta - 0.5*length) < 5.0)
-		    && cell->center()[2] <= 0.5*height
-		    && cell->center()[2] > 0.5*height - 5.0 )
-		  {
-		    material_id = cell->material_id();
-		    length_scale = m_material_data[material_id][2];
-		    if (  std::cbrt(cell->measure())
-			> length_scale * m_parameters.m_allowed_max_h_l_ratio )
-		      {
-			cell->set_refine_flag();
-			initiation_point_refine_unfinished = true;
-		      }
-		  }
-	      }
-	    m_triangulation.execute_coarsening_and_refinement();
-	  }
-      }
+    {
+        unsigned int material_id;
+        double length_scale;
+        bool initiation_point_refine_unfinished = true;
+        while (initiation_point_refine_unfinished)
+        {
+            initiation_point_refine_unfinished = false;
+            for (const auto &cell : m_triangulation.active_cell_iterators())
+            {
+                if (  (std::fabs(cell->center()[0] - (cell->center()[1] - 0.5*width)*tan_theta - 0.5*length) < 5.0)
+                    && cell->center()[2] <= 0.5*height
+                    && cell->center()[2] > 0.5*height - 5.0 )
+                {
+                    material_id = cell->material_id();
+                    length_scale = m_material_data[material_id][2];
+                    if (  std::cbrt(cell->measure())
+                        > length_scale * m_parameters.m_allowed_max_h_l_ratio )
+                    {
+                        cell->set_refine_flag();
+                        initiation_point_refine_unfinished = true;
+                    }
+                }
+            }
+            m_triangulation.execute_coarsening_and_refinement();
+        }
+    }
     else
-      {
-	AssertThrow(false,
-		    ExcMessage("Selected mesh refinement strategy not implemented!"));
-      }
+    {
+        AssertThrow(false,
+                    ExcMessage("Selected mesh refinement strategy not implemented!"));
+    }
+    
+    
+    //    for (const auto &cell : m_triangulation.active_cell_iterators())
+    //      for (const auto &face : cell->face_iterators())
+    //	{
+    //	  if (face->at_boundary() == true)
+    //	    {
+    //	      if (std::fabs(face->center()[0] - length) < 1.0e-6 )
+    //		face->set_boundary_id(0);
+    //	      else if (std::fabs(face->center()[0] - 0.0) < 1.0e-6 )
+    //		face->set_boundary_id(1);
+    //	      else
+    //		face->set_boundary_id(2);
+    //	    }
+    //	}
+}
 
-
-//    for (const auto &cell : m_triangulation.active_cell_iterators())
-//      for (const auto &face : cell->face_iterators())
-//	{
-//	  if (face->at_boundary() == true)
-//	    {
-//	      if (std::fabs(face->center()[0] - length) < 1.0e-6 )
-//		face->set_boundary_id(0);
-//	      else if (std::fabs(face->center()[0] - 0.0) < 1.0e-6 )
-//		face->set_boundary_id(1);
-//	      else
-//		face->set_boundary_id(2);
-//	    }
-//	}
-  }
-
-  template <typename LATraits, typename Tria>
-  void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_12()
-  {
+template <typename LATraits, typename Tria>
+void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_12()
+{
     for (unsigned int i = 0; i < 80; ++i)
-      m_logfile << "*";
+        m_logfile << "*";
     m_logfile << std::endl;
     m_logfile << "\t\t\t1-D bar (structured)" << std::endl;
     for (unsigned int i = 0; i < 80; ++i)
-      m_logfile << "*";
+        m_logfile << "*";
     m_logfile << std::endl;
-
+    
     AssertThrow(dim==2, ExcMessage("The dimension has to be 2D!"));
-
+    
     double const length = 200.0;
     double const width = 1.0;
     double const h_size = 0.1;
-
+    
     std::vector<unsigned int> repetitions(dim, 1);
     repetitions[0] = length / h_size;
     repetitions[1] = width  / h_size;
-
+    
     GridGenerator::subdivided_hyper_rectangle(m_triangulation,
-				     	      repetitions,
-					      Point<dim>( 0.0,      0.0 ),
-					      Point<dim>( length,   width ) );
-
-//    for (const auto &cell : m_triangulation.active_cell_iterators())
-//      for (const auto &face : cell->face_iterators())
-//	{
-//	  if (face->at_boundary() == true)
-//	    {
-//	      if ( (std::fabs(face->center()[0] - 0.0 ) < 1.0e-9) )
-//		face->set_boundary_id(0);
-//	      else if ( (std::fabs(face->center()[0] - length ) < 1.0e-9) )
-//		face->set_boundary_id(1);
-//	      else if ( (std::fabs(face->center()[1] - 0.0 ) < 1.0e-9) )
-//		face->set_boundary_id(2);
-//	      else if ( (std::fabs(face->center()[1] - width ) < 1.0e-9) )
-//		face->set_boundary_id(3);
-//	      else
-//		face->set_boundary_id(4);
-//	    }
-//	}
-  }
+                                              repetitions,
+                                              Point<dim>( 0.0,      0.0 ),
+                                              Point<dim>( length,   width ) );
+    
+    //    for (const auto &cell : m_triangulation.active_cell_iterators())
+    //      for (const auto &face : cell->face_iterators())
+    //	{
+    //	  if (face->at_boundary() == true)
+    //	    {
+    //	      if ( (std::fabs(face->center()[0] - 0.0 ) < 1.0e-9) )
+    //		face->set_boundary_id(0);
+    //	      else if ( (std::fabs(face->center()[0] - length ) < 1.0e-9) )
+    //		face->set_boundary_id(1);
+    //	      else if ( (std::fabs(face->center()[1] - 0.0 ) < 1.0e-9) )
+    //		face->set_boundary_id(2);
+    //	      else if ( (std::fabs(face->center()[1] - width ) < 1.0e-9) )
+    //		face->set_boundary_id(3);
+    //	      else
+    //		face->set_boundary_id(4);
+    //	    }
+    //	}
+}
 
   template <typename LATraits, typename Tria>
   void PhaseFieldMonolithicSolve<LATraits, Tria>::setup_system()
