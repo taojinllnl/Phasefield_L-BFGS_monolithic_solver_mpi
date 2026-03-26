@@ -2140,7 +2140,6 @@ PhaseFieldMonolithicSolve<LATraits, Tria>
     , m_dofs_per_cell(m_fe.n_dofs_per_cell())
     , m_u_fe(m_first_u_component)
     , m_d_fe(m_d_component)
-    , m_dofs_per_block(m_n_blocks)
     , m_qf_cell(m_parameters.m_quad_order)
     , m_qf_face(m_parameters.m_quad_order)
     , m_n_q_points(m_qf_cell.size())
