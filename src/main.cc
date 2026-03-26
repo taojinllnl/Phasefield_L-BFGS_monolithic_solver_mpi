@@ -2459,6 +2459,10 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_1()
         {
             for (const auto &cell : m_triangulation.active_cell_iterators())
             {
+                if constexpr (is_mpi) {
+                    if (!cell->is_locally_owned()) continue;
+                }
+                
                 if (   std::fabs(cell->center()[1]) < 0.01
                     && cell->center()[0] > 0.495)
                 {
@@ -2482,6 +2486,9 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_1()
             initiation_point_refine_unfinished = false;
             for (const auto &cell : m_triangulation.active_cell_iterators())
             {
+                if constexpr (is_mpi) {
+                    if (!cell->is_locally_owned()) continue;
+                }
                 if (   std::fabs(cell->center()[1] - 0.0) < 0.05
                     && std::fabs(cell->center()[0] - 0.5) < 0.05)
                 {
@@ -2551,6 +2558,9 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_2()
         {
             for (const auto &cell : m_triangulation.active_cell_iterators())
             {
+                if constexpr (is_mpi) {
+                    if (!cell->is_locally_owned()) continue;
+                }
                 if (    (cell->center()[0] > 0.45)
                     && (cell->center()[1] < 0.05) )
                 {
@@ -2574,6 +2584,9 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_2()
             initiation_point_refine_unfinished = false;
             for (const auto &cell : m_triangulation.active_cell_iterators())
             {
+                if constexpr (is_mpi) {
+                    if (!cell->is_locally_owned()) continue;
+                }
                 if (    std::fabs(cell->center()[0] - 0.5) < 0.025
                     && cell->center()[1] < 0.0 && cell->center()[1] > -0.025)
                 {
@@ -2639,6 +2652,9 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_3()
         {
             for (const auto &cell : m_triangulation.active_cell_iterators())
             {
+                if constexpr (is_mpi) {
+                    if (!cell->is_locally_owned()) continue;
+                }
                 if (    (std::fabs(cell->center()[1] - 0.5) < 0.025)
                     && (cell->center()[0] > 0.475) )
                 {
@@ -2662,6 +2678,9 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_3()
             initiation_point_refine_unfinished = false;
             for (const auto &cell : m_triangulation.active_cell_iterators())
             {
+                if constexpr (is_mpi) {
+                    if (!cell->is_locally_owned()) continue;
+                }
                 if (    std::fabs(cell->center()[0] - 0.5) < 0.025
                     && std::fabs(cell->center()[1] - 0.5) < 0.025 )
                 {
@@ -2730,6 +2749,9 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_4()
         {
             for (const auto &cell : m_triangulation.active_cell_iterators())
             {
+                if constexpr (is_mpi) {
+                    if (!cell->is_locally_owned()) continue;
+                }
                 if (    (cell->center()[0] > 0.475)
                     && (cell->center()[1] < 0.525) )
                 {
@@ -2753,6 +2775,9 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_4()
             initiation_point_refine_unfinished = false;
             for (const auto &cell : m_triangulation.active_cell_iterators())
             {
+                if constexpr (is_mpi) {
+                    if (!cell->is_locally_owned()) continue;
+                }
                 if (    std::fabs(cell->center()[0] - 0.5) < 0.025
                     && cell->center()[1] < 0.5 && cell->center()[1] > 0.475 )
                 {
@@ -2814,6 +2839,9 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_5()
     {
         for (const auto &cell : m_triangulation.active_cell_iterators())
         {
+            if constexpr (is_mpi) {
+                if (!cell->is_locally_owned()) continue;
+            }
             if (    std::fabs(cell->center()[0] - 4.0) < 0.075
                 && cell->center()[1] < 1.6)
             {
@@ -2828,6 +2856,9 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_5()
         {
             for (const auto &cell : m_triangulation.active_cell_iterators())
             {
+                if constexpr (is_mpi) {
+                    if (!cell->is_locally_owned()) continue;
+                }
                 if (    std::fabs(cell->center()[0] - 4.0) < 0.05
                     && cell->center()[1] < 1.6)
                 {
@@ -2851,6 +2882,9 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_5()
             initiation_point_refine_unfinished = false;
             for (const auto &cell : m_triangulation.active_cell_iterators())
             {
+                if constexpr (is_mpi) {
+                    if (!cell->is_locally_owned()) continue;
+                }
                 if (    std::fabs(cell->center()[0] - 4.0) < 0.075
                     && std::fabs(cell->center()[1] - 0.4) < 0.075 )
                 {
@@ -2973,6 +3007,9 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_6()
             initiation_point_refine_unfinished = false;
             for (const auto &cell : m_triangulation.active_cell_iterators())
             {
+                if constexpr (is_mpi) {
+                    if (!cell->is_locally_owned()) continue;
+                }
                 if (    cell->center()[2] > 0.525
                     && cell->center()[2] < 0.575
                     && cell->center()[0] < 0.05
@@ -3107,6 +3144,9 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_7()
             initiation_point_refine_unfinished = false;
             for (const auto &cell : m_triangulation.active_cell_iterators())
             {
+                if constexpr (is_mpi) {
+                    if (!cell->is_locally_owned()) continue;
+                }
                 if (    cell->center()[2] > 0.505
                     && cell->center()[2] < 0.575
                     && cell->center()[0] < 0.05
@@ -3322,6 +3362,9 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_9()
         {
             for (const auto &cell : m_triangulation.active_cell_iterators())
             {
+                if constexpr (is_mpi) {
+                    if (!cell->is_locally_owned()) continue;
+                }
                 if (    (cell->center()[1] > 242.0)
                     && (cell->center()[1] < 312.5)
                     && (cell->center()[0] < 258.0) )
@@ -3346,6 +3389,9 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_9()
             initiation_point_refine_unfinished = false;
             for (const auto &cell : m_triangulation.active_cell_iterators())
             {
+                if constexpr (is_mpi) {
+                    if (!cell->is_locally_owned()) continue;
+                }
                 if (             (cell->center()[0] - 250) < 0.0
                     &&          (cell->center()[0] - 240) > 0.0
                     && std::fabs(cell->center()[1] - 250) < 10.0 )
@@ -3467,6 +3513,9 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_11()
             initiation_point_refine_unfinished = false;
             for (const auto &cell : m_triangulation.active_cell_iterators())
             {
+                if constexpr (is_mpi) {
+                    if (!cell->is_locally_owned()) continue;
+                }
                 if (  (std::fabs(cell->center()[0] - (cell->center()[1] - 0.5*width)*tan_theta - 0.5*length) < 5.0)
                     && cell->center()[2] <= 0.5*height
                     && cell->center()[2] > 0.5*height - 5.0 )
