@@ -5629,6 +5629,13 @@ PhaseFieldMonolithicSolve<LATraits, Tria>
             line_search_tracker = 0;
           }
 
+          
+          // Note: to avoid round-off errors during synchronization from different ranks
+          if constexpr(is_mpi) {
+              line_search_parameter = std::round(line_search_parameter * 1e6) / 1e6;
+              line_search_parameter = Utilities::MPI::broadcast(*m_mpiInfo.mpiCommPtr(), line_search_parameter, /*root=*/0);
+          }
+          
         LBFGS_r_vector *= line_search_parameter;
         LBFGS_update = LBFGS_r_vector;
 
