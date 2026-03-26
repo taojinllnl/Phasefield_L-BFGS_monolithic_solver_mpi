@@ -3532,23 +3532,23 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::set_bcs_id()
 					      Point<dim>( 0.0,      0.0 ),
 					      Point<dim>( length,   width ) );
 
-    for (const auto &cell : m_triangulation.active_cell_iterators())
-      for (const auto &face : cell->face_iterators())
-	{
-	  if (face->at_boundary() == true)
-	    {
-	      if ( (std::fabs(face->center()[0] - 0.0 ) < 1.0e-9) )
-		face->set_boundary_id(0);
-	      else if ( (std::fabs(face->center()[0] - length ) < 1.0e-9) )
-		face->set_boundary_id(1);
-	      else if ( (std::fabs(face->center()[1] - 0.0 ) < 1.0e-9) )
-		face->set_boundary_id(2);
-	      else if ( (std::fabs(face->center()[1] - width ) < 1.0e-9) )
-		face->set_boundary_id(3);
-	      else
-		face->set_boundary_id(4);
-	    }
-	}
+//    for (const auto &cell : m_triangulation.active_cell_iterators())
+//      for (const auto &face : cell->face_iterators())
+//	{
+//	  if (face->at_boundary() == true)
+//	    {
+//	      if ( (std::fabs(face->center()[0] - 0.0 ) < 1.0e-9) )
+//		face->set_boundary_id(0);
+//	      else if ( (std::fabs(face->center()[0] - length ) < 1.0e-9) )
+//		face->set_boundary_id(1);
+//	      else if ( (std::fabs(face->center()[1] - 0.0 ) < 1.0e-9) )
+//		face->set_boundary_id(2);
+//	      else if ( (std::fabs(face->center()[1] - width ) < 1.0e-9) )
+//		face->set_boundary_id(3);
+//	      else
+//		face->set_boundary_id(4);
+//	    }
+//	}
   }
 
   template <typename LATraits, typename Tria>
