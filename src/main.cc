@@ -5354,8 +5354,9 @@ PhaseFieldMonolithicSolve<LATraits, Tria>
     int line_search_tracker = 0;
     const double line_search_parameter_lower_limit = 1.0e-3;
     const unsigned int small_line_search_max_allowed_time = 5;
-
-    BlockVector<double> LBFGS_update(m_dofs_per_block);
+      
+      BVector LBFGS_update(m_mpiInfo, m_blocks_desc, /*relevance=*/true);
+        LBFGS_update.initialize();
 
     LBFGS_update = 0.0;
 
@@ -5371,12 +5372,17 @@ PhaseFieldMonolithicSolve<LATraits, Tria>
 
     unsigned int LBFGS_iteration = 0;
 
-    BlockVector<double> LBFGS_r_vector(m_dofs_per_block);
-    BlockVector<double> LBFGS_y_vector(m_dofs_per_block);
-    BlockVector<double> LBFGS_q_vector(m_dofs_per_block);
-    BlockVector<double> LBFGS_s_vector(m_dofs_per_block);
-    std::list<std::pair< std::pair<BlockVector<double>,
-                                   BlockVector<double>>,
+      BVector LBFGS_r_vector(m_mpiInfo, m_blocks_desc, /*relevance=*/true);
+        LBFGS_r_vector.initialize();
+      BVector LBFGS_y_vector(m_mpiInfo, m_blocks_desc, /*relevance=*/false);
+        LBFGS_y_vector.initialize();
+      BVector LBFGS_q_vector(m_mpiInfo, m_blocks_desc, /*relevance=*/false);
+        LBFGS_q_vector.initialize();
+      BVector LBFGS_s_vector(m_mpiInfo, m_blocks_desc, /*relevance=*/false);
+        LBFGS_s_vector.initialize();
+      
+    std::list<std::pair< std::pair<BVector,
+                                   BVector>,
                          double>> LBFGS_vector_list;
 
     const unsigned int LBFGS_m = m_parameters.m_LBFGS_m;
@@ -5402,7 +5408,8 @@ PhaseFieldMonolithicSolve<LATraits, Tria>
             // refined mesh as initial guess
             LBFGS_update = LBFGS_update_refine;
 
-            m_constraints.distribute(LBFGS_update);
+//            m_constraints.distribute(LBFGS_update);
+              LBFGS_update.distributeCst(m_constraints);
             solution_delta += LBFGS_update;
             if (m_parameters.m_output_iteration_history)
               {
