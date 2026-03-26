@@ -2038,7 +2038,7 @@ PhaseFieldMonolithicSolve<LATraits, Tria>
     std::vector<std::vector<Tensor<2, dim>>>          m_grad_Nx_disp;  // gradient of shape function values for displacement
     std::vector<std::vector<SymmetricTensor<2, dim>>> m_symm_grad_Nx_disp;  // symmetric gradient of shape function values for displacement
 
-    const BlockVector<double>&       m_solution_previous_step;
+    const BVector&       m_solution_previous_step;
     std::vector<double>              m_phasefield_previous_step_cell;
 
     ScratchData_ASM_RHS_BFGS(const FiniteElement<dim> & fe_cell,
@@ -2046,7 +2046,7 @@ PhaseFieldMonolithicSolve<LATraits, Tria>
                              const UpdateFlags          uf_cell,
 		             const QGauss<dim - 1> &    qf_face,
 		             const UpdateFlags          uf_face,
-		             const BlockVector<double>& solution_old)
+		             const BVector& solution_old)
       : m_fe_values(fe_cell, qf_cell, uf_cell)
       , m_fe_face_values(fe_cell, qf_face, uf_face)
       , m_Nx_phasefield(qf_cell.size(),
