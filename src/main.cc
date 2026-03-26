@@ -6052,117 +6052,121 @@ template <typename LATraits, typename Tria>
     double length_scale;
     double cell_length;
     while(cell_refine_flag)
-      {
-	cell_refine_flag = false;
-
-	std::vector<types::global_dof_index> local_dof_indices(m_fe.dofs_per_cell);
-	for (const auto &cell : m_dof_handler.active_cell_iterators())
-	  {
-	    cell->get_dof_indices(local_dof_indices);
-
-	    for (unsigned int i = 0; i< m_fe.dofs_per_cell; ++i)
-	      {
-		const unsigned int comp_i = m_fe.system_to_component_index(i).first;
-		if (comp_i == m_d_component) //phasefield component
-		  {
-		    if (  solution_next_step(local_dof_indices[i])
-			> m_parameters.m_phasefield_refine_threshold )
-		      {
-			material_id = cell->material_id();
-	                length_scale = m_material_data[material_id][2];
-	                if (dim == 2)
-	                  cell_length = std::sqrt(cell->measure());
-	                else
-	                  cell_length = std::cbrt(cell->measure());
-			if (  cell_length
-			    > length_scale * m_parameters.m_allowed_max_h_l_ratio )
-			  {
-			    if (cell->level() < m_parameters.m_max_allowed_refinement_level)
-			      {
-			        cell->set_refine_flag();
-			        break;
-			      }
-			  }
-		      }
-		  }
-	      }
-	  }
-
-	for (const auto &cell : m_dof_handler.active_cell_iterators())
-	  {
-	    if (cell->refine_flag_set())
-	      {
-		cell_refine_flag = true;
-		break;
-	      }
-	  }
-
-	// if any cell is refined, we need to project the solution
-	// to the newly refined mesh
-	if (cell_refine_flag)
-	  {
-	    mesh_is_same = false;
-
-	    std::vector<BlockVector<double> > old_solutions(2);
-	    old_solutions[0] = solution_next_step;
-	    old_solutions[1] = m_solution;
-
-	    // history variable field L2 projection
-	    DoFHandler<dim> dof_handler_L2(m_triangulation);
-	    FE_DGQ<dim>     fe_L2(m_parameters.m_poly_degree); //Discontinuous Galerkin
-	    dof_handler_L2.distribute_dofs(fe_L2);
-	    AffineConstraints<double> constraints;
-	    constraints.clear();
-	    //Since we use discontinuous Lagrange polynomials as shape functions
-	    //we don't need to worry about enforcing continuity of the history variable
-	    //at hanging nodes.
-	    //DoFTools::make_hanging_node_constraints(dof_handler_L2, constraints);
-	    constraints.close();
-
-	    Vector<double> old_history_variable_field_L2;
-	    old_history_variable_field_L2.reinit(dof_handler_L2.n_dofs());
-
-	    MappingQ<dim> mapping(m_parameters.m_poly_degree + 1);
-	    VectorTools::project(mapping,
-			     dof_handler_L2,
-			     constraints,
-			     m_qf_cell,
-			     [&] (const typename DoFHandler<dim>::active_cell_iterator & cell,
-				  const unsigned int q) -> double
-			     {
-			       return m_quadrature_point_history.get_data(cell)[q]->get_history_max_positive_strain_energy();
-			     },
-			     old_history_variable_field_L2);
-
-	    m_triangulation.prepare_coarsening_and_refinement();
-	    SolutionTransfer<dim, BlockVector<double>> solution_transfer(m_dof_handler);
-	    solution_transfer.prepare_for_coarsening_and_refinement(old_solutions);
-	    SolutionTransfer<dim, Vector<double>> solution_transfer_history_variable(dof_handler_L2);
-	    solution_transfer_history_variable.prepare_for_coarsening_and_refinement(old_history_variable_field_L2);
-	    m_triangulation.execute_coarsening_and_refinement();
-
-	    setup_system();
-
-	    dof_handler_L2.distribute_dofs(fe_L2);
-	    constraints.clear();
-	    //Since we use discontinuous Lagrange polynomials as shape functions
-	    //we don't need to worry about enforcing continuity of the history variable
-	    //at hanging nodes.
-	    //DoFTools::make_hanging_node_constraints(dof_handler_L2, constraints);
-	    constraints.close();
-
-	    std::vector<BlockVector<double>> tmp_solutions(2);
-	    tmp_solutions[0].reinit(m_dofs_per_block);
-	    tmp_solutions[1].reinit(m_dofs_per_block);
-
-	    Vector<double> new_history_variable_field_L2;
-	    new_history_variable_field_L2.reinit(dof_handler_L2.n_dofs());
-
-	    #  if DEAL_II_VERSION_GTE(9, 7, 0)
-	      solution_transfer.interpolate(tmp_solutions);
-            #  else
-	    // If an older version of dealII is used, for example, 9.4.0, interpolate()
-            // needs to use the following interface.
+    {
+        cell_refine_flag = false;
+        
+        std::vector<types::global_dof_index> local_dof_indices(m_fe.dofs_per_cell);
+        for (const auto &cell : m_dof_handler.active_cell_iterators())
+        {
+              cell->get_dof_indices(local_dof_indices);
+              
+              for (unsigned int i = 0; i< m_fe.dofs_per_cell; ++i)
+              {
+                  const unsigned int comp_i = m_fe.system_to_component_index(i).first;
+                  if (comp_i == m_d_component) //phasefield component
+                  {
+                      if (  solution_next_step(local_dof_indices[i])
+                          > m_parameters.m_phasefield_refine_threshold )
+                      {
+                          material_id = cell->material_id();
+                          length_scale = m_material_data[material_id][2];
+                          if (dim == 2)
+                              cell_length = std::sqrt(cell->measure());
+                          else
+                              cell_length = std::cbrt(cell->measure());
+                          if (  cell_length
+                              > length_scale * m_parameters.m_allowed_max_h_l_ratio )
+                          {
+                              if (cell->level() < m_parameters.m_max_allowed_refinement_level)
+                              {
+                                  cell->set_refine_flag();
+                                  break;
+                              }
+                          }
+                      }
+                  }
+              }
+          }
+          
+          for (const auto &cell : m_dof_handler.active_cell_iterators())
+          {
+              if (cell->refine_flag_set())
+              {
+                  cell_refine_flag = true;
+                  break;
+              }
+          }
+          
+          // if any cell is refined, we need to project the solution
+          // to the newly refined mesh
+          if (cell_refine_flag)
+          {
+              mesh_is_same = false;
+              
+              std::vector<BlockVector<double>> old_solutions(2);
+              old_solutions[0] = solution_next_step.base();
+              old_solutions[1] = m_solution.base();
+              
+              // history variable field L2 projection
+              DoFHandler<dim> dof_handler_L2(m_triangulation);
+              FE_DGQ<dim>     fe_L2(m_parameters.m_poly_degree); //Discontinuous Galerkin
+              dof_handler_L2.distribute_dofs(fe_L2);
+              AffineConstraints<double> constraints;
+              constraints.clear();
+              //Since we use discontinuous Lagrange polynomials as shape functions
+              //we don't need to worry about enforcing continuity of the history variable
+              //at hanging nodes.
+              //DoFTools::make_hanging_node_constraints(dof_handler_L2, constraints);
+              constraints.close();
+              
+              Vector<double> old_history_variable_field_L2;
+              old_history_variable_field_L2.reinit(dof_handler_L2.n_dofs());
+              
+              MappingQ<dim> mapping(m_parameters.m_poly_degree + 1);
+              VectorTools::project(mapping,
+                                   dof_handler_L2,
+                                   constraints,
+                                   m_qf_cell,
+                                   [&] (const typename DoFHandler<dim>::active_cell_iterator & cell,
+                                        const unsigned int q) -> double
+                                   {
+                  return m_quadrature_point_history.get_data(cell)[q]->get_history_max_positive_strain_energy();
+              },
+                                   old_history_variable_field_L2);
+              
+              m_triangulation.prepare_coarsening_and_refinement();
+              SolutionTransfer<dim, BlockVector<double>> solution_transfer(m_dof_handler);
+              solution_transfer.prepare_for_coarsening_and_refinement(old_solutions);
+              SolutionTransfer<dim, Vector<double>> solution_transfer_history_variable(dof_handler_L2);
+              solution_transfer_history_variable.prepare_for_coarsening_and_refinement(old_history_variable_field_L2);
+              m_triangulation.execute_coarsening_and_refinement();
+              
+              setup_system();
+              
+              dof_handler_L2.distribute_dofs(fe_L2);
+              constraints.clear();
+              //Since we use discontinuous Lagrange polynomials as shape functions
+              //we don't need to worry about enforcing continuity of the history variable
+              //at hanging nodes.
+              //DoFTools::make_hanging_node_constraints(dof_handler_L2, constraints);
+              constraints.close();
+              
+              std::vector<BVector> tmp_solutions;
+              tmp_solutions.emplace_back(m_mpiInfo, m_blocks_desc, /*relevance=*/false);
+              tmp_solutions.emplace_back(m_mpiInfo, m_blocks_desc, /*relevance=*/false);
+              tmp_solutions[0].initialize();
+              tmp_solutions[1].initialize();
+              //	    tmp_solutions[0].reinit(m_dofs_per_block);
+              //	    tmp_solutions[1].reinit(m_dofs_per_block);
+              
+              Vector<double> new_history_variable_field_L2;
+              new_history_variable_field_L2.reinit(dof_handler_L2.n_dofs());
+              
+#  if DEAL_II_VERSION_GTE(9, 7, 0)
+              solution_transfer.interpolate(tmp_solutions);
+#  else
+              // If an older version of dealII is used, for example, 9.4.0, interpolate()
+              // needs to use the following interface.
               solution_transfer.interpolate(old_solutions, tmp_solutions);
             #  endif
 
