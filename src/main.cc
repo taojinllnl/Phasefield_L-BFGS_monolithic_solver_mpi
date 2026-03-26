@@ -3834,7 +3834,7 @@ PhaseFieldMonolithicSolve<LATraits, Tria>
           {
               this->m_constraints.distribute_local_to_global(data.m_cell_matrix,
                                                              data.m_local_dof_indices,
-                                                             m_tangent_matrix);
+                                                             m_tangent_matrix.base());
           };
           
           WorkStream::run(
@@ -3898,7 +3898,7 @@ PhaseFieldMonolithicSolve<LATraits, Tria>
           {
               this->m_constraints.distribute_local_to_global(data.m_cell_rhs,
                                                              data.m_local_dof_indices,
-                                                             system_rhs);
+                                                             system_rhs.base());
           };
           
           WorkStream::run(m_dof_handler.active_cell_iterators(),
