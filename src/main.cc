@@ -1283,6 +1283,8 @@ using namespace bcs;
       BVector                   m_system_rhs;
       BVector                   m_solution;
       
+      LASolver<LATraits>     m_diag_la_solver;
+      
     SparseDirectUMFPACK       m_A_direct;
 
 
@@ -2122,7 +2124,12 @@ template <typename LATraits, typename Tria>
                    [](unsigned int, unsigned int){return DoFTools::always;})
     , m_system_rhs(m_mpiInfo, m_blocks_desc, /*relevance=*/ false)
     , m_solution(m_mpiInfo, m_blocks_desc, /*relevance=*/ true)
-  {}
+    , m_diag_la_solver(m_parameters.m_type_linear_solver == "Direct"
+                       ? SolverType::Direct : SolverType::CG,
+                       m_blocks_desc,
+                       m_mpiInfo)
+
+{}
 
   template <typename LATraits, typename Tria>
   void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid()
@@ -4853,74 +4860,17 @@ template <typename LATraits, typename Tria>
   }
 
   template <typename LATraits, typename Tria>
-  void PhaseFieldMonolithicSolve<LATraits, Tria>::LBFGS_B0(BlockVector<double> & LBFGS_r_vector,
-						BlockVector<double> & LBFGS_q_vector)
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::LBFGS_B0(BVector & LBFGS_r_vector,
+						BVector & LBFGS_q_vector)
   {
     m_timer.enter_subsection("Solve B0");
 
+      LBFGS_r_vector = 0.0;
     assemble_system_B0(m_solution);
 
-    if (m_parameters.m_type_linear_solver == "Direct")
-      {
-	/*
-	SparseDirectUMFPACK A_direct;
-	A_direct.initialize(m_tangent_matrix);
-	A_direct.vmult(LBFGS_r_vector,
-		       LBFGS_q_vector);
-		       */
-
-	// Performing LU decomposition on each block is much faster than
-	// performing LU decomposition on the whole system
-	SparseDirectUMFPACK A_direct_u;
-	A_direct_u.initialize(m_tangent_matrix.block(m_u_dof, m_u_dof));
-	A_direct_u.vmult(LBFGS_r_vector.block(m_u_dof),
-		         LBFGS_q_vector.block(m_u_dof));
-
-	SparseDirectUMFPACK A_direct_d;
-	A_direct_d.initialize(m_tangent_matrix.block(m_d_dof, m_d_dof));
-	A_direct_d.vmult(LBFGS_r_vector.block(m_d_dof),
-		         LBFGS_q_vector.block(m_d_dof));
-
-      }
-    else if (m_parameters.m_type_linear_solver == "CG")
-      {
-/*
-	SolverControl            solver_control(1e6, 1e-9);
-	SolverCG<BlockVector<double>> cg(solver_control);
-
-	PreconditionJacobi<BlockSparseMatrix<double>> preconditioner;
-	preconditioner.initialize(m_tangent_matrix, 1.0);
-
-	cg.solve(m_tangent_matrix,
-		 LBFGS_r_vector,
-		 LBFGS_q_vector,
-		 preconditioner);
-*/
-	SolverControl            solver_control_uu(1e6, 1e-9);
-	SolverCG<Vector<double>> cg_uu(solver_control_uu);
-
-	PreconditionJacobi<SparseMatrix<double>> preconditioner_uu;
-	preconditioner_uu.initialize(m_tangent_matrix.block(m_u_dof, m_u_dof), 1.0);
-	cg_uu.solve(m_tangent_matrix.block(m_u_dof, m_u_dof),
-	            LBFGS_r_vector.block(m_u_dof),
-	            LBFGS_q_vector.block(m_u_dof),
-	            preconditioner_uu);
-
-	SolverControl            solver_control_dd(1e6, 1e-15);
-	SolverCG<Vector<double>> cg_dd(solver_control_dd);
-
-	PreconditionJacobi<SparseMatrix<double>> preconditioner_dd;
-	preconditioner_dd.initialize(m_tangent_matrix.block(m_d_dof, m_d_dof), 1.0);
-	cg_dd.solve(m_tangent_matrix.block(m_d_dof, m_d_dof),
-	            LBFGS_r_vector.block(m_d_dof),
-	            LBFGS_q_vector.block(m_d_dof),
-	            preconditioner_dd);
-      }
-    else
-      {
-	AssertThrow(false,
-	            ExcMessage("Selected linear solver not implemented!"));
-      }
+      m_diag_la_solver.solve(LBFGS_r_vector, LBFGS_q_vector, m_tangent_matrix);
+      LBFGS_r_vector.updateRelevance();
+      
 
     m_timer.leave_subsection();
   }
