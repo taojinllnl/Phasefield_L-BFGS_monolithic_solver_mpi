@@ -3723,10 +3723,10 @@ template <typename LATraits, typename Tria>
   }
 
   template <typename LATraits, typename Tria>
-  void PhaseFieldMonolithicSolve<LATraits, Tria>::assemble_system_newton(const BlockVector<double> & solution_old)
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::assemble_system_newton(const BVector & solution_old)
   {
     m_timer.enter_subsection("Assemble system");
-
+/*
     if (m_parameters.m_output_iteration_history)
       m_logfile << " ASM_SYS " << std::flush;
 
@@ -3762,7 +3762,7 @@ template <typename LATraits, typename Tria>
       copier,
       scratch_data,
       per_task_data);
-
+*/
     m_timer.leave_subsection();
   }
 
