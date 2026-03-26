@@ -1264,7 +1264,6 @@ using namespace bcs;
       m_d_dof = 1
     };
 
-    std::vector<types::global_dof_index> m_dofs_per_block;
 
     const QGauss<dim>     m_qf_cell;
     const QGauss<dim - 1> m_qf_face;
