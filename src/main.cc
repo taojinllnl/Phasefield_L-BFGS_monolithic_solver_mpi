@@ -3987,42 +3987,84 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
                                                      m_constraints,
                                                      m_fe.component_mask(x_displacement));
             
-            typename Triangulation<dim>::active_vertex_iterator vertex_itr;
-            vertex_itr = m_triangulation.begin_active_vertex();
-            std::vector<types::global_dof_index> node_rotate(m_fe.dofs_per_vertex);
-            double node_dist = 0.0;
-            double disp_mag = 0.0;
-            double angle_theta = 0.0;
-            double disp_y = 0;
-            double disp_z = 0;
             
-            for (; vertex_itr != m_triangulation.end_vertex(); ++vertex_itr)
+            
+            const auto rotationCst = [](const double y,
+                                        const double z,
+                                        const double dt,
+                                        const double magnitude,
+                                        const types::global_dof_index dofY,
+                                        const types::global_dof_index dofZ,
+                                        AffineConstraints<double>&    cst)
             {
-                if (std::fabs(vertex_itr->vertex()[0] - 0.0) < 1.0e-9)
+                double disp_y = 0.0;
+                double disp_z = 0.0;
+                
+                const double node_dist = std::sqrt(y * y + z * z);
+                
+                if (node_dist > 0)
                 {
-                    node_rotate = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
-                    node_dist = std::sqrt(  vertex_itr->vertex()[1] * vertex_itr->vertex()[1]
-                                          + vertex_itr->vertex()[2] * vertex_itr->vertex()[2]);
+                    const double angle_theta = dt * magnitude;
+                    const double disp_mag = node_dist * std::tan(angle_theta);
+                    const double factor = disp_mag / node_dist;
+                    disp_y =  z * factor;
+                    disp_z = -y * factor;
+                }
+                
+                cst.add_line(dofY);
+                cst.set_inhomogeneity(dofY, disp_y);
+                
+                cst.add_line(dofZ);
+                cst.set_inhomogeneity(dofZ, disp_z);
+            };
+            
+            
+            if constexpr (is_mpi)
+            {
+                std::vector<bool> locally_owned_vertices =  GridTools::get_locally_owned_vertices(m_dof_handler.get_triangulation());
+                
+                for (auto const & cell : m_dof_handler.active_cell_iterators()) {
+                    if (!cell->is_locally_owned() || !cell->at_boundary()) continue;
                     
-                    angle_theta = m_time.get_delta_t() * m_time.get_magnitude();
-                    disp_mag = node_dist * std::tan(angle_theta);
-                    
-                    if (node_dist > 0)
+                    for (const auto vertex : cell->vertex_indices())
                     {
-                        disp_y = vertex_itr->vertex()[2]/node_dist * disp_mag;
-                        disp_z = -vertex_itr->vertex()[1]/node_dist * disp_mag;
+                        // skip ghost cells
+                        if (!locally_owned_vertices[cell->vertex_index(vertex)]) continue;
+                        
+                        const Point<dim> point = cell->vertex(vertex);
+                        
+                        if (std::fabs(point[0] - 0.0) < 1.0e-9)
+                        {
+                            rotationCst(point[1], point[2],
+                                        m_time.get_delta_t(),
+                                        m_time.get_magnitude(),
+                                        cell->vertex_dof_index(vertex, 1),
+                                        cell->vertex_dof_index(vertex, 2),
+                                        m_constraints);
+                        }
                     }
-                    else
+                }
+            }
+            else
+            {
+                typename Triangulation<dim>::active_vertex_iterator vertex_itr;
+                vertex_itr = m_triangulation.begin_active_vertex();
+                std::vector<types::global_dof_index> node_rotate(m_fe.dofs_per_vertex);
+                for (; vertex_itr != m_triangulation.end_vertex(); ++vertex_itr)
+                {
+                    if (std::fabs(vertex_itr->vertex()[0] - 0.0) < 1.0e-9)
                     {
-                        disp_y = 0.0;
-                        disp_z = 0.0;
+                        node_rotate = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
+                        
+                        const Point<dim> point = vertex_itr->vertex();
+                        
+                        rotationCst(point[1], point[2],
+                                    m_time.get_delta_t(),
+                                    m_time.get_magnitude(),
+                                    node_rotate[1],
+                                    node_rotate[2],
+                                    m_constraints);
                     }
-                    
-                    m_constraints.add_line(node_rotate[1]);
-                    m_constraints.set_inhomogeneity(node_rotate[1], disp_y);
-                    
-                    m_constraints.add_line(node_rotate[2]);
-                    m_constraints.set_inhomogeneity(node_rotate[2], disp_z);
                 }
             }
         }
