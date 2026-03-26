@@ -1329,6 +1329,7 @@ using namespace bcs;
     void get_error_update(const BlockVector<double> &newton_update,
                           Errors & error_update);
 
+      void set_bcs_id();
     void make_grid();
     void make_grid_case_1();
     void make_grid_case_2();
