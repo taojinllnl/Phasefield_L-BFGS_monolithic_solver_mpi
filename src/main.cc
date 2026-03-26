@@ -3719,92 +3719,6 @@ template <typename LATraits, typename Tria>
     const UpdateFlags uf_cell(update_values | update_gradients |
 			      update_quadrature_points | update_JxW_values);
     const UpdateFlags uf_face(update_values | update_normal_vectors |
-                              update_JxW_values);
-
-    PerTaskData_ASM per_task_data(m_fe.n_dofs_per_cell());
-    ScratchData_ASM scratch_data(m_fe, m_qf_cell, uf_cell, m_qf_face, uf_face, solution_old);
-
-    auto worker =
-      [this](const typename DoFHandler<dim>::active_cell_iterator &cell,
-	     ScratchData_ASM & scratch,
-	     PerTaskData_ASM & data)
-      {
-        this->assemble_system_newton_one_cell(cell, scratch, data);
-      };
-
-    auto copier = [this](const PerTaskData_ASM &data)
-      {
-        this->m_constraints.distribute_local_to_global(data.m_cell_matrix,
-                                                       data.m_cell_rhs,
-                                                       data.m_local_dof_indices,
-						       m_tangent_matrix,
-						       m_system_rhs);
-      };
-
-    WorkStream::run(
-      m_dof_handler.active_cell_iterators(),
-      worker,
-      copier,
-      scratch_data,
-      per_task_data);
-
-    m_timer.leave_subsection();
-  }
-
-
-  template <typename LATraits, typename Tria>
-  void PhaseFieldMonolithicSolve<LATraits, Tria>::assemble_system_B0(const BlockVector<double> & solution_old)
-  {
-    m_timer.enter_subsection("Assemble B0");
-
-    m_tangent_matrix = 0.0;
-
-    const UpdateFlags uf_cell(update_values | update_gradients |
-			      update_quadrature_points | update_JxW_values);
-    const UpdateFlags uf_face(update_values | update_normal_vectors |
-                              update_JxW_values);
-
-    PerTaskData_ASM per_task_data(m_fe.n_dofs_per_cell());
-    ScratchData_ASM scratch_data(m_fe, m_qf_cell, uf_cell, m_qf_face, uf_face, solution_old);
-
-    auto worker =
-      [this](const typename DoFHandler<dim>::active_cell_iterator &cell,
-	     ScratchData_ASM & scratch,
-	     PerTaskData_ASM & data)
-      {
-        this->assemble_system_B0_one_cell(cell, scratch, data);
-      };
-
-    auto copier = [this](const PerTaskData_ASM &data)
-      {
-        this->m_constraints.distribute_local_to_global(data.m_cell_matrix,
-                                                       data.m_local_dof_indices,
-						       m_tangent_matrix);
-      };
-
-    WorkStream::run(
-      m_dof_handler.active_cell_iterators(),
-      worker,
-      copier,
-      scratch_data,
-      per_task_data);
-
-    m_timer.leave_subsection();
-  }
-
-  template <typename LATraits, typename Tria>
-  void PhaseFieldMonolithicSolve<LATraits, Tria>::assemble_system_rhs_BFGS_parallel(const BlockVector<double> & solution_old,
-								         BlockVector<double> & system_rhs)
-  {
-    m_timer.enter_subsection("Assemble RHS");
-
-    //m_logfile << " A_RHS " << std::flush;
-
-    system_rhs = 0.0;
-
-    const UpdateFlags uf_cell(update_values | update_gradients |
-			      update_quadrature_points | update_JxW_values);
-    const UpdateFlags uf_face(update_values | update_normal_vectors |
 			      update_JxW_values);
 
     PerTaskData_ASM_RHS_BFGS per_task_data(m_fe.n_dofs_per_cell());
@@ -3831,6 +3745,131 @@ template <typename LATraits, typename Tria>
       copier,
       scratch_data,
       per_task_data);
+
+    m_timer.leave_subsection();
+  }
+
+
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::assemble_system_B0(const BVector & solution_old)
+  {
+    m_timer.enter_subsection("Assemble B0");
+
+    m_tangent_matrix = 0.0;
+
+    const UpdateFlags uf_cell(update_values | update_gradients |
+			      update_quadrature_points | update_JxW_values);
+    const UpdateFlags uf_face(update_values | update_normal_vectors |
+                              update_JxW_values);
+
+    PerTaskData_ASM per_task_data(m_fe.n_dofs_per_cell());
+    ScratchData_ASM scratch_data(m_fe, m_qf_cell, uf_cell, m_qf_face, uf_face, solution_old);
+
+      if constexpr (!is_mpi){
+          // non-mpi mode
+          auto worker =
+          [this](const typename DoFHandler<dim>::active_cell_iterator &cell,
+                 ScratchData_ASM & scratch,
+                 PerTaskData_ASM & data)
+          {
+              this->assemble_system_B0_one_cell(cell, scratch, data);
+          };
+          
+          auto copier = [this](const PerTaskData_ASM &data)
+          {
+              this->m_constraints.distribute_local_to_global(data.m_cell_matrix,
+                                                             data.m_local_dof_indices,
+                                                             m_tangent_matrix);
+          };
+          
+          WorkStream::run(
+                          m_dof_handler.active_cell_iterators(),
+                          worker,
+                          copier,
+                          scratch_data,
+                          per_task_data);
+          
+      } else {
+          // mpi mode
+          for (const auto &cell : m_dof_handler.active_cell_iterators())
+              if (cell->is_locally_owned())
+              {
+                  assemble_system_B0_one_cell(cell, scratch_data, per_task_data);
+                  
+                  m_constraints.distribute_local_to_global(per_task_data.m_cell_matrix,
+                                                           per_task_data.m_local_dof_indices,
+                                                           m_tangent_matrix.base());
+              }
+          
+          /*  *  *  *   *   *   *   *   *  MPI  *   *   *   *   *   *   *   *   */
+          m_tangent_matrix.compress(VectorOperation::add);
+          /*  *  *  *   *   *   *   *   *  MPI  *   *   *   *   *   *   *   *   */
+          
+          
+      }
+
+    m_timer.leave_subsection();
+  }
+
+  template <typename LATraits, typename Tria>
+  void PhaseFieldMonolithicSolve<LATraits, Tria>::assemble_system_rhs_BFGS_parallel(const BVector & solution_old,
+								         BVector & system_rhs)
+  {
+    m_timer.enter_subsection("Assemble RHS");
+
+    //m_logfile << " A_RHS " << std::flush;
+
+    system_rhs = 0.0;
+
+    const UpdateFlags uf_cell(update_values | update_gradients |
+			      update_quadrature_points | update_JxW_values);
+    const UpdateFlags uf_face(update_values | update_normal_vectors |
+			      update_JxW_values);
+
+    PerTaskData_ASM_RHS_BFGS per_task_data(m_fe.n_dofs_per_cell());
+    ScratchData_ASM_RHS_BFGS scratch_data(m_fe, m_qf_cell, uf_cell, m_qf_face, uf_face, solution_old);
+
+      if constexpr (!is_mpi){
+          // non-mpi mode
+          auto worker =
+          [this](const typename DoFHandler<dim>::active_cell_iterator &cell,
+                 ScratchData_ASM_RHS_BFGS & scratch,
+                 PerTaskData_ASM_RHS_BFGS & data)
+          {
+              this->assemble_system_rhs_BFGS_one_cell(cell, scratch, data);
+          };
+          
+          auto copier = [this, &system_rhs](const PerTaskData_ASM_RHS_BFGS &data)
+          {
+              this->m_constraints.distribute_local_to_global(data.m_cell_rhs,
+                                                             data.m_local_dof_indices,
+                                                             system_rhs);
+          };
+          
+          WorkStream::run(m_dof_handler.active_cell_iterators(),
+                          worker,
+                          copier,
+                          scratch_data,
+                          per_task_data);
+          
+      } else {
+          // mpi mode
+          
+          for (const auto &cell : m_dof_handler.active_cell_iterators())
+              if (cell->is_locally_owned())
+              {
+                  assemble_system_rhs_BFGS_one_cell(cell, scratch_data, per_task_data);
+                  
+                  m_constraints.distribute_local_to_global(per_task_data.m_cell_rhs,
+                                                           per_task_data.m_local_dof_indices,
+                                                           system_rhs.base());
+              }
+      
+
+      /*  *  *  *   *   *   *   *   *  MPI  *   *   *   *   *   *   *   *   */
+      system_rhs.compress(VectorOperation::add);
+      /*  *  *  *   *   *   *   *   *  MPI  *   *   *   *   *   *   *   *   */
+  }
 
     m_timer.leave_subsection();
   }
