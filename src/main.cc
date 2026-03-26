@@ -1738,49 +1738,66 @@ template <typename LATraits, typename Tria>
     return solution_total;
   }
 
-  template <typename LATraits, typename Tria>
-  void
-  PhaseFieldMonolithicSolve<LATraits, Tria>::update_qph_incremental(const BlockVector<double> &solution_delta,
-							 const BlockVector<double> &solution_old,
-							 const bool is_print)
-  {
+template <typename LATraits, typename Tria>
+void
+PhaseFieldMonolithicSolve<LATraits, Tria>
+::update_qph_incremental(const BVector &solution_delta,
+                         const BVector &solution_old,
+                         const bool is_print)
+{
     m_timer.enter_subsection("Update QPH data");
     if (is_print && m_parameters.m_output_iteration_history)
-      m_logfile << " UQPH " << std::flush;
-
-    const BlockVector<double> solution_total(get_total_solution(solution_delta));
-
+        m_logfile << " UQPH " << std::flush;
+    
+    //    const BVector solution_total(get_total_solution(solution_delta));
+    
+    BVector solution_total(m_mpiInfo, m_blocks_desc, /*relevance=*/true);
+    solution_total.initialize();
+    solution_total.base() =  m_solution.base() + solution_delta.base();
+    solution_total.updateRelevance();
+    
     const UpdateFlags uf_UQPH(update_values | update_gradients);
     PerTaskData_UQPH  per_task_data_UQPH;
     ScratchData_UQPH  scratch_data_UQPH(m_fe,
-					m_qf_cell,
-					uf_UQPH,
-					solution_total,
-					solution_old,
-					m_time.get_delta_t());
-
-    auto worker = [this](const typename DoFHandler<dim>::active_cell_iterator &cell,
-	                 ScratchData_UQPH & scratch,
-	                 PerTaskData_UQPH & data)
-      {
-        this->update_qph_incremental_one_cell(cell, scratch, data);
-      };
-
-    auto copier = [this](const PerTaskData_UQPH &data)
-      {
-        this->copy_local_to_global_UQPH(data);
-      };
-
-    WorkStream::run(
-	m_dof_handler.begin_active(),
-	m_dof_handler.end(),
-	worker,
-	copier,
-	scratch_data_UQPH,
-	per_task_data_UQPH);
-
+                                        m_qf_cell,
+                                        uf_UQPH,
+                                        solution_total,
+                                        solution_old,
+                                        m_time.get_delta_t());
+    
+    if constexpr (!is_mpi){
+        // non-mpi mode
+        auto worker = [this](const typename DoFHandler<dim>::active_cell_iterator &cell,
+                             ScratchData_UQPH & scratch,
+                             PerTaskData_UQPH & data)
+        {
+            this->update_qph_incremental_one_cell(cell, scratch, data);
+        };
+        
+        auto copier = [this](const PerTaskData_UQPH &data)
+        {
+            this->copy_local_to_global_UQPH(data);
+        };
+        
+        WorkStream::run(m_dof_handler.begin_active(),
+                        m_dof_handler.end(),
+                        worker,
+                        copier,
+                        scratch_data_UQPH,
+                        per_task_data_UQPH);
+    } else {
+        // mpi mode
+        for (const auto &cell : m_dof_handler.active_cell_iterators())
+            if (cell->is_locally_owned()) {
+                update_qph_incremental_one_cell(cell,
+                                                scratch_data_UQPH,
+                                                per_task_data_UQPH);
+                copy_local_to_global_UQPH(per_task_data_UQPH);
+            }
+    }
+    
     m_timer.leave_subsection();
-  }
+}
 
   template <typename LATraits, typename Tria>
   struct PhaseFieldMonolithicSolve<LATraits, Tria>::PerTaskData_UQPH
