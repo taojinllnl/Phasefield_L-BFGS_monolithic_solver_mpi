@@ -1293,6 +1293,7 @@ using namespace bcs;
     std::vector<std::pair<double, std::vector<double>>> m_history_reaction_force;
     std::vector<std::pair<double, std::array<double, 3>>> m_history_energy;
 
+      OutputHelper<LATraits, Tria, PointHistory<dim>>   m_output;
 
     struct Errors
     {
@@ -2128,7 +2129,12 @@ template <typename LATraits, typename Tria>
                        ? SolverType::Direct : SolverType::CG,
                        m_blocks_desc,
                        m_mpiInfo)
-
+    , m_output(m_mpiInfo,
+               m_triangulation,
+               m_dof_handler,
+               m_qf_cell,
+               m_parameters.m_scenario,
+               m_parameters.m_mpi_type)
 {}
 
   template <typename LATraits, typename Tria>
@@ -5661,85 +5667,20 @@ template <typename LATraits, typename Tria>
                 ExcMessage("No convergence in L-BFGS nonlinear solver!"));
   }
 
-  template <typename LATraits, typename Tria>
-  void PhaseFieldMonolithicSolve<LATraits, Tria>::output_results() const
-  {
+template <typename LATraits, typename Tria>
+void PhaseFieldMonolithicSolve<LATraits, Tria>::output_results() const
+{
     m_timer.enter_subsection("Output results");
-
-    DataOut<dim> data_out;
-
-    std::vector<DataComponentInterpretation::DataComponentInterpretation>
-      data_component_interpretation(
-        dim, DataComponentInterpretation::component_is_part_of_vector);
-
-    data_component_interpretation.push_back(
-      DataComponentInterpretation::component_is_scalar);
-
-    std::vector<std::string> solution_name(dim, "displacement");
-    solution_name.emplace_back("phasefield");
-
-    data_out.attach_dof_handler(m_dof_handler);
-    data_out.add_data_vector(m_solution,
-                             solution_name,
-                             DataOut<dim>::type_dof_data,
-                             data_component_interpretation);
-
-
-    Vector<double> cell_material_id(m_triangulation.n_active_cells());
-    // output material ID for each cell
-    for (const auto &cell : m_triangulation.active_cell_iterators())
-      {
-	cell_material_id(cell->active_cell_index()) = cell->material_id();
-      }
-    data_out.add_data_vector(cell_material_id, "materialID");
-
-    // Stress L2 projection
-    DoFHandler<dim> stresses_dof_handler_L2(m_triangulation);
-    FE_Q<dim>     stresses_fe_L2(m_parameters.m_poly_degree); //FE_Q element is continuous
-    stresses_dof_handler_L2.distribute_dofs(stresses_fe_L2);
-    AffineConstraints<double> constraints;
-    constraints.clear();
-    DoFTools::make_hanging_node_constraints(stresses_dof_handler_L2, constraints);
-    constraints.close();
-    std::vector<DataComponentInterpretation::DataComponentInterpretation>
-	  data_component_interpretation_stress(1,
-					       DataComponentInterpretation::component_is_scalar);
-
-    for (unsigned int i = 0; i < dim; ++i)
-      for (unsigned int j = i; j < dim; ++j)
-	{
-	  Vector<double> stress_field_L2;
-	  stress_field_L2.reinit(stresses_dof_handler_L2.n_dofs());
-
-	  MappingQ<dim> mapping(m_parameters.m_poly_degree + 1);
-	  VectorTools::project(mapping,
-			       stresses_dof_handler_L2,
-			       constraints,
-			       m_qf_cell,
-			       [&] (const typename DoFHandler<dim>::active_cell_iterator & cell,
-				    const unsigned int q) -> double
-			       {
-				 return m_quadrature_point_history.get_data(cell)[q]->get_cauchy_stress()[i][j];
-			       },
-			       stress_field_L2);
-
-	  std::string stress_name = "Cauchy_stress_" + std::to_string(i+1) + std::to_string(j+1)
-				  + "_L2";
-
-	  data_out.add_data_vector(stresses_dof_handler_L2,
-				   stress_field_L2,
-				   stress_name,
-				   data_component_interpretation_stress);
-	}
-
-    data_out.build_patches(m_parameters.m_poly_degree);
-
-    std::ofstream output("Solution-" + std::to_string(dim) + "d-" +
-			 Utilities::int_to_string(m_time.get_timestep(),4) + ".vtu");
-
-    data_out.write_vtu(output);
+    
+    m_output.output(m_time.get_timestep(),
+                    m_parameters.m_poly_degree,
+                    m_parameters.resultsDir,
+                    m_parameters.m_type_linear_solver,
+                    m_solution,
+                    m_quadrature_point_history);
+    
     m_timer.leave_subsection();
-  }
+}
 
   template <typename LATraits, typename Tria>
   void PhaseFieldMonolithicSolve<LATraits, Tria>::calculate_reaction_force(unsigned int face_ID)
