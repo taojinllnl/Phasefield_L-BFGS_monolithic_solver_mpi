@@ -1729,11 +1729,12 @@ template <typename LATraits, typename Tria>
   }
 
   template <typename LATraits, typename Tria>
-  BlockVector<double> PhaseFieldMonolithicSolve<LATraits, Tria>::get_total_solution(
-    const BlockVector<double> &solution_delta) const
+::common::BlockVectorWrapper<LATraits> PhaseFieldMonolithicSolve<LATraits, Tria>::get_total_solution(
+    const BVector &solution_delta) const
   {
-    BlockVector<double> solution_total(m_solution);
+    BVector solution_total(m_solution);
     solution_total += solution_delta;
+      solution_total.updateRelevance();
     return solution_total;
   }
 
