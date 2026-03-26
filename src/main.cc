@@ -3491,19 +3491,19 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::set_bcs_id()
       }
 
 
-    for (const auto &cell : m_triangulation.active_cell_iterators())
-      for (const auto &face : cell->face_iterators())
-	{
-	  if (face->at_boundary() == true)
-	    {
-	      if (std::fabs(face->center()[0] - length) < 1.0e-6 )
-		face->set_boundary_id(0);
-	      else if (std::fabs(face->center()[0] - 0.0) < 1.0e-6 )
-		face->set_boundary_id(1);
-	      else
-		face->set_boundary_id(2);
-	    }
-	}
+//    for (const auto &cell : m_triangulation.active_cell_iterators())
+//      for (const auto &face : cell->face_iterators())
+//	{
+//	  if (face->at_boundary() == true)
+//	    {
+//	      if (std::fabs(face->center()[0] - length) < 1.0e-6 )
+//		face->set_boundary_id(0);
+//	      else if (std::fabs(face->center()[0] - 0.0) < 1.0e-6 )
+//		face->set_boundary_id(1);
+//	      else
+//		face->set_boundary_id(2);
+//	    }
+//	}
   }
 
   template <typename LATraits, typename Tria>
