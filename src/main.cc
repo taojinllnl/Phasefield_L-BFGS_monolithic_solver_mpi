@@ -5913,10 +5913,47 @@ template <typename LATraits, typename Tria>
 
     for (unsigned int i = 0; i < m_dofs_per_block[m_u_dof]; ++i)
       {
-	if (mapping[i] != numbers::invalid_dof_index)
-	  {
-	    reaction_force[i % dim] += system_rhs.block(m_u_dof)(i);
-	  }
+          DoFTools::map_dof_to_boundary_indices(m_dof_handler,
+                                                boundary_ids,
+                                                mapping);
+          const std::size_t nDoFsOnDisp = (*m_blocks_desc.dofsPerBlockPtr())[m_u_dof];
+          for (unsigned int i = 0; i < nDoFsOnDisp; ++i)
+          {
+              if (mapping[i] != numbers::invalid_dof_index)
+              {
+                  reaction_force[i % dim] += system_rhs.block(m_u_dof)(i);
+              }
+          }
+      } else {
+          // finalize distributed assembly (accumulate contributions to owners)
+          system_rhs.compress(VectorOperation::add);
+          
+          // only loop over locally owned dofs
+          const IndexSet& owned = m_dof_handler.locally_owned_dofs();
+          
+          for (unsigned int d = 0; d < dim; ++d)
+          {
+              ComponentMask comp_mask(m_fe.n_components(), false);
+              comp_mask.set(m_u_fe.first_vector_component + d, true);
+              
+              const IndexSet boundary_comp =
+              DoFTools::extract_boundary_dofs(m_dof_handler,
+                                              comp_mask,
+                                              boundary_ids);
+              
+              // owned ∩ boundary_comp
+              const IndexSet owned_boundary = owned & boundary_comp;
+              
+              double reaction_force_comp = 0.0;
+              for (auto i = owned_boundary.begin(); i != owned_boundary.end(); ++i)
+              {
+                  reaction_force_comp += system_rhs(*i);
+              }
+              
+              // sychronize results
+              reaction_force[d] = Utilities::MPI::sum(reaction_force_comp,
+                                                      *m_mpiInfo.mpiCommPtr());
+          }
       }
 
     for (unsigned int i = 0; i < dim; i++)
@@ -6012,6 +6049,11 @@ template <typename LATraits, typename Tria>
             energy_functional += lqph[q_point]->get_crack_energy_dissipation() * JxW;
           }
       }
+      
+      // sync energy_functional with all ranks
+      if constexpr (is_mpi)
+          energy_functional = Utilities::MPI::sum(energy_functional,
+                                                  *m_mpiInfo.mpiCommPtr());
 
     return energy_functional;
   }
@@ -6041,6 +6083,13 @@ template <typename LATraits, typename Tria>
           }
       }
 
+      // sync total_strain_energy and crack_energy_dissipation with all ranks
+      if constexpr (is_mpi) {
+          total_strain_energy = Utilities::MPI::sum(total_strain_energy,
+                                                    *m_mpiInfo.mpiCommPtr());
+          crack_energy_dissipation = Utilities::MPI::sum(crack_energy_dissipation,
+                                                         *m_mpiInfo.mpiCommPtr());
+      }
     return std::make_pair(total_strain_energy, crack_energy_dissipation);
   }
 
