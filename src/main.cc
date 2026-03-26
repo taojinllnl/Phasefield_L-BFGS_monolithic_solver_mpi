@@ -4620,12 +4620,15 @@ PhaseFieldMonolithicSolve<LATraits, Tria>
   }
 
   template <typename LATraits, typename Tria>
-  double PhaseFieldMonolithicSolve<LATraits, Tria>::line_search_stepsize_gradient_based(const BlockVector<double> & BFGS_p_vector,
-				                                             const BlockVector<double> & solution_delta,
-									     unsigned int & num_ls)
-  {
-    BlockVector<double> g_old(m_system_rhs);
-
+  double PhaseFieldMonolithicSolve<LATraits, Tria>
+::line_search_stepsize_gradient_based(const BVector & BFGS_p_vector,
+                                      const BVector & solution_delta,
+                                      unsigned int & num_ls)
+{
+    BVector g_old(m_mpiInfo, m_blocks_desc, /*relevance=*/false);
+    g_old.initialize();
+    g_old.base() = m_system_rhs.base();
+    
     // BFGS_p_vector is the search direction
     BlockVector<double> solution_delta_trial(solution_delta);
     // take a full step size 1.0
