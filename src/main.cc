@@ -1481,10 +1481,14 @@ template <typename LATraits, typename Tria>
   void PhaseFieldMonolithicSolve<LATraits, Tria>::get_error_update(const BVector &newton_update,
                                                         Errors & error_update)
   {
-    BlockVector<double> error_ud(m_dofs_per_block);
-    for (unsigned int i = 0; i < m_dof_handler.n_dofs(); ++i)
-      if (!m_constraints.is_constrained(i))
-        error_ud(i) = newton_update(i);
+      BVector error_ud(m_mpiInfo, m_blocks_desc, /*relevance=*/false);
+        error_ud.initialize();
+      
+//    for (unsigned int i = 0; i < m_dof_handler.n_dofs(); ++i)
+//      if (!m_constraints.is_constrained(i))
+//        error_ud(i) = newton_update(i);
+      error_ud.base() = newton_update.base();
+      m_constraints.set_zero(error_ud.base());
 
     error_update.m_norm = error_ud.l2_norm();
     error_update.m_u    = error_ud.block(m_u_dof).l2_norm();
