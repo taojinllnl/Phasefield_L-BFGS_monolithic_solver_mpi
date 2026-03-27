@@ -1745,7 +1745,8 @@ PhaseFieldMonolithicSolve<LATraits, Tria>
                          const BVector &solution_old,
                          const bool is_print)
 {
-    m_timer.enter_subsection("Update QPH data");
+    const std::string sectionName = "Update QPH data";
+    m_timer.enter_subsection(sectionName);
     if (is_print && m_parameters.m_output_iteration_history)
         m_logfile << " UQPH " << std::flush;
     
@@ -1796,7 +1797,7 @@ PhaseFieldMonolithicSolve<LATraits, Tria>
             }
     }
     
-    m_timer.leave_subsection();
+    m_timer.leave_subsection(sectionName);
 }
 
   template <typename LATraits, typename Tria>
@@ -3701,7 +3702,8 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_12()
   template <typename LATraits, typename Tria>
   void PhaseFieldMonolithicSolve<LATraits, Tria>::setup_system()
   {
-    m_timer.enter_subsection("Setup system");
+      const std::string sectionName = "Setup system";
+    m_timer.enter_subsection(sectionName);
 
 
     m_dof_handler.distribute_dofs(m_fe);
@@ -3762,7 +3764,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_12()
 
     setup_qph();
 
-    m_timer.leave_subsection();
+    m_timer.leave_subsection(sectionName);
   }
 
 template <typename LATraits, typename Tria>
@@ -4291,7 +4293,8 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
   template <typename LATraits, typename Tria>
   void PhaseFieldMonolithicSolve<LATraits, Tria>::assemble_system_newton(const BVector & solution_old)
   {
-    m_timer.enter_subsection("Assemble system");
+      const std::string sectionName = "Assemble system";
+    m_timer.enter_subsection(sectionName);
 /*
     if (m_parameters.m_output_iteration_history)
       m_logfile << " ASM_SYS " << std::flush;
@@ -4329,14 +4332,15 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
       scratch_data,
       per_task_data);
 */
-    m_timer.leave_subsection();
+    m_timer.leave_subsection(sectionName);
   }
 
 
   template <typename LATraits, typename Tria>
   void PhaseFieldMonolithicSolve<LATraits, Tria>::assemble_system_B0(const BVector & solution_old)
   {
-    m_timer.enter_subsection("Assemble B0");
+      const std::string sectionName = "Assemble B0";
+    m_timer.enter_subsection(sectionName);
 
     m_tangent_matrix = 0.0;
 
@@ -4391,14 +4395,15 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
           
       }
 
-    m_timer.leave_subsection();
+    m_timer.leave_subsection(sectionName);
   }
 
   template <typename LATraits, typename Tria>
   void PhaseFieldMonolithicSolve<LATraits, Tria>::assemble_system_rhs_BFGS_parallel(const BVector & solution_old,
 								         BVector & system_rhs)
   {
-    m_timer.enter_subsection("Assemble RHS");
+      const std::string sectionName = "Assemble RHS";
+    m_timer.enter_subsection(sectionName);
 
     //m_logfile << " A_RHS " << std::flush;
 
@@ -4454,7 +4459,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
       /*  *  *  *   *   *   *   *   *  MPI  *   *   *   *   *   *   *   *   */
   }
 
-    m_timer.leave_subsection();
+    m_timer.leave_subsection(sectionName);
   }
 
   template <typename LATraits, typename Tria>
@@ -4956,7 +4961,8 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
   void PhaseFieldMonolithicSolve<LATraits, Tria>::assemble_system_rhs_BFGS(const BlockVector<double> & solution_old,
 								BlockVector<double> & system_rhs)
   {
-    m_timer.enter_subsection("Assemble RHS");
+    const std::string sectionName = "Assemble RHS";
+    m_timer.enter_subsection(sectionName);
 
     //m_logfile << " A_RHS " << std::flush;
 
@@ -5135,7 +5141,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
 	  system_rhs(local_dof_indices[i]) += cell_rhs(i);
       } // for (const auto &cell : m_dof_handler.active_cell_iterators())
 
-    m_timer.leave_subsection();
+    m_timer.leave_subsection(sectionName);
   }
 
   template <typename LATraits, typename Tria>
@@ -5436,7 +5442,8 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
   void PhaseFieldMonolithicSolve<LATraits, Tria>::LBFGS_B0(BVector & LBFGS_r_vector,
 						BVector & LBFGS_q_vector)
   {
-    m_timer.enter_subsection("Solve B0");
+      const std::string sectionName = "Solve B0";
+    m_timer.enter_subsection(sectionName);
 
       LBFGS_r_vector = 0.0;
     assemble_system_B0(m_solution);
@@ -5445,14 +5452,15 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
       LBFGS_r_vector.updateRelevance();
       
 
-    m_timer.leave_subsection();
+    m_timer.leave_subsection(sectionName);
   }
 
   template <typename LATraits, typename Tria>
   std::vector<double>
     PhaseFieldMonolithicSolve<LATraits, Tria>::solve_linear_system(BVector & newton_update)
   {
-    m_timer.enter_subsection("Solve coupled linear system");
+        const std::string sectionName = "Solve coupled linear system";
+    m_timer.enter_subsection(sectionName);
 
     if (m_parameters.m_output_iteration_history)
       m_logfile << " SLV " << std::flush;
@@ -5491,7 +5499,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
 
     m_constraints.distribute(newton_update);
  */
-    m_timer.leave_subsection();
+    m_timer.leave_subsection(sectionName);
     return linear_solver_parameters;
   }
 
@@ -6255,7 +6263,8 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
 template <typename LATraits, typename Tria>
 void PhaseFieldMonolithicSolve<LATraits, Tria>::output_results() const
 {
-    m_timer.enter_subsection("Output results");
+    const std::string sectionName = "Output results";
+    m_timer.enter_subsection(sectionName);
     
     m_output.output(m_time.get_timestep(),
                     m_parameters.m_poly_degree,
@@ -6264,13 +6273,14 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::output_results() const
                     m_solution,
                     m_quadrature_point_history);
     
-    m_timer.leave_subsection();
+    m_timer.leave_subsection(sectionName);
 }
 
   template <typename LATraits, typename Tria>
   void PhaseFieldMonolithicSolve<LATraits, Tria>::calculate_reaction_force(unsigned int face_ID)
   {
-    m_timer.enter_subsection("Calculate reaction force");
+      const std::string sectionName = "Calculate reaction force";
+    m_timer.enter_subsection(sectionName);
 
     BlockVector<double>       system_rhs;
     system_rhs.reinit(m_dofs_per_block);
@@ -6458,7 +6468,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::output_results() const
     time_force.second = reaction_force;
     m_history_reaction_force.push_back(time_force);
 
-    m_timer.leave_subsection();
+    m_timer.leave_subsection(sectionName);
   }
 
   template <typename LATraits, typename Tria>
