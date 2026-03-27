@@ -3794,23 +3794,54 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
                                                      m_constraints,
                                                      m_fe.component_mask(y_displacement));
             
-            typename Triangulation<dim>::active_vertex_iterator vertex_itr;
-            vertex_itr = m_triangulation.begin_active_vertex();
-            std::vector<types::global_dof_index> node_xy(m_fe.dofs_per_vertex);
-            
-            for (; vertex_itr != m_triangulation.end_vertex(); ++vertex_itr)
+            if constexpr (is_mpi)
             {
-                if (   (std::fabs(vertex_itr->vertex()[0] - 0.0) < 1.0e-9)
-                    && (std::fabs(vertex_itr->vertex()[1] - 0.0) < 1.0e-9) )
-                {
-                    node_xy = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
+                std::vector<bool> locally_owned_vertices =  GridTools::get_locally_owned_vertices(m_dof_handler.get_triangulation());
+                
+                for (auto const & cell : m_dof_handler.active_cell_iterators()) {
+                    if (!cell->is_locally_owned() || !cell->at_boundary()) continue;
+                    
+                    for (const auto vertex : cell->vertex_indices())
+                    {
+                        // skip ghost cells
+                        if (!locally_owned_vertices[cell->vertex_index(vertex)]) continue;
+                        
+                        const Point<dim> point = cell->vertex(vertex);
+                        if (   (std::fabs(point[0] - 0.0) < 1.0e-9)
+                            && (std::fabs(point[1] - 0.0) < 1.0e-9) )
+                        {
+                            const types::global_dof_index dofX = cell->vertex_dof_index(vertex, 0);
+                            const types::global_dof_index dofY = cell->vertex_dof_index(vertex, 1);
+                            
+                            
+                            m_constraints.add_line(dofX);
+                            m_constraints.set_inhomogeneity(dofX, 0.0);
+                            
+                            m_constraints.add_line(dofY);
+                            m_constraints.set_inhomogeneity(dofY, 0.0);
+                        }
+                    }
                 }
+            } else {
+                typename Triangulation<dim>::active_vertex_iterator vertex_itr;
+                vertex_itr = m_triangulation.begin_active_vertex();
+                std::vector<types::global_dof_index> node_xy(m_fe.dofs_per_vertex);
+                
+                for (; vertex_itr != m_triangulation.end_vertex(); ++vertex_itr)
+                {
+                    if (   (std::fabs(vertex_itr->vertex()[0] - 0.0) < 1.0e-9)
+                        && (std::fabs(vertex_itr->vertex()[1] - 0.0) < 1.0e-9) )
+                    {
+                        node_xy = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
+                    }
+                }
+                m_constraints.add_line(node_xy[0]);
+                m_constraints.set_inhomogeneity(node_xy[0], 0.0);
+                
+                m_constraints.add_line(node_xy[1]);
+                m_constraints.set_inhomogeneity(node_xy[1], 0.0);
+                
             }
-            m_constraints.add_line(node_xy[0]);
-            m_constraints.set_inhomogeneity(node_xy[0], 0.0);
-            
-            m_constraints.add_line(node_xy[1]);
-            m_constraints.set_inhomogeneity(node_xy[1], 0.0);
             
             const int boundary_id_top_surface = 1;
             /*
@@ -3865,47 +3896,100 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
         }
         else if (m_parameters.m_scenario == 5)
         {
-            typename Triangulation<dim>::active_vertex_iterator vertex_itr;
-            vertex_itr = m_triangulation.begin_active_vertex();
-            std::vector<types::global_dof_index> node_bottomleft(m_fe.dofs_per_vertex);
-            std::vector<types::global_dof_index> node_bottomright(m_fe.dofs_per_vertex);
-            std::vector<types::global_dof_index> node_topcenter(m_fe.dofs_per_vertex);
-            
-            for (; vertex_itr != m_triangulation.end_vertex(); ++vertex_itr)
+       
+            if constexpr (is_mpi)
             {
-                if (   (std::fabs(vertex_itr->vertex()[0] - 0.0) < 1.0e-9)
-                    && (std::fabs(vertex_itr->vertex()[1] - 0.0) < 1.0e-9) )
-                {
-                    node_bottomleft = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
+                std::vector<bool> locally_owned_vertices =  GridTools::get_locally_owned_vertices(m_dof_handler.get_triangulation());
+                
+                for (auto const & cell : m_dof_handler.active_cell_iterators()) {
+                    if (!cell->is_locally_owned() || !cell->at_boundary()) continue;
+                    
+                    for (const auto vertex : cell->vertex_indices())
+                    {
+                        // skip ghost cells
+                        if (!locally_owned_vertices[cell->vertex_index(vertex)]) continue;
+                        
+                        const Point<dim> point = cell->vertex(vertex);
+                        
+                        if (   (std::fabs(point[0] - 0.0) < 1.0e-9)
+                            && (std::fabs(point[1] - 0.0) < 1.0e-9) )
+                        {
+                            const types::global_dof_index dofX = cell->vertex_dof_index(vertex, 0);
+                            // bottom-left node fixed in both x- and y-directions
+                            m_constraints.add_line(dofX);
+                            m_constraints.set_inhomogeneity(dofX, 0.0);
+                            
+                            const types::global_dof_index dofY = cell->vertex_dof_index(vertex, 0);
+                            m_constraints.add_line(dofY);
+                            m_constraints.set_inhomogeneity(dofY, 0.0);
+                            continue;
+                        }
+                        if (   (std::fabs(point[0] - 8.0) < 1.0e-9)
+                            && (std::fabs(point[1] - 0.0) < 1.0e-9) )
+                        {
+                            const types::global_dof_index dofY = cell->vertex_dof_index(vertex, 0);
+                            // bottom-right node only fixed in y-direction
+                            m_constraints.add_line(dofY);
+                            m_constraints.set_inhomogeneity(dofY, 0.0);
+                            continue;
+                        }
+                        if (   (std::fabs(point[0] - 4.0) < 1.0e-9)
+                            && (std::fabs(point[1] - 2.0) < 1.0e-9) )
+                        {
+                            const types::global_dof_index dofY = cell->vertex_dof_index(vertex, 1);
+                            
+                            // top-center node applied with y-displacement
+                            const double time_inc = m_time.get_delta_t();
+                            double disp_magnitude = m_time.get_magnitude();
+                            
+                            m_constraints.add_line(dofY);
+                            m_constraints.set_inhomogeneity(dofY, disp_magnitude*time_inc);
+                        }
+                    }
                 }
-                if (   (std::fabs(vertex_itr->vertex()[0] - 8.0) < 1.0e-9)
-                    && (std::fabs(vertex_itr->vertex()[1] - 0.0) < 1.0e-9) )
+            } else {
+                typename Triangulation<dim>::active_vertex_iterator vertex_itr;
+                vertex_itr = m_triangulation.begin_active_vertex();
+                std::vector<types::global_dof_index> node_bottomleft(m_fe.dofs_per_vertex);
+                std::vector<types::global_dof_index> node_bottomright(m_fe.dofs_per_vertex);
+                std::vector<types::global_dof_index> node_topcenter(m_fe.dofs_per_vertex);
+                
+                for (; vertex_itr != m_triangulation.end_vertex(); ++vertex_itr)
                 {
-                    node_bottomright = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
+                    if (   (std::fabs(vertex_itr->vertex()[0] - 0.0) < 1.0e-9)
+                        && (std::fabs(vertex_itr->vertex()[1] - 0.0) < 1.0e-9) )
+                    {
+                        node_bottomleft = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
+                    }
+                    if (   (std::fabs(vertex_itr->vertex()[0] - 8.0) < 1.0e-9)
+                        && (std::fabs(vertex_itr->vertex()[1] - 0.0) < 1.0e-9) )
+                    {
+                        node_bottomright = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
+                    }
+                    if (   (std::fabs(vertex_itr->vertex()[0] - 4.0) < 1.0e-9)
+                        && (std::fabs(vertex_itr->vertex()[1] - 2.0) < 1.0e-9) )
+                    {
+                        node_topcenter = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
+                    }
                 }
-                if (   (std::fabs(vertex_itr->vertex()[0] - 4.0) < 1.0e-9)
-                    && (std::fabs(vertex_itr->vertex()[1] - 2.0) < 1.0e-9) )
-                {
-                    node_topcenter = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
-                }
+                // bottom-left node fixed in both x- and y-directions
+                m_constraints.add_line(node_bottomleft[0]);
+                m_constraints.set_inhomogeneity(node_bottomleft[0], 0.0);
+                
+                m_constraints.add_line(node_bottomleft[1]);
+                m_constraints.set_inhomogeneity(node_bottomleft[1], 0.0);
+                
+                // bottom-right node only fixed in y-direction
+                m_constraints.add_line(node_bottomright[1]);
+                m_constraints.set_inhomogeneity(node_bottomright[1], 0.0);
+                
+                // top-center node applied with y-displacement
+                const double time_inc = m_time.get_delta_t();
+                double disp_magnitude = m_time.get_magnitude();
+                
+                m_constraints.add_line(node_topcenter[1]);
+                m_constraints.set_inhomogeneity(node_topcenter[1], disp_magnitude*time_inc);
             }
-            // bottom-left node fixed in both x- and y-directions
-            m_constraints.add_line(node_bottomleft[0]);
-            m_constraints.set_inhomogeneity(node_bottomleft[0], 0.0);
-            
-            m_constraints.add_line(node_bottomleft[1]);
-            m_constraints.set_inhomogeneity(node_bottomleft[1], 0.0);
-            
-            // bottom-right node only fixed in y-direction
-            m_constraints.add_line(node_bottomright[1]);
-            m_constraints.set_inhomogeneity(node_bottomright[1], 0.0);
-            
-            // top-center node applied with y-displacement
-            const double time_inc = m_time.get_delta_t();
-            double disp_magnitude = m_time.get_magnitude();
-            
-            m_constraints.add_line(node_topcenter[1]);
-            m_constraints.set_inhomogeneity(node_topcenter[1], disp_magnitude*time_inc);
         }
         else if (   m_parameters.m_scenario == 6
                  || m_parameters.m_scenario == 7
@@ -3949,23 +4033,52 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
                                                      Functions::ZeroFunction<dim>(m_n_components),
                                                      m_constraints,
                                                      m_fe.component_mask(displacements));
-            
-            typename Triangulation<dim>::active_vertex_iterator vertex_itr;
-            vertex_itr = m_triangulation.begin_active_vertex();
-            std::vector<types::global_dof_index> node_disp_control(m_fe.dofs_per_vertex);
-            
-            for (; vertex_itr != m_triangulation.end_vertex(); ++vertex_itr)
+           
+            if constexpr (is_mpi)
             {
-                if (   (std::fabs(vertex_itr->vertex()[0] - 470.0) < 1.0e-9)
-                    && (std::fabs(vertex_itr->vertex()[1] - 250.0) < 1.0e-9) )
-                {
-                    node_disp_control = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
-                    // node applied with y-displacement
-                    const double time_inc = m_time.get_delta_t();
-                    double disp_magnitude = m_time.get_magnitude();
+                std::vector<bool> locally_owned_vertices =  GridTools::get_locally_owned_vertices(m_dof_handler.get_triangulation());
+                
+                for (auto const & cell : m_dof_handler.active_cell_iterators()) {
+                    if (!cell->is_locally_owned() || !cell->at_boundary()) continue;
                     
-                    m_constraints.add_line(node_disp_control[1]);
-                    m_constraints.set_inhomogeneity(node_disp_control[1], disp_magnitude*time_inc);
+                    for (const auto vertex : cell->vertex_indices())
+                    {
+                        // skip ghost cells
+                        if (!locally_owned_vertices[cell->vertex_index(vertex)]) continue;
+                        
+                        const Point<dim> point = cell->vertex(vertex);
+                        
+                        if (   (std::fabs(point[0] - 470.0) < 1.0e-9)
+                            && (std::fabs(point[1] - 250.0) < 1.0e-9) )
+                        {
+                            const types::global_dof_index dofY = cell->vertex_dof_index(vertex, 1);
+                            // node applied with y-displacement
+                            const double time_inc = m_time.get_delta_t();
+                            double disp_magnitude = m_time.get_magnitude();
+                            
+                            m_constraints.add_line(dofY);
+                            m_constraints.set_inhomogeneity(dofY, disp_magnitude*time_inc);
+                        }
+                    }
+                }
+            } else {
+                typename Triangulation<dim>::active_vertex_iterator vertex_itr;
+                vertex_itr = m_triangulation.begin_active_vertex();
+                std::vector<types::global_dof_index> node_disp_control(m_fe.dofs_per_vertex);
+                
+                for (; vertex_itr != m_triangulation.end_vertex(); ++vertex_itr)
+                {
+                    if (   (std::fabs(vertex_itr->vertex()[0] - 470.0) < 1.0e-9)
+                        && (std::fabs(vertex_itr->vertex()[1] - 250.0) < 1.0e-9) )
+                    {
+                        node_disp_control = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
+                        // node applied with y-displacement
+                        const double time_inc = m_time.get_delta_t();
+                        double disp_magnitude = m_time.get_magnitude();
+                        
+                        m_constraints.add_line(node_disp_control[1]);
+                        m_constraints.set_inhomogeneity(node_disp_control[1], disp_magnitude*time_inc);
+                    }
                 }
             }
         }
