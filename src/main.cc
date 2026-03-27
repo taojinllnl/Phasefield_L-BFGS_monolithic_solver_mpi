@@ -2410,9 +2410,22 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::set_bcs_id()
               << "\n\t\t\tNumber of used vertices: " << nVertices
           << std::endl;
 
-    std::ofstream out("original_mesh.vtu");
-    GridOut       grid_out;
-    grid_out.write_vtu(m_triangulation, out);
+      if constexpr (is_mpi){
+          const std::string filename = "original_mesh";
+          DataOut<dim> data_out;
+          data_out.attach_dof_handler(m_dof_handler);
+          data_out.write_vtu_with_pvtu_record(m_parameters.oriDir,
+                                              filename,
+                                              0,
+                                              *m_mpiInfo.mpiCommPtr(),
+                                              1 /*n_digits*/,
+                                              0 /*n_groups*/);
+          
+      } else {
+          std::ofstream out(m_parameters.oriDir + "original_mesh.vtu");
+          GridOut       grid_out;
+          grid_out.write_vtu(m_triangulation, out);
+      }
 
     m_vol_reference = GridTools::volume(m_triangulation);
     m_logfile << "\t\tGrid:\n\t\t\tReference volume: " << m_vol_reference << std::endl;
