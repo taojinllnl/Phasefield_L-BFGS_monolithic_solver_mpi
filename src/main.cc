@@ -5037,7 +5037,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
 			m_parameters.m_z_component*time_ramp);
 
 	fe_values[m_d_fe].get_function_values(
-	    solution_old, phasefield_previous_step_cell);
+	    solution_old.relevance(), phasefield_previous_step_cell);
 
 	for (const unsigned int q_point : fe_values.quadrature_point_indices())
 	  {
@@ -7118,8 +7118,8 @@ bool PhaseFieldMonolithicSolve<LATraits, Tria>
                 
                 std::vector<double> history_variable_values_cell(m_n_q_points);
                 
-                fe_values.get_function_values(
-                                              new_history_variable_field_L2, history_variable_values_cell);
+                fe_values.get_function_values(new_history_variable_field_L2_rele,
+                                              history_variable_values_cell);
                 
                 for (unsigned int q_point : fe_values.quadrature_point_indices())
                 {
