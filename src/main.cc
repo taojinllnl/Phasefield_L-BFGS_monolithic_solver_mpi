@@ -1326,7 +1326,7 @@ using namespace bcs;
       m_error_update_0, m_error_update_norm;
 
     void get_error_residual(Errors &error_residual);
-    void get_error_update(const BlockVector<double> &newton_update,
+    void get_error_update(const BVector &newton_update,
                           Errors & error_update);
 
       void set_bcs_id();
@@ -1349,9 +1349,9 @@ using namespace bcs;
 
     void make_constraints(const unsigned int it_nr);
 
-    void assemble_system_newton(const BlockVector<double> & solution_old);
+    void assemble_system_newton(const BVector & solution_old);
 
-    void assemble_system_B0(const BlockVector<double> & solution_old);
+    void assemble_system_B0(const BVector & solution_old);
 
     void assemble_system_newton_one_cell(
       const typename DoFHandler<dim>::active_cell_iterator &cell,
@@ -1368,46 +1368,46 @@ using namespace bcs;
       ScratchData_ASM_RHS_BFGS &                           scratch,
       PerTaskData_ASM_RHS_BFGS &                           data) const;
 
-    void assemble_system_rhs_BFGS(const BlockVector<double> & solution_old,
-				  BlockVector<double> & system_rhs);
+    void assemble_system_rhs_BFGS(const BVector & solution_old,
+				  BVector & system_rhs);
 
-    void assemble_system_rhs_BFGS_parallel(const BlockVector<double> & solution_old,
-    				           BlockVector<double> & system_rhs);
+    void assemble_system_rhs_BFGS_parallel(const BVector & solution_old,
+    				           BVector & system_rhs);
 
-    bool solve_nonlinear_timestep_newton(BlockVector<double> &solution_delta);
+    bool solve_nonlinear_timestep_newton(BVector &solution_delta);
 
-    void solve_nonlinear_timestep_BFGS(BlockVector<double> &solution_delta);
+    void solve_nonlinear_timestep_BFGS(BVector &solution_delta);
 
-    void solve_nonlinear_timestep_LBFGS(BlockVector<double> &solution_delta,
-					BlockVector<double> & LBFGS_update_refine);
+    void solve_nonlinear_timestep_LBFGS(BVector &solution_delta,
+					BVector & LBFGS_update_refine);
 
     double line_search_stepsize_strong_wolfe(const double phi_0,
 				             const double phi_0_prime,
-				             const BlockVector<double> & BFGS_p_vector,
-				             const BlockVector<double> & solution_delta,
+				             const BVector & BFGS_p_vector,
+				             const BVector & solution_delta,
 					     unsigned int & num_ls);
 
-    double line_search_stepsize_gradient_based(const BlockVector<double> & BFGS_p_vector,
-					       const BlockVector<double> & solution_delta,
+    double line_search_stepsize_gradient_based(const BVector & BFGS_p_vector,
+					       const BVector & solution_delta,
 					       unsigned int & num_ls);
 
     double line_search_zoom_strong_wolfe(double phi_low, double phi_low_prime, double alpha_low,
 					 double phi_high, double phi_high_prime, double alpha_high,
-					 double phi_0, double phi_0_prime, const BlockVector<double> & BFGS_p_vector,
+					 double phi_0, double phi_0_prime, const BVector & BFGS_p_vector,
 					 double c1, double c2, unsigned int max_iter,
-					 const BlockVector<double> & solution_delta);
+					 const BVector & solution_delta);
 
     double line_search_interpolation_cubic(const double alpha_0, const double phi_0, const double phi_0_prime,
 					   const double alpha_1, const double phi_1, const double phi_1_prime);
 
     std::pair<double, double> calculate_phi_and_phi_prime(const double alpha,
-							  const BlockVector<double> & BFGS_p_vector,
-							  const BlockVector<double> & solution_delta);
+							  const BVector & BFGS_p_vector,
+							  const BVector & solution_delta);
 
-    std::vector<double> solve_linear_system(BlockVector<double> &newton_update);
+    std::vector<double> solve_linear_system(BVector &newton_update);
 
-    void LBFGS_B0(BlockVector<double> & LBFGS_r_vector,
-		  BlockVector<double> & LBFGS_q_vector);
+    void LBFGS_B0(BVector & LBFGS_r_vector,
+		  BVector & LBFGS_q_vector);
 
     void update_history_field_step();
 
@@ -1415,8 +1415,8 @@ using namespace bcs;
 
     void setup_qph();
 
-    void update_qph_incremental(const BlockVector<double> &solution_delta,
-				const BlockVector<double> &solution_old,
+    void update_qph_incremental(const BVector &solution_delta,
+				const BVector &solution_old,
 				const bool is_print);
 
     void update_qph_incremental_one_cell(
@@ -1427,8 +1427,8 @@ using namespace bcs;
     void copy_local_to_global_UQPH(const PerTaskData_UQPH & /*data*/)
     {}
 
-    BlockVector<double>
-    get_total_solution(const BlockVector<double> &solution_delta) const;
+    BVector
+    get_total_solution(const BVector &solution_delta) const;
 
     // Should not make this function const
     void read_material_data(const std::string &data_file,
