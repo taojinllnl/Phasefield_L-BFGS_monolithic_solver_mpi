@@ -7211,12 +7211,16 @@ bool PhaseFieldMonolithicSolve<LATraits, Tria>
   {
     print_parameter_information();
 
-    read_material_data(m_parameters.m_material_file_name,
-    		       m_parameters.m_total_material_regions);
+      read_material_data(m_parameters.m_config_dir
+                         + m_parameters.m_material_file_name,
+                         m_parameters.m_total_material_regions);
 
     std::vector<std::array<double, 4>> time_table;
 
-    read_time_data(m_parameters.m_time_file_name, time_table);
+      read_time_data(m_parameters.m_config_dir
+                     + m_parameters.m_time_file_name,
+                     time_table);
+
 
     make_grid();
     setup_system();
