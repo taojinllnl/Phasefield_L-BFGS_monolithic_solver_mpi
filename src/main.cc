@@ -7384,16 +7384,19 @@ int main(int argc, char* argv[])
     // output the directory inforamtion
     if(mpiInfo.isRankEqualsTo(0))
     {
-        std::cout << "\nDir: \t" << parameters.m_output_dir << std::endl
-        << "Type: \t" << parameters.m_mpi_type << std::endl
-        << "Log: \t" << parameters.m_logfile_name << std::endl << std::endl;
+        std::cout << "\nOutput dir: \t" << parameters.m_output_dir << std::endl;
+        std::cout << "Input dir: \t" << parameters.m_config_dir << std::endl;
+        std::cout << "Type: \t" << parameters.m_mpi_type << std::endl;
+        std::cout << "Log: \t" << parameters.m_logfile_name << std::endl << std::endl;
         
         // only rank 0 creates logfile to avoid overriding in MPI mode
         log_fstream.open(parameters.m_output_dir
                          + parameters.m_logfile_name
                          + "_" + parameters.m_mpi_type
                          + "_" + std::to_string(mpiInfo.nRanks())
-                         + "_" + parameters.m_type_linear_solver + ".log");
+                         + "_" + parameters.m_type_linear_solver
+                         + "_" + parameters.m_phasefield_name
+                         + ".log");
     }
     ConditionalOStream logfile(log_fstream, mpiInfo.rank() == 0);
     
