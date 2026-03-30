@@ -6448,9 +6448,6 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::calculate_reaction_force(unsigne
     std::vector< types::global_dof_index > mapping;
     std::set<types::boundary_id> boundary_ids;
     boundary_ids.insert(face_ID);
-    DoFTools::map_dof_to_boundary_indices(m_dof_handler,
-                                          boundary_ids,
-                                          mapping);
     
     std::vector<double> reaction_force(dim, 0.0);
     
