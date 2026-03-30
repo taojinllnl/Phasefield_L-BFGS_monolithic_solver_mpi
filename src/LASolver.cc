@@ -33,7 +33,7 @@ LASolver<LATraits>
 : __type(type)
 , __u_group_ID(blockDesc.ithGroupID("displacement"))
 , __d_group_ID(blockDesc.ithGroupID("phase-field"))
-, __tolList({tol_u, tol_d})
+, __tolList({{tol_u, tol_d}})
 , __blockDesc(blockDesc)
 , __mpiInfo(mpiInfo)
 {}
