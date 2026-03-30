@@ -3788,6 +3788,13 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
         set_bcs_id();
         
         m_constraints.clear();
+        if constexpr (is_mpi)
+        {
+            bcs::CstHelper::cstReinit(m_constraints,
+                                      m_dof_handler.locally_owned_dofs(),
+                                      DoFTools::extract_locally_relevant_dofs(m_dof_handler),
+                                      *m_mpiInfo.mpiCommPtr());
+        }
         DoFTools::make_hanging_node_constraints(m_dof_handler,
                                                 m_constraints);
         
@@ -4159,11 +4166,13 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
                         // skip ghost cells
                         if (!locally_owned_vertices[cell->vertex_index(vertex)]) continue;
                         
-                        const Point<dim> point = cell->vertex(vertex);
+                        const double x = cell->vertex(vertex)[0];
+                        const double y = cell->vertex(vertex)[1];
+                        const double z = cell->vertex(vertex)[2];
                         
-                        if (std::fabs(point[0] - 0.0) < 1.0e-9)
+                        if (std::fabs(x - 0.0) < 1.0e-9)
                         {
-                            rotationCst(point[1], point[2],
+                            rotationCst(y, z,
                                         m_time.get_delta_t(),
                                         m_time.get_magnitude(),
                                         cell->vertex_dof_index(vertex, 1),
@@ -4184,9 +4193,11 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
                     {
                         node_rotate = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
                         
-                        const Point<dim> point = vertex_itr->vertex();
                         
-                        rotationCst(point[1], point[2],
+                        const double y = vertex_itr->vertex()[1];
+                        const double z = vertex_itr->vertex()[2];
+                        
+                        rotationCst(y, z,
                                     m_time.get_delta_t(),
                                     m_time.get_magnitude(),
                                     node_rotate[1],
