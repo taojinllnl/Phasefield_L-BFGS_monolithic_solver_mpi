@@ -3715,8 +3715,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::setup_system()
     {
         bcs::CstHelper::cstReinit(m_constraints,
                                   m_dof_handler.locally_owned_dofs(),
-                                  *m_blocks_desc.localRelevantPartition(),
-                                  *m_mpiInfo.mpiCommPtr());
+                                  *m_blocks_desc.localRelevantPartition());
     }
     DoFTools::make_hanging_node_constraints(m_dof_handler, m_constraints);
     if constexpr (is_mpi){
@@ -3789,8 +3788,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
         {
             bcs::CstHelper::cstReinit(m_constraints,
                                       m_dof_handler.locally_owned_dofs(),
-                                      DoFTools::extract_locally_relevant_dofs(m_dof_handler),
-                                      *m_mpiInfo.mpiCommPtr());
+                                      DoFTools::extract_locally_relevant_dofs(m_dof_handler));
         }
         DoFTools::make_hanging_node_constraints(m_dof_handler,
                                                 m_constraints);
@@ -4301,8 +4299,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
             {
                 CstHelper::cstReinit(m_constraints,
                                      m_dof_handler.locally_owned_dofs(),
-                                     DoFTools::extract_locally_relevant_dofs(m_dof_handler),
-                                     *m_mpiInfo.mpiCommPtr());
+                                     DoFTools::extract_locally_relevant_dofs(m_dof_handler));
             }
             
             m_constraints.copy_from(homoCst);
@@ -6713,8 +6710,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
             
             CstHelper::cstReinit(constraints,
                                  owned_L2,
-                                 relevant_L2,
-                                 *m_mpiInfo.mpiCommPtr());
+                                 relevant_L2);
             
             DoFTools::make_hanging_node_constraints(dof_handler_L2, constraints);
             
@@ -6799,8 +6795,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
             
             CstHelper::cstReinit(constraints,
                                  owned_L2,
-                                 relevant_L2,
-                                 *m_mpiInfo.mpiCommPtr());
+                                 relevant_L2);
             
             DoFTools::make_hanging_node_constraints(dof_handler_L2, constraints);
             
