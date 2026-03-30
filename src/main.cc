@@ -6499,7 +6499,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::output_results() const
   {
     m_logfile << "\t\tWrite history data ... \n"<<std::endl;
 
-    std::ofstream myfile_reaction_force ("Reaction_force.hist");
+    std::ofstream myfile_reaction_force (m_parameters.histDir + "Reaction_force.hist");
     if (myfile_reaction_force.is_open())
     {
       myfile_reaction_force << 0.0 << "\t";
@@ -6527,7 +6527,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::output_results() const
     else
       m_logfile << "Unable to open file";
 
-    std::ofstream myfile_energy ("Energy.hist");
+    std::ofstream myfile_energy (m_parameters.histDir +"Energy.hist");
     if (myfile_energy.is_open())
     {
       myfile_energy << std::fixed << std::setprecision(10) << std::scientific
