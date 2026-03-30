@@ -5187,6 +5187,10 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
 
     for (const auto &cell : m_triangulation.active_cell_iterators())
       {
+          // skip cells owned by other ranks in mpi mode
+          if constexpr (is_mpi)
+              if (!cell->is_locally_owned())
+                  continue;
         std::vector<std::shared_ptr< PointHistory<dim>>> lqph =
           m_quadrature_point_history.get_data(cell);
         Assert(lqph.size() == m_n_q_points, ExcInternalError());
