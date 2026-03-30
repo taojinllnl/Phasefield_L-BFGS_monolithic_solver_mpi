@@ -5218,7 +5218,9 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
     solution_delta_trial.base() = solution_delta.base();
     // take a full step size 1.0
     solution_delta_trial.add(1.0, BFGS_p_vector);
-
+    solution_delta_trial.updateRelevance();
+    
+    
     update_qph_incremental(solution_delta_trial, m_solution, false);
 
       BVector g_new(m_mpiInfo, m_blocks_desc, /*relevance=*/false);
