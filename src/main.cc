@@ -6586,6 +6586,10 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::output_results() const
 
     for (const auto &cell : m_dof_handler.active_cell_iterators())
       {
+          // skip cells owned by other ranks in mpi mode
+          if constexpr (is_mpi)
+              if (!cell->is_locally_owned())
+                  continue;
         fe_values.reinit(cell);
 
         const std::vector<std::shared_ptr<const PointHistory<dim>>> lqph =
@@ -6619,6 +6623,10 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::output_results() const
 
     for (const auto &cell : m_dof_handler.active_cell_iterators())
       {
+          // skip cells owned by other ranks in mpi mode
+          if constexpr (is_mpi)
+              if (!cell->is_locally_owned())
+                  continue;
         fe_values.reinit(cell);
 
         const std::vector<std::shared_ptr<const PointHistory<dim>>> lqph =
