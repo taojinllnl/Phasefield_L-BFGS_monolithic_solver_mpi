@@ -1678,6 +1678,10 @@ template <typename LATraits, typename Tria>
     m_quadrature_point_history.clear();
     for (auto const & cell : m_triangulation.active_cell_iterators())
       {
+          // skip cells owned by other ranks in mpi mode
+          if constexpr (is_mpi)
+              if (!cell->is_locally_owned())
+                  continue;
 	m_quadrature_point_history.initialize(cell, m_n_q_points);
       }
 
@@ -1695,6 +1699,10 @@ template <typename LATraits, typename Tria>
 
     for (const auto &cell : m_triangulation.active_cell_iterators())
       {
+          // skip cells owned by other ranks in mpi mode
+          if constexpr (is_mpi)
+              if (!cell->is_locally_owned())
+                  continue;
         material_id = cell->material_id();
         if (m_material_data.find(material_id) != m_material_data.end())
           {
