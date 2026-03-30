@@ -10,7 +10,7 @@ subsection Scenario
   
   
   # Configuration directory
-  set Config dir = ./Case_11/adaptive_refine/
+  set Config dir = ./3D_torsion/
   
   # Output directory
   set Output dir = ./output/Case_11/adaptive_refine/
@@ -30,7 +30,7 @@ subsection Scenario
   set Scenario number = 11
   
   # Name of the log file
-  set Log file name = torsion_3D_structured.log
+  set Log file name = torsion_3D_structured
   
   # Shall we write the iteration history to the log file? (yes or no)
   set Output iteration history = yes
