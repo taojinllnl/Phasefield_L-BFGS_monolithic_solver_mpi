@@ -4988,9 +4988,10 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
       }  // q_point
   }
 
-  template <typename LATraits, typename Tria>
-  void PhaseFieldMonolithicSolve<LATraits, Tria>::assemble_system_rhs_BFGS(const BlockVector<double> & solution_old,
-								BlockVector<double> & system_rhs)
+template <typename LATraits, typename Tria>
+void PhaseFieldMonolithicSolve<LATraits, Tria>
+::assemble_system_rhs_BFGS(const BVector & solution_old,
+                           BVector & system_rhs)
   {
     const std::string sectionName = "Assemble RHS";
     m_timer.enter_subsection(sectionName);
@@ -5032,6 +5033,10 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
 
     for (const auto &cell : m_dof_handler.active_cell_iterators())
       {
+          // skip cells owned by other ranks in mpi mode
+          if constexpr (is_mpi)
+              if (!cell->is_locally_owned())
+                  continue;
 	const std::vector<std::shared_ptr< PointHistory<dim>>> lqph =
 	  m_quadrature_point_history.get_data(cell);
 	Assert(lqph.size() == m_n_q_points, ExcInternalError());
