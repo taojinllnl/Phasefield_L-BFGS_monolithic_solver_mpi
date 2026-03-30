@@ -4251,7 +4251,17 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
     }
     else  // inhomogeneous constraints
     {
-        if (m_constraints.has_inhomogeneities())
+        bool has_inhomo = m_constraints.has_inhomogeneities();
+        
+        if constexpr (is_mpi) {
+            // accumulate local flag over all ranks
+            const unsigned int local_flag = has_inhomo ? 1u : 0u;
+            const unsigned int global_flag =
+                Utilities::MPI::sum(local_flag, *m_mpiInfo.mpiCommPtr());
+            has_inhomo = (global_flag > 0u);
+        }
+        
+        if (has_inhomo)
         {
             AffineConstraints<double> homoCst(m_constraints);
             if constexpr (is_mpi)
@@ -4268,22 +4278,17 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
                         homoCst.set_inhomogeneity(dof, 0.0);
             }
             
-            if constexpr (is_mpi)
-            {
-                homoCst.make_consistent_in_parallel(m_dof_handler.locally_owned_dofs(),
-                                                    *m_blocks_desc.localRelevantPartition(),
-                                                    *m_mpiInfo.mpiCommPtr());
-            }
-            
             homoCst.close();
             m_constraints.clear();
-//            if constexpr (is_mpi)
-//            {
-//                CstHelper::cstReinit(m_constraints,
-//                                     m_dof_handler.locally_owned_dofs(),
-//                                     DoFTools::extract_locally_relevant_dofs(m_dof_handler),
-//                                     *m_mpiInfo.mpiCommPtr());
-//            }
+            
+            if constexpr (is_mpi)
+            {
+                CstHelper::cstReinit(m_constraints,
+                                     m_dof_handler.locally_owned_dofs(),
+                                     DoFTools::extract_locally_relevant_dofs(m_dof_handler),
+                                     *m_mpiInfo.mpiCommPtr());
+            }
+            
             m_constraints.copy_from(homoCst);
         }
     }
