@@ -4259,6 +4259,14 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
         }
         else
             Assert(false, ExcMessage("The scenario has not been implemented!"));
+        
+        if constexpr (is_mpi){
+            
+            m_constraints.make_consistent_in_parallel(m_dof_handler.locally_owned_dofs(),
+                                                      *m_blocks_desc.localRelevantPartition(),
+                                                      *m_mpiInfo.mpiCommPtr());
+            
+        }
     }
     else  // inhomogeneous constraints
     {
