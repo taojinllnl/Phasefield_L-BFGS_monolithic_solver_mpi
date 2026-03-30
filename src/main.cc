@@ -1881,15 +1881,14 @@ PhaseFieldMonolithicSolve<LATraits, Tria>
 
     const FEValuesExtractors::Vector displacement(0);
 
-    scratch.m_fe_values[m_u_fe].get_function_symmetric_gradients(
-      scratch.m_solution_UQPH, scratch.m_solution_symm_grads_u_cell);
-    scratch.m_fe_values[m_d_fe].get_function_values(
-      scratch.m_solution_UQPH, scratch.m_solution_values_phasefield_cell);
-    scratch.m_fe_values[m_d_fe].get_function_gradients(
-      scratch.m_solution_UQPH, scratch.m_solution_grad_phasefield_cell);
+      const auto& solution_relevance = scratch.m_solution_UQPH.relevance();
+      const auto& solution_previous_step_relevance = scratch.m_solution_previous_step.relevance();
+      
+    scratch.m_fe_values[m_u_fe].get_function_symmetric_gradients(solution_relevance, scratch.m_solution_symm_grads_u_cell);
+    scratch.m_fe_values[m_d_fe].get_function_values(solution_relevance, scratch.m_solution_values_phasefield_cell);
+    scratch.m_fe_values[m_d_fe].get_function_gradients(solution_relevance, scratch.m_solution_grad_phasefield_cell);
 
-    scratch.m_fe_values[m_d_fe].get_function_values(
-      scratch.m_solution_previous_step, scratch.m_phasefield_previous_step_cell);
+    scratch.m_fe_values[m_d_fe].get_function_values(solution_previous_step_relevance, scratch.m_phasefield_previous_step_cell);
 
     for (const unsigned int q_point :
          scratch.m_fe_values.quadrature_point_indices())
@@ -4498,7 +4497,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
     cell->get_dof_indices(data.m_local_dof_indices);
 
     scratch.m_fe_values[m_d_fe].get_function_values(
-      scratch.m_solution_previous_step, scratch.m_phasefield_previous_step_cell);
+      scratch.m_solution_previous_step.relevance(), scratch.m_phasefield_previous_step_cell);
 
     const std::vector<std::shared_ptr<const PointHistory<dim>>> lqph =
       m_quadrature_point_history.get_data(cell);
@@ -4655,7 +4654,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
     cell->get_dof_indices(data.m_local_dof_indices);
 
     scratch.m_fe_values[m_d_fe].get_function_values(
-      scratch.m_solution_previous_step, scratch.m_phasefield_previous_step_cell);
+      scratch.m_solution_previous_step.relevance(), scratch.m_phasefield_previous_step_cell);
 
     const std::vector<std::shared_ptr<const PointHistory<dim>>> lqph =
       m_quadrature_point_history.get_data(cell);
@@ -4871,7 +4870,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
     cell->get_dof_indices(data.m_local_dof_indices);
 
     scratch.m_fe_values[m_d_fe].get_function_values(
-      scratch.m_solution_previous_step, scratch.m_phasefield_previous_step_cell);
+      scratch.m_solution_previous_step.relevance(), scratch.m_phasefield_previous_step_cell);
 
     const std::vector<std::shared_ptr<const PointHistory<dim>>> lqph =
       m_quadrature_point_history.get_data(cell);
