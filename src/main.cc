@@ -5281,13 +5281,14 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
     return alpha;
   }
 
-  template <typename LATraits, typename Tria>
-  double PhaseFieldMonolithicSolve<LATraits, Tria>::line_search_stepsize_strong_wolfe(const double phi_0,
-				                                           const double phi_0_prime,
-				                                           const BlockVector<double> & BFGS_p_vector,
-				                                           const BlockVector<double> & solution_delta,
-									   unsigned int & num_ls)
-  {
+template <typename LATraits, typename Tria>
+double PhaseFieldMonolithicSolve<LATraits, Tria>
+::line_search_stepsize_strong_wolfe(const double phi_0,
+                                    const double phi_0_prime,
+                                    const BVector & BFGS_p_vector,
+                                    const BVector & solution_delta,
+                                    unsigned int & num_ls)
+{
     //AssertThrow(phi_0_prime < 0,
     //            ExcMessage("The derivative of phi at alpha = 0 should be negative!"));
 
@@ -5362,8 +5363,8 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
   double PhaseFieldMonolithicSolve<LATraits, Tria>::
     line_search_zoom_strong_wolfe(double phi_low, double phi_low_prime, double alpha_low,
 				  double phi_high, double phi_high_prime, double alpha_high,
-				  double phi_0, double phi_0_prime, const BlockVector<double> & BFGS_p_vector,
-				  double c1, double c2, unsigned int max_iter, const BlockVector<double> & solution_delta)
+				  double phi_0, double phi_0_prime, const BVector & BFGS_p_vector,
+				  double c1, double c2, unsigned int max_iter, const BVector & solution_delta)
   {
     double alpha = 0;
     std::pair<double, double> current_phi_phi_prime;
