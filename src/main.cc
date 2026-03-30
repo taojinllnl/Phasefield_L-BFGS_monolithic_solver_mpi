@@ -2247,58 +2247,64 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::set_bcs_id()
     }
     else if (m_parameters.m_scenario == 6)
     {
-        for(const auto& face : m_triangulation.active_face_iterators())
-        {
-            if (face->at_boundary())
+        if constexpr (dim == 3) {
+            for(const auto& face : m_triangulation.active_face_iterators())
             {
-                if (std::fabs(face->center()[0] - 0.0 ) < 1.0e-9 )
-                    face->set_boundary_id(0);
-                else if (std::fabs(face->center()[1] - 0.0 ) < 1.0e-9)
-                    face->set_boundary_id(1);
-                else if (std::fabs(face->center()[2] - 0.0 ) < 1.0e-9)
-                    face->set_boundary_id(2);
-                else if (std::fabs(face->center()[2] - 1.0 ) < 1.0e-9)
-                    face->set_boundary_id(3);
-                else
-                    face->set_boundary_id(4);
+                if (face->at_boundary())
+                {
+                    if (std::fabs(face->center()[0] - 0.0 ) < 1.0e-9 )
+                        face->set_boundary_id(0);
+                    else if (std::fabs(face->center()[1] - 0.0 ) < 1.0e-9)
+                        face->set_boundary_id(1);
+                    else if (std::fabs(face->center()[2] - 0.0 ) < 1.0e-9)
+                        face->set_boundary_id(2);
+                    else if (std::fabs(face->center()[2] - 1.0 ) < 1.0e-9)
+                        face->set_boundary_id(3);
+                    else
+                        face->set_boundary_id(4);
+                }
             }
         }
     }
     else if (m_parameters.m_scenario == 7)
     {
-        for(const auto& face : m_triangulation.active_face_iterators())
-        {
-            if (face->at_boundary())
+        if constexpr (dim == 3) {
+            for(const auto& face : m_triangulation.active_face_iterators())
             {
-                if (std::fabs(face->center()[0] - 0.0 ) < 1.0e-9 )
-                    face->set_boundary_id(0);
-                else if (std::fabs(face->center()[1] - 0.0 ) < 1.0e-9)
-                    face->set_boundary_id(1);
-                else if (std::fabs(face->center()[2] - 0.0 ) < 1.0e-9)
-                    face->set_boundary_id(2);
-                else if (std::fabs(face->center()[2] - 1.0 ) < 1.0e-9)
-                    face->set_boundary_id(3);
-                else
-                    face->set_boundary_id(4);
+                if (face->at_boundary())
+                {
+                    if (std::fabs(face->center()[0] - 0.0 ) < 1.0e-9 )
+                        face->set_boundary_id(0);
+                    else if (std::fabs(face->center()[1] - 0.0 ) < 1.0e-9)
+                        face->set_boundary_id(1);
+                    else if (std::fabs(face->center()[2] - 0.0 ) < 1.0e-9)
+                        face->set_boundary_id(2);
+                    else if (std::fabs(face->center()[2] - 1.0 ) < 1.0e-9)
+                        face->set_boundary_id(3);
+                    else
+                        face->set_boundary_id(4);
+                }
             }
         }
     }
     else if (m_parameters.m_scenario == 8)
     {
-        for(const auto& face : m_triangulation.active_face_iterators())
-        {
-            if (face->at_boundary())
+        if constexpr (dim == 3) {
+            for(const auto& face : m_triangulation.active_face_iterators())
             {
-                if (std::fabs(face->center()[0] - 0.0 ) < 1.0e-9 )
-                    face->set_boundary_id(0);
-                else if (std::fabs(face->center()[1] - 0.0 ) < 1.0e-9)
-                    face->set_boundary_id(1);
-                else if (std::fabs(face->center()[2] - 0.0 ) < 1.0e-9)
-                    face->set_boundary_id(2);
-                else if (std::fabs(face->center()[2] - 1.0 ) < 1.0e-9)
-                    face->set_boundary_id(3);
-                else
-                    face->set_boundary_id(4);
+                if (face->at_boundary())
+                {
+                    if (std::fabs(face->center()[0] - 0.0 ) < 1.0e-9 )
+                        face->set_boundary_id(0);
+                    else if (std::fabs(face->center()[1] - 0.0 ) < 1.0e-9)
+                        face->set_boundary_id(1);
+                    else if (std::fabs(face->center()[2] - 0.0 ) < 1.0e-9)
+                        face->set_boundary_id(2);
+                    else if (std::fabs(face->center()[2] - 1.0 ) < 1.0e-9)
+                        face->set_boundary_id(3);
+                    else
+                        face->set_boundary_id(4);
+                }
             }
         }
     }
