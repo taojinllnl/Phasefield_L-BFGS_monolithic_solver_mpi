@@ -1273,11 +1273,7 @@ private:
     
     AffineConstraints<double> m_constraints;
     
-    //    BlockSparsityPattern      m_sparsity_pattern;
-    //    BlockSparseMatrix<double> m_tangent_matrix;
-    //    BlockVector<double>       m_system_rhs;
-    //    BlockVector<double>       m_solution;
-    
+
     BSMatrix                  m_tangent_matrix;
     BVector                   m_system_rhs;
     BVector                   m_solution;
@@ -1466,9 +1462,6 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::get_error_residual(Errors &error
     BVector error_res(m_mpiInfo, m_blocks_desc, /*relevance=*/false);
     error_res.initialize();
     
-    //    for (unsigned int i = 0; i < m_dof_handler.n_dofs(); ++i)
-    //      if (!m_constraints.is_constrained(i))
-    //        error_res(i) = m_system_rhs(i);
     error_res.base() = m_system_rhs.base();
     m_constraints.set_zero(error_res.base());
     
@@ -1484,9 +1477,6 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::get_error_update(const BVector &
     BVector error_ud(m_mpiInfo, m_blocks_desc, /*relevance=*/false);
     error_ud.initialize();
     
-    //    for (unsigned int i = 0; i < m_dof_handler.n_dofs(); ++i)
-    //      if (!m_constraints.is_constrained(i))
-    //        error_ud(i) = newton_update(i);
     error_ud.base() = newton_update.base();
     m_constraints.set_zero(error_ud.base());
     
@@ -1757,9 +1747,7 @@ PhaseFieldMonolithicSolve<LATraits, Tria>
     m_timer.enter_subsection(sectionName);
     if (is_print && m_parameters.m_output_iteration_history)
         m_logfile << " UQPH " << std::flush;
-    
-    //    const BVector solution_total(get_total_solution(solution_delta));
-    
+        
     BVector solution_total(m_mpiInfo, m_blocks_desc, /*relevance=*/true);
     solution_total.initialize();
     solution_total.base() =  m_solution.base() + solution_delta.base();
