@@ -2401,7 +2401,9 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::set_bcs_id()
     else if (m_parameters.m_scenario == 12)
       make_grid_case_12();
     else
-      Assert(false, ExcMessage("The scenario has not been implemented!"));
+    {
+        Assert(false, ExcMessage("The scenario has not been implemented!"));
+    }
 
       unsigned int nCells    = m_triangulation.n_active_cells();
       unsigned int nVertices = m_triangulation.n_used_vertices();
