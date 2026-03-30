@@ -7050,9 +7050,12 @@ bool PhaseFieldMonolithicSolve<LATraits, Tria>
         {
             mesh_is_same = false;
             
-            std::vector<BlockVector<double>> old_solutions(2);
-            old_solutions[0] = solution_next_step.base();
-            old_solutions[1] = m_solution.base();
+            std::vector<VecType> old_solutions;
+            std::vector<VecType> old_solutions_rele;
+            old_solutions.reserve(2);
+            
+            old_solutions.emplace_back(solution_next_step.base());
+            old_solutions.emplace_back(m_solution.base());
             
             // history variable field L2 projection
             DoFHandler<dim> dof_handler_L2(m_triangulation);
@@ -7066,8 +7069,16 @@ bool PhaseFieldMonolithicSolve<LATraits, Tria>
             //DoFTools::make_hanging_node_constraints(dof_handler_L2, constraints);
             constraints.close();
             
-            Vector<double> old_history_variable_field_L2;
-            old_history_variable_field_L2.reinit(dof_handler_L2.n_dofs());
+            VecBType old_history_variable_field_L2;
+            VecBType old_history_variable_field_L2_rele;
+            
+            if constexpr (is_mpi){
+                old_history_variable_field_L2.reinit(dof_handler_L2.locally_owned_dofs(), *m_mpiInfo.mpiCommPtr());
+            } else {
+                old_history_variable_field_L2.reinit(dof_handler_L2.n_dofs());
+            }
+            old_history_variable_field_L2 = 0.0;
+            
             
             MappingQ<dim> mapping(m_parameters.m_poly_degree + 1);
             VectorTools::project(mapping,
@@ -7081,11 +7092,65 @@ bool PhaseFieldMonolithicSolve<LATraits, Tria>
             },
                                  old_history_variable_field_L2);
             
+            
+            
+            if constexpr(is_mpi) {
+                // prepare relevant data for H and x_{n} x_{n+1}
+                old_history_variable_field_L2.compress(dealii::VectorOperation::insert);
+                old_solutions_rele.reserve(2);
+                old_solutions_rele.emplace_back();
+                old_solutions_rele.emplace_back();
+                old_solutions_rele[0].reinit(*m_blocks_desc.ownedPartitionPtr(),
+                                             *m_blocks_desc.relevantPartitionPtr(),
+                                             *m_mpiInfo.mpiCommPtr());
+                old_solutions_rele[1].reinit(*m_blocks_desc.ownedPartitionPtr(),
+                                             *m_blocks_desc.relevantPartitionPtr(),
+                                             *m_mpiInfo.mpiCommPtr());
+                
+                old_solutions_rele[0] = old_solutions[0];
+                old_solutions_rele[1] = old_solutions[1];
+                
+                
+                old_history_variable_field_L2_rele.reinit(dof_handler_L2.locally_owned_dofs(),
+                                                          DoFTools::extract_locally_relevant_dofs(dof_handler_L2),
+                                                          *m_mpiInfo.mpiCommPtr());
+                old_history_variable_field_L2_rele = old_history_variable_field_L2;
+                
+                old_solutions_rele[0].update_ghost_values();
+                old_solutions_rele[1].update_ghost_values();
+                
+                old_history_variable_field_L2_rele.update_ghost_values();
+            }
+            
+            
             m_triangulation.prepare_coarsening_and_refinement();
-            SolutionTransfer<dim, BlockVector<double>> solution_transfer(m_dof_handler);
-            solution_transfer.prepare_for_coarsening_and_refinement(old_solutions);
-            SolutionTransfer<dim, Vector<double>> solution_transfer_history_variable(dof_handler_L2);
-            solution_transfer_history_variable.prepare_for_coarsening_and_refinement(old_history_variable_field_L2);
+            
+            using SolTransBlockVector = typename SolutionTransferSelector<dim, VecType, is_mpi>::type;
+            using SolTransVector = typename SolutionTransferSelector<dim, VecBType, is_mpi>::type;
+            
+            SolTransBlockVector solution_transfer(m_dof_handler);
+            SolTransVector solution_transfer_history_variable(dof_handler_L2);
+
+            if constexpr (is_mpi) {
+#  if DEAL_II_VERSION_GTE(9, 7, 0)
+                solution_transfer.prepare_for_coarsening_and_refinement(old_solutions_rele);
+                
+                solution_transfer_history_variable.prepare_for_coarsening_and_refinement(old_history_variable_field_L2_rele);
+#  else
+                
+                std::vector<const VecType*> old_solutions_ptrs = {
+                    &old_solutions_rele[0],
+                    &old_solutions_rele[1]};
+                
+                solution_transfer.prepare_for_coarsening_and_refinement(old_solutions_ptrs);
+                solution_transfer_history_variable.prepare_for_coarsening_and_refinement(old_history_variable_field_L2_rele);
+#  endif
+            } else {
+                solution_transfer.prepare_for_coarsening_and_refinement(old_solutions);
+                
+                solution_transfer_history_variable.prepare_for_coarsening_and_refinement(old_history_variable_field_L2);
+            }
+            
             m_triangulation.execute_coarsening_and_refinement();
             
             setup_system();
@@ -7098,23 +7163,44 @@ bool PhaseFieldMonolithicSolve<LATraits, Tria>
             //DoFTools::make_hanging_node_constraints(dof_handler_L2, constraints);
             constraints.close();
             
-            std::vector<BVector> tmp_solutions;
-            tmp_solutions.emplace_back(m_mpiInfo, m_blocks_desc, /*relevance=*/false);
-            tmp_solutions.emplace_back(m_mpiInfo, m_blocks_desc, /*relevance=*/false);
-            tmp_solutions[0].initialize();
-            tmp_solutions[1].initialize();
-            //	    tmp_solutions[0].reinit(m_dofs_per_block);
-            //	    tmp_solutions[1].reinit(m_dofs_per_block);
+            std::vector<VecType> tmp_solutions(2);
+            if constexpr (is_mpi) {
+                // target vectors should have info about ghost cells
+                tmp_solutions[0].reinit(*m_blocks_desc.ownedPartitionPtr(),
+                                        *m_mpiInfo.mpiCommPtr());
+                tmp_solutions[1].reinit(*m_blocks_desc.ownedPartitionPtr(),
+                                        *m_mpiInfo.mpiCommPtr());
+            } else {
+                tmp_solutions[0].reinit(*m_blocks_desc.dofsPerBlockPtr());
+                tmp_solutions[1].reinit(*m_blocks_desc.dofsPerBlockPtr());
+            }
+
             
-            Vector<double> new_history_variable_field_L2;
-            new_history_variable_field_L2.reinit(dof_handler_L2.n_dofs());
+            if constexpr (is_mpi)
+            {
+                const IndexSet relevant_dofs = DoFTools::extract_locally_relevant_dofs(dof_handler_L2);
+                
+                new_history_variable_field_L2.reinit(dof_handler_L2.locally_owned_dofs(),
+                                                     *m_mpiInfo.mpiCommPtr());
+                new_history_variable_field_L2_rele.reinit(dof_handler_L2.locally_owned_dofs(),
+                                                     relevant_dofs,
+                                                     *m_mpiInfo.mpiCommPtr());
+            } else {
+                new_history_variable_field_L2.reinit(dof_handler_L2.n_dofs());
+            }
             
 #  if DEAL_II_VERSION_GTE(9, 7, 0)
             solution_transfer.interpolate(tmp_solutions);
 #  else
             // If an older version of dealII is used, for example, 9.4.0, interpolate()
             // needs to use the following interface.
-            solution_transfer.interpolate(old_solutions, tmp_solutions);
+            if constexpr (is_mpi){
+                std::vector<VecType*> tmp_solutions_ptrs = { &tmp_solutions[0],
+                    &tmp_solutions[1]
+                };
+                solution_transfer.interpolate(tmp_solutions_ptrs);
+            } else
+                solution_transfer.interpolate(old_solutions, tmp_solutions);
 #  endif
             
 #  if DEAL_II_VERSION_GTE(9, 7, 0)
@@ -7122,20 +7208,36 @@ bool PhaseFieldMonolithicSolve<LATraits, Tria>
 #  else
             // If an older version of dealII is used, for example, 9.4.0, interpolate()
             // needs to use the following interface.
-            solution_transfer_history_variable.interpolate(old_history_variable_field_L2, new_history_variable_field_L2);
+            if constexpr (is_mpi){
+                solution_transfer_history_variable.interpolate(new_history_variable_field_L2);
+            } else
+                solution_transfer_history_variable.interpolate(old_history_variable_field_L2, new_history_variable_field_L2);
 #  endif
+
             
-            solution_next_step = tmp_solutions[0];
-            m_solution = tmp_solutions[1];
+            
+
+            solution_next_step.base()   = tmp_solutions[0];
+            m_solution.base()           = tmp_solutions[1];
+
+
             
             // make sure the projected solutions still satisfy
             // hanging node constraints
-            m_constraints.distribute(solution_next_step);
-            m_constraints.distribute(m_solution);
+
+            // distribute and update relevance
+            solution_next_step.distributeCst(m_constraints); // ghost cells updated
+            m_solution.distributeCst(m_constraints);        // ghost cells updated
             //Since we use discontinuous Lagrange polynomials as shape functions
             //we don't need to worry about enforcing continuity of the history variable
             //at hanging nodes.
             //constraints.distribute(new_history_variable_field_L2);
+            
+            
+            if constexpr (is_mpi) {
+                new_history_variable_field_L2_rele = new_history_variable_field_L2;
+                new_history_variable_field_L2_rele.update_ghost_values();
+            }
             
             // new_history_variable_field_L2 contains the history variable projected
             // onto the newly refined mesh
@@ -7146,6 +7248,9 @@ bool PhaseFieldMonolithicSolve<LATraits, Tria>
             
             for (const auto &cell : dof_handler_L2.active_cell_iterators())
             {
+                if constexpr (is_mpi){
+                    if (!cell->is_locally_owned()) continue;
+                }
                 fe_values.reinit(cell);
                 
                 const std::vector<std::shared_ptr<PointHistory<dim>>> lqph =
@@ -7167,6 +7272,10 @@ bool PhaseFieldMonolithicSolve<LATraits, Tria>
     // calculate field variables for newly refined cells
     if (!mesh_is_same)
     {
+        repartition(solution_next_step,
+                    new_history_variable_field_L2,
+                    new_history_variable_field_L2_rele);
+        
         BVector temp_solution_delta(m_mpiInfo, m_blocks_desc, /*relevance=*/true);
         temp_solution_delta.initialize();
         
@@ -7180,6 +7289,9 @@ bool PhaseFieldMonolithicSolve<LATraits, Tria>
         
         // initial guess for the resolve on the refined mesh
         LBFGS_update_refine.base() = solution_next_step.base() - m_solution.base();
+        LBFGS_update_refine.updateRelevance();
+        
+        solution_delta.updateRelevance();
     }
     
     return mesh_is_same;
