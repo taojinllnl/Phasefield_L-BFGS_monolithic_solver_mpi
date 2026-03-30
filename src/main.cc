@@ -5951,8 +5951,6 @@ double PhaseFieldMonolithicSolve<LATraits, Tria>
       BVector LBFGS_update(m_mpiInfo, m_blocks_desc, /*relevance=*/true);
         LBFGS_update.initialize();
 
-    LBFGS_update = 0.0;
-
     m_error_residual.reset();
     m_error_residual_0.reset();
     m_error_residual_norm.reset();
@@ -6004,12 +6002,17 @@ double PhaseFieldMonolithicSolve<LATraits, Tria>
 //            m_constraints.distribute(LBFGS_update);
               LBFGS_update.distributeCst(m_constraints);
             solution_delta += LBFGS_update;
+              solution_delta.updateRelevance();
+              
             if (m_parameters.m_output_iteration_history)
               {
                 m_logfile << " --- " << std::flush;
                 m_logfile << " --- " << std::flush;
               }
-            update_qph_incremental(solution_delta, m_solution, false);
+              m_solution.updateRelevance();
+
+              update_qph_incremental(solution_delta, m_solution, false);
+              
             if (m_parameters.m_output_iteration_history)
               {
                 m_logfile << " ---  |" << std::flush;
