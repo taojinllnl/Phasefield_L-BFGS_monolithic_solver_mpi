@@ -475,12 +475,12 @@ void Scenario::parse_parameters(ParameterHandler &prm)
 {
     prm.enter_subsection("Scenario");
     {
-        m_dim  = prm.get_integer("dimension");
+        m_dim  = (unsigned int)prm.get_integer("dimension");
         m_mpi_type = prm.get("mpi type");
         m_config_dir = prm.get("Config dir");
         m_output_dir = prm.get("Output dir");
         
-        m_scenario = prm.get_integer("Scenario number");
+        m_scenario = (unsigned int) prm.get_integer("Scenario number");
         m_logfile_name = prm.get("Log file name");
         m_output_iteration_history = prm.get_bool("Output iteration history");
         m_phasefield_name = prm.get("Phase-field model type");
@@ -490,16 +490,16 @@ void Scenario::parse_parameters(ParameterHandler &prm)
         m_type_linear_solver = prm.get("Linear solver type");
         m_refinement_strategy = prm.get("Mesh refinement strategy");
         m_repartition_ratio = prm.get_double("Repartitioning ratio");
-        m_LBFGS_m = prm.get_integer("LBFGS m");
-        m_global_refine_times = prm.get_integer("Global refinement times");
-        m_local_prerefine_times = prm.get_integer("Local prerefinement times");
-        m_max_adaptive_refine_times = prm.get_integer("Max adaptive refinement times");
-        m_max_allowed_refinement_level = prm.get_integer("Max allowed refinement level");
+        m_LBFGS_m = (unsigned int) prm.get_integer("LBFGS m");
+        m_global_refine_times = (unsigned int) prm.get_integer("Global refinement times");
+        m_local_prerefine_times = (unsigned int) prm.get_integer("Local prerefinement times");
+        m_max_adaptive_refine_times = (unsigned int) prm.get_integer("Max adaptive refinement times");
+        m_max_allowed_refinement_level = (unsigned int)prm.get_integer("Max allowed refinement level");
         m_phasefield_refine_threshold = prm.get_double("Phasefield refine threshold");
         m_allowed_max_h_l_ratio = prm.get_double("Allowed max hl ratio");
-        m_total_material_regions = prm.get_integer("Material regions");
+        m_total_material_regions = (unsigned int) prm.get_integer("Material regions");
         m_material_file_name = prm.get("Material data file");
-        m_reaction_force_face_id = prm.get_integer("Reaction force face ID");
+        m_reaction_force_face_id = (unsigned int) prm.get_integer("Reaction force face ID");
     }
     prm.leave_subsection();
 }
@@ -536,8 +536,8 @@ void FESystem::parse_parameters(ParameterHandler &prm)
 {
     prm.enter_subsection("Finite element system");
     {
-        m_poly_degree = prm.get_integer("Polynomial degree");
-        m_quad_order  = prm.get_integer("Quadrature order");
+        m_poly_degree = (unsigned int)prm.get_integer("Polynomial degree");
+        m_quad_order  = (unsigned int)prm.get_integer("Quadrature order");
     }
     prm.leave_subsection();
 }
@@ -649,8 +649,8 @@ void NonlinearSolver::parse_parameters(ParameterHandler &prm)
 {
     prm.enter_subsection("Nonlinear solver");
     {
-        m_max_iterations_NR = prm.get_integer("Max iterations Newton-Raphson");
-        m_max_iterations_BFGS = prm.get_integer("Max iterations BFGS");
+        m_max_iterations_NR = (unsigned int)prm.get_integer("Max iterations Newton-Raphson");
+        m_max_iterations_BFGS = (unsigned int)prm.get_integer("Max iterations BFGS");
         m_relative_residual = prm.get_bool("Relative residual");
         
         m_tol_u_residual           = prm.get_double("Tolerance displacement residual");
@@ -1850,7 +1850,7 @@ struct PhaseFieldMonolithicSolve<LATraits, Tria>::ScratchData_UQPH
     
     void reset()
     {
-        const unsigned int n_q_points = m_solution_symm_grads_u_cell.size();
+        const std::size_t n_q_points = m_solution_symm_grads_u_cell.size();
         for (unsigned int q = 0; q < n_q_points; ++q)
         {
             m_solution_symm_grads_u_cell[q]  = 0.0;
@@ -1988,8 +1988,8 @@ struct PhaseFieldMonolithicSolve<LATraits, Tria>::ScratchData_ASM
     
     void reset()
     {
-        const unsigned int n_q_points      = m_Nx_phasefield.size();
-        const unsigned int n_dofs_per_cell = m_Nx_phasefield[0].size();
+        const std::size_t n_q_points      = m_Nx_phasefield.size();
+        const std::size_t n_dofs_per_cell = m_Nx_phasefield[0].size();
         for (unsigned int q_point = 0; q_point < n_q_points; ++q_point)
         {
             Assert(m_Nx_phasefield[q_point].size() == n_dofs_per_cell,
@@ -2077,8 +2077,8 @@ struct PhaseFieldMonolithicSolve<LATraits, Tria>::ScratchData_ASM_RHS_BFGS
     
     void reset()
     {
-        const unsigned int n_q_points      = m_Nx_phasefield.size();
-        const unsigned int n_dofs_per_cell = m_Nx_phasefield[0].size();
+        const std::size_t n_q_points      = m_Nx_phasefield.size();
+        const std::size_t n_dofs_per_cell = m_Nx_phasefield[0].size();
         for (unsigned int q_point = 0; q_point < n_q_points; ++q_point)
         {
             Assert(m_Nx_phasefield[q_point].size() == n_dofs_per_cell,
@@ -2318,8 +2318,8 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::set_bcs_id()
     else if (m_parameters.m_scenario == 11)
     {
         double const length = 200.0;
-        double const width = 50.0;
-        double const delta_L = 25.0;
+//        double const width = 50.0;
+//        double const delta_L = 25.0;
         
         for(const auto& face : m_triangulation.active_face_iterators())
         {
@@ -3669,8 +3669,8 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_12()
     double const h_size = 0.1;
     
     std::vector<unsigned int> repetitions(dim, 1);
-    repetitions[0] = length / h_size;
-    repetitions[1] = width  / h_size;
+    repetitions[0] = (unsigned int) (length / h_size);
+    repetitions[1] = (unsigned int) (width  / h_size);
     
     GridGenerator::subdivided_hyper_rectangle(m_triangulation,
                                               repetitions,
@@ -4312,7 +4312,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
 }
 
 template <typename LATraits, typename Tria>
-void PhaseFieldMonolithicSolve<LATraits, Tria>::assemble_system_newton(const BVector & solution_old)
+void PhaseFieldMonolithicSolve<LATraits, Tria>::assemble_system_newton(const BVector & /*solution_old*/)
 {
     const std::string sectionName = "Assemble system";
     m_timer.enter_subsection(sectionName);
@@ -4569,7 +4569,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::assemble_system_rhs_BFGS_one_cel
         scratch.m_symm_grad_Nx_disp[q_point];
         const double JxW = scratch.m_fe_values.JxW(q_point);
         
-        SymmetricTensor<2, dim> symm_grad_Nx_i_x_C;
+//        SymmetricTensor<2, dim> symm_grad_Nx_i_x_C;
         
         const double phasefield_geo_derivative
         = phasefield_geometry_function_derivative(phasefield_value,
@@ -5490,7 +5490,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::LBFGS_B0(BVector & LBFGS_r_vecto
 
 template <typename LATraits, typename Tria>
 std::vector<double>
-PhaseFieldMonolithicSolve<LATraits, Tria>::solve_linear_system(BVector & newton_update)
+PhaseFieldMonolithicSolve<LATraits, Tria>::solve_linear_system(BVector & /*newton_update*/)
 {
     const std::string sectionName = "Solve coupled linear system";
     m_timer.enter_subsection(sectionName);
@@ -5598,7 +5598,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::print_conv_header_LBFGS()
 
 template <typename LATraits, typename Tria>
 bool PhaseFieldMonolithicSolve<LATraits, Tria>::
-solve_nonlinear_timestep_newton(BVector & solution_delta)
+solve_nonlinear_timestep_newton(BVector & /*solution_delta*/)
 {
     /*
      BVector newton_update(m_dofs_per_block);
@@ -5730,7 +5730,7 @@ solve_nonlinear_timestep_newton(BVector & solution_delta)
 
 template <typename LATraits, typename Tria>
 void PhaseFieldMonolithicSolve<LATraits, Tria>::
-solve_nonlinear_timestep_BFGS(BVector & solution_delta)
+solve_nonlinear_timestep_BFGS(BVector & /*solution_delta*/)
 {
     AssertThrow(false,
                 ExcMessage("BFGS requires too much memory. Please use L-BFGS!"));
