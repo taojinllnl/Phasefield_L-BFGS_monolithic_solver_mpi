@@ -6328,8 +6328,8 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::output_results() const
       const std::string sectionName = "Calculate reaction force";
     m_timer.enter_subsection(sectionName);
 
-    BlockVector<double>       system_rhs;
-    system_rhs.reinit(m_dofs_per_block);
+      BVector system_rhs(m_mpiInfo, m_blocks_desc, /*relevance=*/false);
+      system_rhs.initialize();
 
     Vector<double> cell_rhs(m_dofs_per_cell);
     std::vector<types::global_dof_index> local_dof_indices(m_dofs_per_cell);
@@ -6354,6 +6354,10 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::output_results() const
 
     for (const auto &cell : m_dof_handler.active_cell_iterators())
       {
+          // skip cells owned by other ranks in mpi mode
+          if constexpr (is_mpi)
+              if (!cell->is_locally_owned())
+                  continue;
 	// if calculate_reaction_force() is defined as const, then
 	// we also need to put a const in std::shared_ptr,
 	// that is, std::shared_ptr<const PointHistory<dim>>
@@ -6457,7 +6461,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::output_results() const
 
     std::vector<double> reaction_force(dim, 0.0);
 
-    for (unsigned int i = 0; i < m_dofs_per_block[m_u_dof]; ++i)
+      if constexpr (!is_mpi)
       {
           DoFTools::map_dof_to_boundary_indices(m_dof_handler,
                                                 boundary_ids,
