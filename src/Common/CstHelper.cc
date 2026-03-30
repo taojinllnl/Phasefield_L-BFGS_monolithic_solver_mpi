@@ -2,7 +2,24 @@
 //  CstHelper.cpp
 //  main
 //
-//  Created by Ethan Lee on 2026-03-23.
 //
 
-#include <stdio.h>
+#include "../../include/Common/CstHelper.h"
+
+
+using namespace dealii;
+using namespace bcs;
+
+void CstHelper
+::cstReinit(AffineConstraints<double>& constraints,
+            const IndexSet& locally_owned_dofs,
+            const IndexSet& locally_relevant_dofs,
+            const MPI_Comm& mpiComm)
+{
+#  if DEAL_II_VERSION_GTE(9, 6, 0)
+    constraints.reinit(locally_owned_dofs, locally_relevant_dofs);
+#  else
+    constraints.reinit(locally_relevant_dofs);
+#  endif
+}
+
