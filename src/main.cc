@@ -3517,6 +3517,8 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_9()
             }
             if(initiation_point_refine_unfinished){
                 m_triangulation.execute_coarsening_and_refinement();
+                if constexpr(is_mpi) m_triangulation.repartition();
+            }
         }
     }
     else
