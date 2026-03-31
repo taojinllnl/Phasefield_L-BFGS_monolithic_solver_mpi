@@ -7142,6 +7142,7 @@ bool PhaseFieldMonolithicSolve<LATraits, Tria>
             m_triangulation.execute_coarsening_and_refinement();
             
             setup_system();
+            solution_next_step.initialize();
             
             dof_handler_L2.distribute_dofs(fe_L2);
             constraints.clear();
