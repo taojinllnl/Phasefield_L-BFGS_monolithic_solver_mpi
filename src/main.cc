@@ -2527,8 +2527,10 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_1()
                 Utilities::MPI::sum(local_flag, *m_mpiInfo.mpiCommPtr());
                 initiation_point_refine_unfinished = (global_flag > 0u);
             }
-            if(initiation_point_refine_unfinished)
+            if(initiation_point_refine_unfinished){
                 m_triangulation.execute_coarsening_and_refinement();
+                if constexpr(is_mpi) m_triangulation.repartition();
+            }
         }
     }
     else
@@ -2633,8 +2635,10 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_2()
                 Utilities::MPI::sum(local_flag, *m_mpiInfo.mpiCommPtr());
                 initiation_point_refine_unfinished = (global_flag > 0u);
             }
-            if(initiation_point_refine_unfinished)
+            if(initiation_point_refine_unfinished){
                 m_triangulation.execute_coarsening_and_refinement();
+                if constexpr(is_mpi) m_triangulation.repartition();
+            }
         }
     }
     else
@@ -2735,8 +2739,10 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_3()
                 Utilities::MPI::sum(local_flag, *m_mpiInfo.mpiCommPtr());
                 initiation_point_refine_unfinished = (global_flag > 0u);
             }
-            if(initiation_point_refine_unfinished)
+            if(initiation_point_refine_unfinished) {
                 m_triangulation.execute_coarsening_and_refinement();
+                if constexpr(is_mpi) m_triangulation.repartition();
+            }
         }
     }
     else
@@ -2840,8 +2846,10 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_4()
                 Utilities::MPI::sum(local_flag, *m_mpiInfo.mpiCommPtr());
                 initiation_point_refine_unfinished = (global_flag > 0u);
             }
-            if(initiation_point_refine_unfinished)
+            if(initiation_point_refine_unfinished){
                 m_triangulation.execute_coarsening_and_refinement();
+                if constexpr(is_mpi) m_triangulation.repartition();
+            }
         }
     }
     else
@@ -2955,8 +2963,10 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_5()
                 Utilities::MPI::sum(local_flag, *m_mpiInfo.mpiCommPtr());
                 initiation_point_refine_unfinished = (global_flag > 0u);
             }
-            if(initiation_point_refine_unfinished)
+            if(initiation_point_refine_unfinished){
                 m_triangulation.execute_coarsening_and_refinement();
+                if constexpr(is_mpi) m_triangulation.repartition();
+            }
         }
     }
     else
@@ -3090,8 +3100,10 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_6()
                 Utilities::MPI::sum(local_flag, *m_mpiInfo.mpiCommPtr());
                 initiation_point_refine_unfinished = (global_flag > 0u);
             }
-            if(initiation_point_refine_unfinished)
+            if(initiation_point_refine_unfinished){
                 m_triangulation.execute_coarsening_and_refinement();
+                if constexpr(is_mpi) m_triangulation.repartition();
+            }
         }
     }
     else
@@ -3235,8 +3247,10 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_7()
                 Utilities::MPI::sum(local_flag, *m_mpiInfo.mpiCommPtr());
                 initiation_point_refine_unfinished = (global_flag > 0u);
             }
-            if(initiation_point_refine_unfinished)
+            if(initiation_point_refine_unfinished){
                 m_triangulation.execute_coarsening_and_refinement();
+                if constexpr(is_mpi) m_triangulation.repartition();
+            }
         }
     }
     else
@@ -3395,8 +3409,10 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_8()
                 Utilities::MPI::sum(local_flag, *m_mpiInfo.mpiCommPtr());
                 initiation_point_refine_unfinished = (global_flag > 0u);
             }
-            if(initiation_point_refine_unfinished)
+            if(initiation_point_refine_unfinished){
                 m_triangulation.execute_coarsening_and_refinement();
+                if constexpr(is_mpi) m_triangulation.repartition();
+            }
         }
     }
     else
@@ -3499,7 +3515,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_9()
                 Utilities::MPI::sum(local_flag, *m_mpiInfo.mpiCommPtr());
                 initiation_point_refine_unfinished = (global_flag > 0u);
             }
-            if(initiation_point_refine_unfinished)
+            if(initiation_point_refine_unfinished){
                 m_triangulation.execute_coarsening_and_refinement();
         }
     }
@@ -3632,7 +3648,10 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_11()
                 initiation_point_refine_unfinished = (global_flag > 0u);
             }
             if(initiation_point_refine_unfinished)
+            {
                 m_triangulation.execute_coarsening_and_refinement();
+                if constexpr(is_mpi) m_triangulation.repartition();
+            }
         }
     }
     else
