@@ -6780,8 +6780,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
         m_triangulation.repartition();
         m_logfile << "\t\trepartitioninged, data transferring...." << std::endl;
         
-        // TODO:
-        //        set_bcs_id();
+
         
         setup_system();
         
