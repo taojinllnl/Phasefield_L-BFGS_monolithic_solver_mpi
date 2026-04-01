@@ -10,7 +10,7 @@ subsection Scenario
   
   
   # Configuration directory
-  set Config dir = ./Cases/pre_refine/simple_tension_test/AT1/
+  set Config dir = ./Cases/simple_tension_test/pre_refine/AT1/
   
   # Output directory
   set Output dir = ./output/Case_3/pre_refine/AT1/
