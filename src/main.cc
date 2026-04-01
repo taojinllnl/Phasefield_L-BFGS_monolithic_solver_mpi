@@ -2775,7 +2775,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_4()
     
     GridIn<dim> gridin;
     gridin.attach_triangulation(m_triangulation);
-    std::ifstream f("square_shear_structured.msh");
+    std::ifstream f(m_parameters.m_mesh_file_name);
     gridin.read_msh(f);
     
     //    for (const auto &cell : m_triangulation.active_cell_iterators())
