@@ -2458,7 +2458,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_1()
     
     GridIn<dim> gridin;
     gridin.attach_triangulation(m_triangulation);
-    std::ifstream f("square_tension_unstructured.msh");
+    std::ifstream f(m_parameters.m_mesh_file_name);
     gridin.read_msh(f);
     
     //    for (const auto &cell : m_triangulation.active_cell_iterators())
@@ -2564,7 +2564,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_2()
     
     GridIn<dim> gridin;
     gridin.attach_triangulation(m_triangulation);
-    std::ifstream f("square_shear_unstructured.msh");
+    std::ifstream f(m_parameters.m_mesh_file_name);
     gridin.read_msh(f);
     
     //    for (const auto &cell : m_triangulation.active_cell_iterators())
@@ -2882,7 +2882,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_5()
     
     GridIn<dim> gridin;
     gridin.attach_triangulation(m_triangulation);
-    std::ifstream f("three_point_bending_structured.msh");
+    std::ifstream f(m_parameters.m_mesh_file_name);
     gridin.read_msh(f);
     
     //    for (const auto &cell : m_triangulation.active_cell_iterators())
@@ -3446,7 +3446,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_9()
     
     GridIn<dim> gridin;
     gridin.attach_triangulation(m_triangulation);
-    std::ifstream f("L-Shape.msh");
+    std::ifstream f(m_parameters.m_mesh_file_name);
     gridin.read_msh(f);
     
     //    for (const auto &cell : m_triangulation.active_cell_iterators())
