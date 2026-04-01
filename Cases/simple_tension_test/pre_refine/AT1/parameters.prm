@@ -10,14 +10,14 @@ subsection Scenario
   
   
   # Configuration directory
-  set Config dir = ./Cases/simple_tension_test/AT1/
+  set Config dir = ./Cases/pre_refine/simple_tension_test/AT1/
   
   # Output directory
-  set Output dir = ./output/Case_3/adaptive_refine/AT1/
+  set Output dir = ./output/Case_3/pre_refine/AT1/
   
-  # Mesh file name (default: ./)
-  set Mesh file name = ./Cases/simple_tension_test/square_tension_structured.msh
-
+  # Mesh file name (starting from `Config dir`. default: `Config dir`)
+  set Mesh file name = ../../square_tension_structured.msh
+  
 
   # Geometry, loading and boundary conditions scenario
   # 1 - square tension (2D unstructured mesh)

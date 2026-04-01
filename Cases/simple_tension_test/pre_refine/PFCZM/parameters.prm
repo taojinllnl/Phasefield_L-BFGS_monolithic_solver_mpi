@@ -10,14 +10,14 @@ subsection Scenario
   
   
   # Configuration directory
-  set Config dir = ./Cases/simple_tension_test/PFCZM/
+  set Config dir = ./Cases/simple_tension_test/pre_refine/PFCZM/
   
   # Output directory
-  set Output dir = ./output/Case_3/adaptive_refine/PFCZM/
+  set Output dir = ./output/Case_3/pre_refine/PFCZM/
   
-  # Mesh file name (default: ./)
-  set Mesh file name = ./Cases/simple_tension_test/square_tension_structured.msh
-
+  # Mesh file name (starting from `Config dir`. default: `Config dir`)
+  set Mesh file name = ../../square_tension_structured.msh
+  
 
   # Geometry, loading and boundary conditions scenario
   # 1 - square tension (2D unstructured mesh)
