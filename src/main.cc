@@ -312,6 +312,7 @@ struct Scenario
     std::string m_mpi_type;
     std::string m_config_dir;
     std::string m_output_dir;
+    std::string m_mesh_file_name;
     
     unsigned int m_scenario;
     std::string m_logfile_name;
@@ -362,6 +363,11 @@ void Scenario::declare_parameters(ParameterHandler &prm)
                           "./",
                           Patterns::FileName(Patterns::FileName::input),
                           "Output directory");
+        
+        prm.declare_entry("Mesh file name",
+                          "./",
+                          Patterns::FileName(Patterns::FileName::input),
+                          "Mesh file name");
         
         
         
@@ -479,6 +485,8 @@ void Scenario::parse_parameters(ParameterHandler &prm)
         m_mpi_type = prm.get("mpi type");
         m_config_dir = prm.get("Config dir");
         m_output_dir = prm.get("Output dir");
+        m_mesh_file_name = prm.get("Mesh file name");
+        m_mesh_file_name = m_config_dir + m_mesh_file_name;
         
         m_scenario = (unsigned int) prm.get_integer("Scenario number");
         m_logfile_name = prm.get("Log file name");
