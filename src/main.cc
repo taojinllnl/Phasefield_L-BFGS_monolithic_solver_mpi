@@ -6535,6 +6535,11 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::calculate_reaction_force(unsigne
 template <typename LATraits, typename Tria>
 void PhaseFieldMonolithicSolve<LATraits, Tria>::write_history_data()
 {
+    if constexpr (is_mpi)
+    {
+        if (!m_mpiInfo.isRankEqualsTo(0))
+            return;
+    }
     m_logfile << "\t\tWrite history data ... \n"<<std::endl;
     
     std::ofstream myfile_reaction_force (m_parameters.histDir + "Reaction_force.hist");
