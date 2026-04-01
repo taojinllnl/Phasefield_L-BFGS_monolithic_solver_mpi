@@ -1,6 +1,26 @@
 # Listing of Parameters
 # ---------------------
-subsection Scenario  
+subsection Scenario
+
+  # Dimension
+  set dimension = 2
+  
+  # underlying mpi type: (PETSc|Trilinos|Serial)
+  set mpi type = Trilinos
+  
+  
+  # Configuration directory
+  set Config dir = ./Cases/simple_shear_test/adaptive_refinement/AT1/
+  
+  # Output directory
+  set Output dir = ./output/Case_4/adaptive_refine/AT1/
+  
+  # Mesh file name (starting from `Config dir`. default: `Config dir`)
+  set Mesh file name = ../../square_shear_structured.msh
+  
+
+
+
   # Geometry, loading and boundary conditions scenario
   # 1 - square tension (2D unstructured mesh)
   # 2 - square shear   (2D unstructured mesh)
@@ -13,7 +33,7 @@ subsection Scenario
   set Scenario number = 4
   
   # Name of the log file
-  set Log file name = square_shear_structured.log
+  set Log file name = square_shear_structured
   
   # Shall we write the iteration history to the log file? (yes or no)
   set Output iteration history = yes
