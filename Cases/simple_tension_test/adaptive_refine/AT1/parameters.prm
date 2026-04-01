@@ -52,7 +52,7 @@ subsection Scenario
   set Linear solver type = CG
   
   # Mesh refinement strategy (pre-refine or adaptive-refine)
-  set Mesh refinement strategy = pre-refine
+  set Mesh refinement strategy = adaptive-refine
   
   # Number of vectors used in LBFGS
   set LBFGS m = 40
