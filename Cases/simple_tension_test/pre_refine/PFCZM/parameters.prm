@@ -46,7 +46,7 @@ subsection Scenario
   set Nonlinear solver type = LBFGS
 
   # Line search strategy (GradientBased or StrongWolfe)
-  set Line search type = GradientBased
+  set Line search type = StrongWolfe 
 
   # Linear solver type for B0 (Direct or CG)
   set Linear solver type = CG
@@ -115,7 +115,7 @@ subsection Nonlinear solver
   set Max iterations Newton-Raphson = 20
   
   # Number of BFGS iterations allowed
-  set Max iterations BFGS = 10000
+  set Max iterations BFGS = 30000
   
   # Relative residual (yes|no)
   # yes - relative residual
