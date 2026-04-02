@@ -190,11 +190,11 @@ double degradation_function_derivative(const double d,
         value = 2.0 * (d - 1.0);
     else if (model_name == "PFCZM")
     {
-        
+        const short sign = (d > 1) ? -1 : 1;
         const double f1 = std::pow(std::fabs(1.0-d), p);
         const double f2 = f1 + a1*d + a1*a2*d*d + a1*a3*d*d*d;
-        const double f1_1 = (-p) * std::pow(std::abs(1-d), p-1);
-        const double f2_1 = f1_1 + a1 + 2*a1*a2*d + 3*a1*a3*d*d;
+        const double f1_1 = sign*(-p) * std::pow(std::fabs(1.0-d), p-1.0);
+        const double f2_1 = f1_1 + a1 + 2.0*a1*a2*d + 3.0*a1*a3*d*d;
         value = (f1_1 * f2 - f1 * f2_1) / (f2 * f2);
     }
     else
@@ -218,13 +218,13 @@ double degradation_function_2nd_order_derivative(const double d,
         value = 2.0;
     else if (model_name == "PFCZM")
     {
-        
+        const short sign = (d > 1) ? -1 : 1;
         const double f1 = std::pow(std::fabs(1.0-d), p);
         const double f2 = f1 + a1*d + a1*a2*d*d + a1*a3*d*d*d;
-        const double f1_1 = (-p) * std::pow(std::abs(1-d), p-1);
-        const double f2_1 = f1_1 + a1 + 2*a1*a2*d + 3*a1*a3*d*d;
-        const double f1_2 = p * (p-1) * std::pow(std::abs(1-d), p-2);
-        const double f2_2 = f1_2 + 2*a1*a2 + 6*a1*a3*d;
+        const double f1_1 = sign*(-p) * std::pow(std::fabs(1.0-d), p-1.0);
+        const double f2_1 = f1_1 + a1 + 2.0*a1*a2*d + 3.0*a1*a3*d*d;
+        const double f1_2 = p * (p-1.0) * std::pow(std::fabs(1.0-d), p-2.0);
+        const double f2_2 = f1_2 + 2.0*a1*a2 + 6.0*a1*a3*d;
         const double f3 = f1_1 * f2 - f1 * f2_1;
         const double f4 = f2 * f2;
         const double f3_1 = f1_2 * f2 - f1 * f2_2;
