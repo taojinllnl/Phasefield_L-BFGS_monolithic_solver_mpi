@@ -165,7 +165,7 @@ double degradation_function(const double d,
         value = (1.0 - d) * (1.0 - d);
     else if (model_name == "PFCZM")
     {
-        const double f1 = std::pow(std::abs(1-d), p);
+        const double f1 = std::pow(std::fabs(1.0-d), p);
         const double f2 = f1 + a1*d + a1*a2*d*d + a1*a3*d*d*d;
         value = f1/f2;
     }
@@ -190,7 +190,8 @@ double degradation_function_derivative(const double d,
         value = 2.0 * (d - 1.0);
     else if (model_name == "PFCZM")
     {
-        const double f1 = std::pow(std::abs(1-d), p);
+        
+        const double f1 = std::pow(std::fabs(1.0-d), p);
         const double f2 = f1 + a1*d + a1*a2*d*d + a1*a3*d*d*d;
         const double f1_1 = (-p) * std::pow(std::abs(1-d), p-1);
         const double f2_1 = f1_1 + a1 + 2*a1*a2*d + 3*a1*a3*d*d;
@@ -217,7 +218,8 @@ double degradation_function_2nd_order_derivative(const double d,
         value = 2.0;
     else if (model_name == "PFCZM")
     {
-        const double f1 = std::pow(std::abs(1-d), p);
+        
+        const double f1 = std::pow(std::fabs(1.0-d), p);
         const double f2 = f1 + a1*d + a1*a2*d*d + a1*a3*d*d*d;
         const double f1_1 = (-p) * std::pow(std::abs(1-d), p-1);
         const double f2_1 = f1_1 + a1 + 2*a1*a2*d + 3*a1*a3*d*d;
@@ -226,7 +228,7 @@ double degradation_function_2nd_order_derivative(const double d,
         const double f3 = f1_1 * f2 - f1 * f2_1;
         const double f4 = f2 * f2;
         const double f3_1 = f1_2 * f2 - f1 * f2_2;
-        const double f4_1 = 2 * f2 * f2_1;
+        const double f4_1 = 2.0 * f2 * f2_1;
         value = (f3_1 * f4 - f3 * f4_1) / (f4 * f4);
     }
     else
@@ -262,7 +264,7 @@ inline double phasefield_geometry_function_derivative(const double d,
     else if (model_name == "AT1")
         value = 1.0;
     else if (model_name == "PFCZM")
-        value = 2.0 * (1-d);
+        value = 2.0 * (1.0-d);
     else
         Assert(false,
                ExcMessage("The phase-field geometric function has not been implemented!"));
@@ -294,9 +296,9 @@ inline double phasefield_coefficient_constant(const std::string & model_name)
     if (model_name == "AT2")
         value = 2.0;
     else if (model_name == "AT1")
-        value = 8.0/3;
+        value = 8.0/3.0;
     else if (model_name == "PFCZM")
-        value = 4 * std::atan(1);
+        value = 4.0 * std::atan(1);
     else
         Assert(false,
                ExcMessage("The phase-field geometric function has not been implemented!"));
@@ -3018,7 +3020,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_6()
             bool face_at_sphere_boundary = true;
             for (const auto v : face->vertex_indices())
             {
-                if (std::abs(face->vertex(v).norm_square() - 0.25) > 1e-12)
+                if (std::fabs(face->vertex(v).norm_square() - 0.25) > 1e-12)
                     face_at_sphere_boundary = false;
             }
             if (face_at_sphere_boundary)
@@ -3162,7 +3164,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_7()
             bool face_at_sphere_boundary = true;
             for (const auto v : face->vertex_indices())
             {
-                if (std::abs(face->vertex(v).norm_square() - 0.49 * 0.49) > 1e-12)
+                if (std::fabs(face->vertex(v).norm_square() - 0.49 * 0.49) > 1e-12)
                     face_at_sphere_boundary = false;
             }
             if (face_at_sphere_boundary)
@@ -3310,7 +3312,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_8()
             bool face_at_sphere_boundary = true;
             for (const auto v : face->vertex_indices())
             {
-                if (std::abs(face->vertex(v).norm_square() - 0.49 * 0.49) > 1e-12)
+                if (std::fabs(face->vertex(v).norm_square() - 0.49 * 0.49) > 1e-12)
                     face_at_sphere_boundary = false;
             }
             if (face_at_sphere_boundary)
