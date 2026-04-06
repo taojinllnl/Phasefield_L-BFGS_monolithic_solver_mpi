@@ -1220,6 +1220,13 @@ class PhaseFieldMonolithicSolve
 {
 public:
     constexpr static int dim = Tria::dimension;
+    
+#if SUPPORT_REPARTION==1
+    constexpr static bool supportRepartioning = true;
+#else
+    constexpr static bool supportRepartioning = false;
+#endif
+    
     using BSMatrix = ::common::BlockSparseMatrixWrapper<LATraits>;
     using BVector  = ::common::BlockVectorWrapper<LATraits>;
     
