@@ -3982,7 +3982,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
                             m_constraints.add_line(dofX);
                             m_constraints.set_inhomogeneity(dofX, 0.0);
                             
-                            const types::global_dof_index dofY = cell->vertex_dof_index(vertex, 0);
+                            const types::global_dof_index dofY = cell->vertex_dof_index(vertex, 1);
                             m_constraints.add_line(dofY);
                             m_constraints.set_inhomogeneity(dofY, 0.0);
                             continue;
@@ -3990,7 +3990,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
                         if (   (std::fabs(point[0] - 8.0) < 1.0e-9)
                             && (std::fabs(point[1] - 0.0) < 1.0e-9) )
                         {
-                            const types::global_dof_index dofY = cell->vertex_dof_index(vertex, 0);
+                            const types::global_dof_index dofY = cell->vertex_dof_index(vertex, 1);
                             // bottom-right node only fixed in y-direction
                             m_constraints.add_line(dofY);
                             m_constraints.set_inhomogeneity(dofY, 0.0);
