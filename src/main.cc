@@ -36,6 +36,8 @@
  * 6. Add the Phase-field cohesive zone model (PFCZM) (Feb. 7th 2026)
  */
 
+# define SUPPORT_REPARTION 0
+
 #include <deal.II/grid/tria.h>
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_refinement.h>
@@ -2539,7 +2541,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_1()
             }
             if(initiation_point_refine_unfinished){
                 m_triangulation.execute_coarsening_and_refinement();
-                if constexpr(is_mpi) m_triangulation.repartition();
+                if constexpr(is_mpi && supportRepartioning) m_triangulation.repartition();
             }
         }
     }
@@ -2647,7 +2649,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_2()
             }
             if(initiation_point_refine_unfinished){
                 m_triangulation.execute_coarsening_and_refinement();
-                if constexpr(is_mpi) m_triangulation.repartition();
+                if constexpr(is_mpi && supportRepartioning) m_triangulation.repartition();
             }
         }
     }
@@ -2751,7 +2753,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_3()
             }
             if(initiation_point_refine_unfinished) {
                 m_triangulation.execute_coarsening_and_refinement();
-                if constexpr(is_mpi) m_triangulation.repartition();
+                if constexpr(is_mpi && supportRepartioning) m_triangulation.repartition();
             }
         }
     }
@@ -2858,7 +2860,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_4()
             }
             if(initiation_point_refine_unfinished){
                 m_triangulation.execute_coarsening_and_refinement();
-                if constexpr(is_mpi) m_triangulation.repartition();
+                if constexpr(is_mpi && supportRepartioning) m_triangulation.repartition();
             }
         }
     }
@@ -2975,7 +2977,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_5()
             }
             if(initiation_point_refine_unfinished){
                 m_triangulation.execute_coarsening_and_refinement();
-                if constexpr(is_mpi) m_triangulation.repartition();
+                if constexpr(is_mpi && supportRepartioning) m_triangulation.repartition();
             }
         }
     }
@@ -3112,7 +3114,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_6()
             }
             if(initiation_point_refine_unfinished){
                 m_triangulation.execute_coarsening_and_refinement();
-                if constexpr(is_mpi) m_triangulation.repartition();
+                if constexpr(is_mpi && supportRepartioning) m_triangulation.repartition();
             }
         }
     }
@@ -3259,7 +3261,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_7()
             }
             if(initiation_point_refine_unfinished){
                 m_triangulation.execute_coarsening_and_refinement();
-                if constexpr(is_mpi) m_triangulation.repartition();
+                if constexpr(is_mpi && supportRepartioning) m_triangulation.repartition();
             }
         }
     }
@@ -3421,7 +3423,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_8()
             }
             if(initiation_point_refine_unfinished){
                 m_triangulation.execute_coarsening_and_refinement();
-                if constexpr(is_mpi) m_triangulation.repartition();
+                if constexpr(is_mpi && supportRepartioning) m_triangulation.repartition();
             }
         }
     }
@@ -3527,7 +3529,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_9()
             }
             if(initiation_point_refine_unfinished){
                 m_triangulation.execute_coarsening_and_refinement();
-                if constexpr(is_mpi) m_triangulation.repartition();
+                if constexpr(is_mpi && supportRepartioning) m_triangulation.repartition();
             }
         }
     }
@@ -3662,7 +3664,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_11()
             if(initiation_point_refine_unfinished)
             {
                 m_triangulation.execute_coarsening_and_refinement();
-                if constexpr(is_mpi) m_triangulation.repartition();
+                if constexpr(is_mpi && supportRepartioning) m_triangulation.repartition();
             }
         }
     }
@@ -6677,7 +6679,14 @@ PhaseFieldMonolithicSolve<LATraits, Tria>::calculate_total_strain_energy_and_cra
     return std::make_pair(total_strain_energy, crack_energy_dissipation);
 }
 
-
+#if SUPPORT_REPARTION==0
+template <typename LATraits, typename Tria>
+void PhaseFieldMonolithicSolve<LATraits, Tria>
+::repartition(BVector & /*solution_next_step*/,
+              const typename LATraits::VectorBlock& /*old_history_variable_field_L2*/,
+              const typename LATraits::VectorBlock& /*old_history_variable_field_L2_rele*/)
+{}
+#else
 template <typename LATraits, typename Tria>
 void PhaseFieldMonolithicSolve<LATraits, Tria>
 ::repartition(BVector & solution_next_step,
@@ -6816,7 +6825,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
         m_triangulation.repartition();
         m_logfile << "\t\trepartitioninged, data transferring...." << std::endl;
         
-
+        
         
         setup_system();
         
@@ -6971,6 +6980,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
         m_timer.leave_subsection(sectionName);
     }
 }
+#endif
 
 
 
@@ -7612,73 +7622,70 @@ int main(int argc, char* argv[])
                 ExcMessage("Dimension has to be either 2 or 3"));
     
     
-    if(parameters.m_mpi_type == "PETSc") {
+    
+    if (dim == 2 ){
+#if SUPPORT_REPARTION==1
+        const auto setting = DTria<2>::no_automatic_repartitioning;
+#else
+        const auto setting = DTria<2>::default_setting;
+#endif
+        const auto smooth = RTria<2>::MeshSmoothing(
+                                                    RTria<2>::smoothing_on_refinement
+                                                    |RTria<2>::smoothing_on_coarsening);
+
+        if(parameters.m_mpi_type == "PETSc") {
 #ifdef HAVE_PETSC
-        // PETSc type mpi
-        if (dim == 2 )
-        {
-            DTria<2> tria(*mpiInfo.mpiCommPtr(),
-                          typename Triangulation<2>::MeshSmoothing(
-                                                                   Triangulation<2>::smoothing_on_refinement |
-                                                                   Triangulation<2>::smoothing_on_coarsening),
-                          DTria<2>::no_automatic_repartitioning);
+            DTria<2> tria(*mpiInfo.mpiCommPtr(), smooth, setting);
             
             PhaseFieldMonolithicSolve<Traits<TagPETSc>, DTria<2>> Phasefield2D(parameters, mpiInfo, logfile, tria);
             Phasefield2D.run();
-        }
-        else if (dim == 3)
-        {
-            DTria<3> tria(*mpiInfo.mpiCommPtr(),
-                          typename Triangulation<3>::MeshSmoothing(
-                                                                   Triangulation<3>::smoothing_on_refinement |
-                                                                   Triangulation<3>::smoothing_on_coarsening),
-                          DTria<3>::no_automatic_repartitioning);
-            
-            PhaseFieldMonolithicSolve<Traits<TagPETSc>, DTria<3>> Phasefield3D(parameters, mpiInfo, logfile, tria);
-            Phasefield3D.run();
-        }
 #else
-        std::cout << "[ ERROR ] The selected mpi mode (" << parameters.m_mpi_type << ") is not installed." << std::endl;
 #endif
-    } else if(parameters.m_mpi_type == "Trilinos") {
+        } else if(parameters.m_mpi_type == "Trilinos") {
 #ifdef HAVE_TRILINOS
-        // Trilinos type mpi
-        if (dim == 2 )
-        {
-            DTria<2> tria(*mpiInfo.mpiCommPtr(),
-                          typename Triangulation<2>::MeshSmoothing(
-                                                                   Triangulation<2>::smoothing_on_refinement |
-                                                                   Triangulation<2>::smoothing_on_coarsening),
-                          DTria<2>::no_automatic_repartitioning);
+            DTria<2> tria(*mpiInfo.mpiCommPtr(), smooth, setting);
             
             PhaseFieldMonolithicSolve<Traits<TagTrilinos>, DTria<2>> Phasefield2D(parameters, mpiInfo, logfile, tria);
             Phasefield2D.run();
-        }
-        else if (dim == 3)
-        {
-            DTria<3> tria(*mpiInfo.mpiCommPtr(),
-                          typename Triangulation<3>::MeshSmoothing(
-                                                                   Triangulation<3>::smoothing_on_refinement |
-                                                                   Triangulation<3>::smoothing_on_coarsening),
-                          DTria<3>::no_automatic_repartitioning);
-            
-            PhaseFieldMonolithicSolve<Traits<TagTrilinos>, DTria<3>> Phasefield3D(parameters, mpiInfo, logfile, tria);
-            Phasefield3D.run();
-        }
 #else
-        std::cout << "[ ERROR ] The selected mpi mode (" << parameters.m_mpi_type << ") is not installed." << std::endl;
+            std::cout << "[ ERROR ] The selected mpi mode (" << parameters.m_mpi_type << ") is not installed." << std::endl;
 #endif
-    } else {
-        // Serial type
-        if (dim == 2 )
-        {
+        } else if(parameters.m_mpi_type == "Serial") {
             RTria<2> tria(Triangulation<2>::maximum_smoothing);
             
             PhaseFieldMonolithicSolve<Traits<TagSerial>, RTria<2>> Phasefield2D(parameters, mpiInfo, logfile, tria);
             Phasefield2D.run();
         }
-        else if (dim == 3)
-        {
+        
+    } else if (dim == 3) {
+        
+#if SUPPORT_REPARTION==1
+        const auto setting = DTria<3>::no_automatic_repartitioning;
+#else
+        const auto setting = DTria<3>::default_setting;
+#endif
+        const auto smooth = RTria<3>::MeshSmoothing(
+                                                    RTria<2>::smoothing_on_refinement
+                                                    |RTria<2>::smoothing_on_coarsening);
+        if(parameters.m_mpi_type == "PETSc") {
+#ifdef HAVE_PETSC
+            DTria<3> tria(*mpiInfo.mpiCommPtr(), smooth, setting);
+            
+            PhaseFieldMonolithicSolve<Traits<TagPETSc>, DTria<3>> Phasefield3D(parameters, mpiInfo, logfile, tria);
+            Phasefield3D.run();
+#else
+            std::cout << "[ ERROR ] The selected mpi mode (" << parameters.m_mpi_type << ") is not installed." << std::endl;
+#endif
+        } else if(parameters.m_mpi_type == "Trilinos") {
+#ifdef HAVE_TRILINOS
+            DTria<3> tria(*mpiInfo.mpiCommPtr(), smooth, setting);
+            
+            PhaseFieldMonolithicSolve<Traits<TagTrilinos>, DTria<3>> Phasefield3D(parameters, mpiInfo, logfile, tria);
+            Phasefield3D.run();
+#else
+            std::cout << "[ ERROR ] The selected mpi mode (" << parameters.m_mpi_type << ") is not installed." << std::endl;
+#endif
+        } else if(parameters.m_mpi_type == "Serial") {
             RTria<3> tria(Triangulation<3>::maximum_smoothing);
             
             PhaseFieldMonolithicSolve<Traits<TagSerial>, RTria<3>> Phasefield3D(parameters, mpiInfo, logfile, tria);
