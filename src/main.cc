@@ -3246,8 +3246,8 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_7()
                 }
                 if (    cell->center()[2] > 0.505
                     && cell->center()[2] < 0.575
-                    && cell->center()[0] < 0.05
-                    && cell->center()[1] < 0.05 )
+                    && cell->center()[0] < 0.10
+                    && cell->center()[1] < 0.10 )
                 {
                     material_id = cell->material_id();
                     length_scale = m_material_data[material_id][2];
@@ -3408,8 +3408,8 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_8()
                 }
                 if (    cell->center()[2] > 0.505
                     && cell->center()[2] < 0.575
-                    && cell->center()[0] < 0.05
-                    && cell->center()[1] < 0.05 )
+                    && cell->center()[0] < 0.10
+                    && cell->center()[1] < 0.10 )
                 {
                     material_id = cell->material_id();
                     length_scale = m_material_data[material_id][2];
