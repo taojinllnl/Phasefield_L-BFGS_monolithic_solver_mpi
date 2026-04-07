@@ -145,5 +145,5 @@ subsection Time
   set End time       = 15.0e-3
   
   # Time data groups
-  set Time data file = timeDataFile
+  set Time data file = ../../timeDataFile
 end

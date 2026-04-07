@@ -14,7 +14,7 @@ subsection Scenario
   set Config dir = ./Cases/simple_shear_test/pre_refinement/PFCZM/
   
   # Output directory
-  set Output dir = ./output/Case_4/adaptive_refine/PFCZM/
+  set Output dir = ./output/Case_4/pre_refine/PFCZM/
   
   # Mesh file name (starting from `Config dir`. default: `Config dir`)
   set Mesh file name = ../../square_shear_structured.msh
@@ -144,5 +144,5 @@ subsection Time
   set End time       = 15.0e-3
   
   # Time data groups
-  set Time data file = timeDataFile
+  set Time data file = ../../timeDataFile
 end
