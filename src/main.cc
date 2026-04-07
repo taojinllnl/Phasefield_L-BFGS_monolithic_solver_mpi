@@ -36,7 +36,7 @@
  * 6. Add the Phase-field cohesive zone model (PFCZM) (Feb. 7th 2026)
  */
 
-# define ENABLE_REPARTION 0
+# define ENABLE_REPARTITION 0
 
 #include <deal.II/grid/tria.h>
 #include <deal.II/grid/grid_generator.h>
@@ -1221,7 +1221,7 @@ class PhaseFieldMonolithicSolve
 public:
     constexpr static int dim = Tria::dimension;
     
-#if ENABLE_REPARTION==1
+#if ENABLE_REPARTITION==1
     constexpr static bool supportRepartioning = true;
 #else
     constexpr static bool supportRepartioning = false;
@@ -6686,7 +6686,7 @@ PhaseFieldMonolithicSolve<LATraits, Tria>::calculate_total_strain_energy_and_cra
     return std::make_pair(total_strain_energy, crack_energy_dissipation);
 }
 
-#if ENABLE_REPARTION==0
+#if ENABLE_REPARTITION==0
 template <typename LATraits, typename Tria>
 void PhaseFieldMonolithicSolve<LATraits, Tria>
 ::repartition(BVector & /*solution_next_step*/,
@@ -7631,7 +7631,7 @@ int main(int argc, char* argv[])
     
     
     if (dim == 2 ){
-#if ENABLE_REPARTION==1
+#if ENABLE_REPARTITION==1
         const auto setting = DTria<2>::no_automatic_repartitioning;
 #else
         const auto setting = DTria<2>::default_setting;
@@ -7666,7 +7666,7 @@ int main(int argc, char* argv[])
         
     } else if (dim == 3) {
         
-#if ENABLE_REPARTION==1
+#if ENABLE_REPARTITION==1
         const auto setting = DTria<3>::no_automatic_repartitioning;
 #else
         const auto setting = DTria<3>::default_setting;
