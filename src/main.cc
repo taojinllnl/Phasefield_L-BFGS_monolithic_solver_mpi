@@ -7341,6 +7341,8 @@ bool PhaseFieldMonolithicSolve<LATraits, Tria>
 template <typename LATraits, typename Tria>
 void PhaseFieldMonolithicSolve<LATraits, Tria>::print_parameter_information()
 {
+    if constexpr (is_mpi)
+        m_logfile << "ENABLE_REPARTITION = " << supportRepartioning << std::endl;
     m_logfile << "Scenario number = " << m_parameters.m_scenario << std::endl;
     m_logfile << "Log file = " << m_parameters.m_logfile_name << std::endl;
     m_logfile << "Write iteration history to log file? = " << std::boolalpha
