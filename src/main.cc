@@ -3674,6 +3674,61 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_11()
                 if constexpr(is_mpi && supportRepartioning) m_triangulation.repartition();
             }
         }
+    } else if(m_parameters.m_refinement_strategy == "pre-refine") {
+        unsigned int material_id;
+        double length_scale;
+        bool initiation_point_refine_unfinished = true;
+        
+        const double halfWidth  = 0.5*width;
+        const double halfLength = 0.5*length;
+        const double halfHeight = 0.5*height;
+        
+        while (initiation_point_refine_unfinished)
+        {
+            initiation_point_refine_unfinished = false;
+            for (const auto &cell : m_triangulation.active_cell_iterators())
+            {
+                if constexpr (is_mpi) {
+                    if (!cell->is_locally_owned()) continue;
+                }
+                const double offset = cell->center()[0] - (cell->center()[1] - halfWidth)*tan_theta - halfLength;
+                if (  (( offset < 55.0 && offset > 0.0)
+                    && cell->center()[2] <= halfHeight && cell->center()[2] > 0 )
+                    || (( offset < 0.0 && offset > -25.0)
+                        && cell->center()[2] <= halfHeight && cell->center()[2] > 0 )
+                    || (  ( offset > -10.0 && offset < 0.0 )
+                        && cell->center()[1] <  10.0
+                        && cell->center()[2] >= halfHeight
+                        && cell->center()[2] < halfHeight + 6.0 )
+                    || (  ( offset < 10.0 && offset > 0.0 )
+                        && cell->center()[1] >  width-10.0
+                        && cell->center()[2] >= halfHeight
+                        && cell->center()[2] < halfHeight + 6.0 )
+                    )
+                {
+                    material_id = cell->material_id();
+                    length_scale = m_material_data[material_id][2];
+                    if (  std::cbrt(cell->measure())
+                        > length_scale * m_parameters.m_allowed_max_h_l_ratio )
+                    {
+                        cell->set_refine_flag();
+                        initiation_point_refine_unfinished = true;
+                    }
+                }
+            }
+            if constexpr (is_mpi) {
+                // accumulate local flag over all ranks
+                const unsigned int local_flag = initiation_point_refine_unfinished ? 1u : 0u;
+                const unsigned int global_flag =
+                Utilities::MPI::sum(local_flag, *m_mpiInfo.mpiCommPtr());
+                initiation_point_refine_unfinished = (global_flag > 0u);
+            }
+            if(initiation_point_refine_unfinished)
+            {
+                m_triangulation.execute_coarsening_and_refinement();
+                if constexpr(is_mpi && supportRepartioning) m_triangulation.repartition();
+            }
+        }
     }
     else
     {
