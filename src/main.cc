@@ -168,7 +168,8 @@ double degradation_function(const double d,
     if (   model_name == "AT2"
         || model_name == "AT1")
         value = (1.0 - d) * (1.0 - d);
-    else if (model_name == "PFCZM")
+    else if (model_name == "PFCZM"
+             || model_name == "AT1-Cohesive")
     {
         const double f1 = std::pow(std::fabs(1.0-d), p);
         const double f2 = f1 + a1*d + a1*a2*d*d + a1*a3*d*d*d;
@@ -193,7 +194,8 @@ double degradation_function_derivative(const double d,
     if (   model_name == "AT2"
         || model_name == "AT1")
         value = 2.0 * (d - 1.0);
-    else if (model_name == "PFCZM")
+    else if (model_name == "PFCZM"
+             || model_name == "AT1-Cohesive")
     {
         const short sign = (d > 1) ? -1 : 1;
         const double f1 = std::pow(std::fabs(1.0-d), p);
@@ -221,7 +223,8 @@ double degradation_function_2nd_order_derivative(const double d,
     if (   model_name == "AT2"
         || model_name == "AT1")
         value = 2.0;
-    else if (model_name == "PFCZM")
+    else if (model_name == "PFCZM"
+             || model_name == "AT1-Cohesive")
     {
         const short sign = (d > 1) ? -1 : 1;
         const double f1 = std::pow(std::fabs(1.0-d), p);
@@ -249,7 +252,8 @@ inline double phasefield_geometry_function(const double d,
     double value = 0.0;
     if (model_name == "AT2")
         value = d * d;
-    else if (model_name == "AT1")
+    else if (model_name == "AT1"
+             || model_name == "AT1-Cohesive")
         value = d;
     else if (model_name == "PFCZM")
         value = 2.0 * d - d * d;
@@ -266,7 +270,8 @@ inline double phasefield_geometry_function_derivative(const double d,
     double value = 0.0;
     if (model_name == "AT2")
         value = 2.0 * d;
-    else if (model_name == "AT1")
+    else if (model_name == "AT1"
+             || model_name == "AT1-Cohesive")
         value = 1.0;
     else if (model_name == "PFCZM")
         value = 2.0 * (1.0-d);
@@ -284,7 +289,8 @@ inline double phasefield_geometry_function_2nd_order_derivative(const double d,
     double value = 0.0;
     if (model_name == "AT2")
         value = 2.0;
-    else if (model_name == "AT1")
+    else if (model_name == "AT1"
+             || model_name == "AT1-Cohesive")
         value = 0.0;
     else if (model_name == "PFCZM")
         value = -2.0;
@@ -300,7 +306,8 @@ inline double phasefield_coefficient_constant(const std::string & model_name)
     double value = 0.0;
     if (model_name == "AT2")
         value = 2.0;
-    else if (model_name == "AT1")
+    else if (model_name == "AT1"
+             || model_name == "AT1-Cohesive")
         value = 8.0/3.0;
     else if (model_name == "PFCZM")
         value = 4.0 * std::atan(1);
