@@ -39,7 +39,7 @@
  * 8. Add the AT-1 cohesive phase-field model (April 8th, 2026)
  */
 
-# define ENABLE_REPARTITION 0
+# define ENABLE_REPARTITION 1
 
 #include <deal.II/grid/tria.h>
 #include <deal.II/grid/grid_generator.h>
