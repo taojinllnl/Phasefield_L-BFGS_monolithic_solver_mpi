@@ -1612,6 +1612,23 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::read_material_data(const std::st
                 }
                 m_logfile << std::endl;
             }
+            else  if(m_parameters.m_phasefield_name == "AT1-Cohesive")
+            {
+                m_logfile << "\n\t\tAT1-Cohesive degradation function type: ";
+                if(p == 1.0 && a2 == 0 && a3 == 0)
+                {
+                    m_logfile << "Quasi-linear degradation function." << std::endl;
+                }
+                else if(p == 2 && a2 >= 1 && a3 == 0)
+                {
+                    m_logfile << "Quasi-quadratic degradation function." << std::endl;
+                }
+                else
+                {
+                    m_logfile << "Customized degradation function." << std::endl;
+                }
+                m_logfile << std::endl;
+            }
             
             m_logfile << "\t\tp (the polynomial order of the term (1-d)^p\n"
                          "\t\t\tin the degradation function) = "
