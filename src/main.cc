@@ -1601,7 +1601,8 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::read_material_data(const std::st
                 {
                     m_logfile << "Exponential softening curve." << std::endl;
                 }
-                else if(p == 2.0 && a2 == -0.5 && a3 == 0)
+                else if(     p == 2.0    && a2 == 1.3868
+                        && (a3 == 0.9106 || a3 == 0.6566))
                 {
                     m_logfile << "Cornelissen softening curve." << std::endl;
                 }
