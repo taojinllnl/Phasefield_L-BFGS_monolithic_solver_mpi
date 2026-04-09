@@ -402,7 +402,7 @@ void Scenario::declare_parameters(ParameterHandler &prm)
         
         prm.declare_entry("Phase-field model type",
                           "AT2",
-                          Patterns::Selection("AT1|AT2|PFCZM"),
+                          Patterns::Selection("AT1|AT1-Cohesive|AT2|PFCZM"),
                           "Type of phase-field model");
         
         prm.declare_entry("Plane stress",
