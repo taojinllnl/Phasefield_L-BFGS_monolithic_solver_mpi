@@ -10,7 +10,7 @@ subsection Scenario
   
   
   # Configuration directory
-  set Config dir = ./Cases/3D_torsion/pre_refine/
+  set Config dir = ./Cases/3D_torsion/
   
   # Output directory
   set Output dir = ./output/Case_11/pre_refine/AT2/
@@ -82,7 +82,7 @@ subsection Scenario
   set Material regions = 1
   
   # Material data file name
-  set Material data file = ../settings/materialDataFile_AT2
+  set Material data file = settings/materialDataFile_AT2
   
   # Reaction forces face ID (negative number means not to find reaction force)
   set Reaction force face ID = 0
@@ -139,5 +139,5 @@ subsection Time
   set End time       = 8.0e-3
   
   # Time data groups
-  set Time data file = ../settings/timeDataFile_AT2
+  set Time data file = settings/timeDataFile_AT2
 end
