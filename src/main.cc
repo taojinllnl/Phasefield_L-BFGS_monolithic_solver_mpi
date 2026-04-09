@@ -1558,7 +1558,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::read_material_data(const std::st
             Assert( (poisson_ratio <= 0.5)&(poisson_ratio >=-1.0) , ExcInternalError());
             
             const double c_alpha = phasefield_coefficient_constant(m_parameters.m_phasefield_name);
-            const double E0 = lame_mu * (3*lame_lambda + 2*lame_mu) / (lame_lambda + lame_mu);
+            double E0 = lame_mu * (3*lame_lambda + 2*lame_mu) / (lame_lambda + lame_mu);
             
             m_logfile << "\tRegion " << material_region << " : " << std::endl;
             m_logfile << "\t\tLame lambda = " << lame_lambda << std::endl;
@@ -1570,20 +1570,35 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::read_material_data(const std::st
             m_logfile << "\t\tViscosity for regularization (eta) = "  << viscosity << std::endl;
             m_logfile << "\t\tResidual_k (k) = "  << residual_k << std::endl;
             m_logfile << "\t\tTensile strength (ft) = "  << tensile_strength << std::endl;
-            m_logfile << "\t\tp = "  << p << std::endl;
-            m_logfile << "\t\ta2 = "  << a2 << std::endl;
-            m_logfile << "\t\ta3 = "  << a3 << std::endl;
+            m_logfile << "\t\tp (the polynomial order of the term (1-d)^p\n"
+                         "\t\t\tin the degradation function) = "
+                  << p << std::endl;
+            m_logfile << "\t\ta2 (the coefficient of the a1*a2*d^2 term\n"
+                         "\t\t\tin the denominator of the degradation function) = "
+                  << a2 << std::endl;
+            m_logfile << "\t\ta3 (the coefficient of the a1*a3*d^3 term\n"
+                         "\t\t\tin the denominator of the degradation function) = "
+                  << a3 << std::endl;
+            
+            
+            // 2D plane stress case
+            if (    dim == 2
+                && m_parameters.m_plane_stress)
+            {
+                double my_lambda = 2 * lame_mu * lame_lambda / (lame_lambda + 2 * lame_mu);
+                E0 = lame_mu * (3*my_lambda + 2*lame_mu) / (my_lambda + lame_mu);
+            }
             
             if (m_parameters.m_phasefield_name == "AT2")
                 m_logfile << "\t\tFor AT-2 model, tensile-strength (ft), p, a2, and a3 are irrelevant."
                 << std::endl;
             
-            if (m_parameters.m_phasefield_name == "AT1")
+            else if (m_parameters.m_phasefield_name == "AT1")
             {
                 const double proper_l = gc * E0 / (c_alpha * tensile_strength * tensile_strength);
                 const double proper_ft = std::sqrt( gc * E0 / (c_alpha * length_scale) );
                 
-                m_logfile << "\t\tFor AT-1 model, the provided tensile strength (ft) = "
+                m_logfile << "\t\tFor AT-1 (Griffith) model, the provided tensile strength (ft) = "
                 << tensile_strength << std::endl;
                 m_logfile << "\t\tHowever, based on the formular ft = sqrt[gc*E0/(c_alpha*l)]," << std::endl;
                 m_logfile << "\t\tthe actual material tensile strength should be "
@@ -1592,11 +1607,50 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::read_material_data(const std::st
                 << std::endl;
                 m_logfile << "\t\tthe actual length-scale l should be "
                 << proper_l << std::endl;
-                m_logfile << "\t\tFor AT-1 model, p, a2, and a3 are irrelevant."
+                m_logfile << "\t\tFor AT-1 (Griffith) model, since the standard quadratic\n"
+                "\t\tdegradation funciton is used, p, a2, and a3 are irrelevant."
                 << std::endl;
             }
-            
-            if (m_parameters.m_phasefield_name == "PFCZM")
+            else if (m_parameters.m_phasefield_name == "AT1-Cohesive")
+            {
+                if ( std::fabs(p-1) < 1.0e-9 )
+                {
+                    m_logfile << "\t\tFor AT-1 (cohesive) model, quasi-linear degradation is adopted:\n"
+                    "\t\t\t g(d) = (1-d)/(1-d + a1*d)"
+                    << std::endl;
+                    AssertThrow((a2 == 0) && (a3 == 0),
+                                ExcMessage("For AT-1 quasi-linear cohesive model, "
+                                           "a2 = a3 = 0"));
+                    double upper_l = 3.0*gc*E0 / (4.0*tensile_strength*tensile_strength);
+                    m_logfile << "\t\tThe provided length-scale l (" << length_scale
+                    << ") should be smaller than the upper limit "
+                    << upper_l << std::endl;
+                    AssertThrow(length_scale < upper_l,
+                                ExcMessage("The provided length-scale is over the "
+                                           "upper limit!"));
+                }
+                else if ( std::fabs(p-2) < 1.0e-9 )
+                {
+                    m_logfile << "\t\tFor AT-1 (cohesive) model, quasi-quadratic degradation is adopted:\n"
+                    "\t\t\t g(d) = (1-d)^2/[(1-d)^2 + a1*d + a1*a2*d^2]"
+                    << std::endl;
+                    AssertThrow((a2 >= 1) && (a3 == 0),
+                                ExcMessage("For AT-1 quasi-quadratic cohesive model, "
+                                           "a2 >=1 and a3 = 0"));
+                    double upper_l = 3.0*gc*E0 / (4.0*(a2+2)*tensile_strength*tensile_strength);
+                    m_logfile << "\t\tThe provided length-scale l (" << length_scale
+                    << ") should be smaller than the upper limit "
+                    << upper_l << std::endl;
+                    AssertThrow(length_scale < upper_l,
+                                ExcMessage("The provided length-scale is over the "
+                                           "upper limit!"));
+                }
+                else
+                    AssertThrow(false,
+                                ExcMessage("For AT-1 cohesive model, "
+                                           "p = 1 (quasi-linear) or 2 (quasi-quadratic)"));
+            }
+            else if (m_parameters.m_phasefield_name == "PFCZM")
             {
                 double lch = gc * E0 / (tensile_strength*tensile_strength);
                 double coeff = 4.0 / (c_alpha * (a2 + p + 0.5));
@@ -1614,13 +1668,11 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::read_material_data(const std::st
                             ExcMessage("The provided length-scale is over the "
                                        "upper limit!"));
                 
-                m_logfile << "\t\tSuggested parameters:" << std::endl;
-                m_logfile << "\t\t\tLinear softening curve: "
-                << "p = 2.0, a2 = -0.5, a3 = 0;" << std::endl;
-                m_logfile << "\t\t\tExponential softening curve: "
-                << "p = 2.5, a2 = 0.1748, a3 = 0;" << std::endl;
-                m_logfile << "\t\t\tCornelissen softening curve: "
-                << "p = 2.0, a2 = 1.3868, a3 = 0.9106 or 0.6566;" << std::endl;
+            }
+            else
+            {
+                AssertThrow(false,
+                            ExcMessage("Chosen phase-field model not implemented!"));
             }
         }
         
