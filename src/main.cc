@@ -1068,10 +1068,27 @@ public:
                    const std::string & phasefield_name,
                    const bool plane_stress_flag)
     {
-        const double E0 = lame_mu * (3*lame_lambda + 2*lame_mu) / (lame_lambda + lame_mu);
+        double E0 = lame_mu * (3*lame_lambda + 2*lame_mu) / (lame_lambda + lame_mu);
         const double phasefield_geo_constant = phasefield_coefficient_constant(phasefield_name);
-        const double a1 = 4.0 / (phasefield_geo_constant * length_scale)
-        * gc * E0 / (tensile_strength * tensile_strength);
+        
+        
+        // 2D plane stress case
+        if (    dim == 2
+            && plane_stress_flag)
+        {
+            double my_lambda = 2 * lame_mu * lame_lambda / (lame_lambda + 2 * lame_mu);
+            E0 = lame_mu * (3*my_lambda + 2*lame_mu) / (my_lambda + lame_mu);
+        }
+        
+        double a1 = 0.0;
+        if (phasefield_name == "PFCZM")
+            a1 = 4.0 / (phasefield_geo_constant * length_scale)
+            * gc * E0 / (tensile_strength * tensile_strength);
+        else if (phasefield_name == "AT1-Cohesive")
+            a1 = 2.0 / (phasefield_geo_constant * length_scale)
+            * gc * E0 / (tensile_strength * tensile_strength);
+        else
+            a1 = 0.0;
         
         m_material =
         std::make_shared<LinearIsotropicElasticityAdditiveSplit<dim>>(lame_lambda,
@@ -1092,12 +1109,13 @@ public:
             m_history_max_positive_strain_energy = 0.0;
         else if (phasefield_name == "AT1")
             m_history_max_positive_strain_energy = gc/(2*length_scale*phasefield_geo_constant);
-        else if (phasefield_name == "PFCZM")
+        else if (phasefield_name == "PFCZM"
+                 || phasefield_name == "AT1-Cohesive")
             m_history_max_positive_strain_energy = tensile_strength
             * tensile_strength / (2 * E0);
         else
-            Assert(false,
-                   ExcMessage("The phase-field geometric function has not been implemented!"));
+            AssertThrow(false,
+                        ExcMessage("The phase-field geometric function has not been implemented!"));
         
         m_length_scale = length_scale;
         m_gc = gc;
