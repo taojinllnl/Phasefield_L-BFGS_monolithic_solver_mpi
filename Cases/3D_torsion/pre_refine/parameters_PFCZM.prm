@@ -72,7 +72,7 @@ subsection Scenario
   
   # Phasefield-based refinement threshold value 
   # (when nodal phasefield value is larger than threshold, elmt needs to be refined)
-  set Phasefield refine threshold = 0.8
+  set Phasefield refine threshold = 0.1
   
   # Allowed maximum ratio between mesh size h and phasefield length scale l
   # insdie the crack zone (nodal phasefield value larger than threshold)

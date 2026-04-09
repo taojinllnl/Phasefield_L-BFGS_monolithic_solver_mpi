@@ -77,7 +77,7 @@ subsection Scenario
   
   # Allowed maximum ratio between mesh size h and phasefield length scale l
   # insdie the crack zone (nodal phasefield value larger than threshold)
-  set Allowed max hl ratio = 0.2
+  set Allowed max hl ratio = 0.1
   
   # Total number of material regions
   set Material regions = 1
