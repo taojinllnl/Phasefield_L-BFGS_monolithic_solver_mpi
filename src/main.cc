@@ -7483,6 +7483,48 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::print_parameter_information()
     m_logfile << "Write iteration history to log file? = " << std::boolalpha
     << m_parameters.m_output_iteration_history << std::endl;
     m_logfile << "Phase-field model type = " << m_parameters.m_phasefield_name << std::endl;
+    
+    
+    if (m_parameters.m_phasefield_name == "AT2")
+    {
+        m_logfile << "\tPhase-field geometric function alpha(d) = d^2" << std::endl;
+        m_logfile << "\tPhase-field degradation function g(d) = (1-d)^2" << std::endl;
+    }
+    else if (m_parameters.m_phasefield_name == "AT1")
+    {
+        m_logfile << "\tPhase-field geometric function alpha(d) = d" << std::endl;
+        m_logfile << "\tPhase-field degradation function g(d) = (1-d)^2" << std::endl;
+    }
+    else if (m_parameters.m_phasefield_name == "AT1-Cohesive")
+    {
+        m_logfile << "\tPhase-field geometric function alpha(d) = d" << std::endl;
+        m_logfile << "\tPhase-field degradation function g(d) ="
+        " (1-d)^p / [(1-d)^p + a1*d + a1*a2*d^2 + a1*a3*d^3]" << std::endl;
+        m_logfile << "\t\tFor quasi-linear degradation function: p = 1, a2 = 0, a3 = 0;"
+        << std::endl;
+        m_logfile << "\t\tFor quasi-quadratic degradation function: p = 2, a2 >= 1, a3 = 0;"
+        << std::endl;
+    }
+    else if (m_parameters.m_phasefield_name == "PFCZM")
+    {
+        m_logfile << "\tPhase-field geometric function alpha(d) = 2*d -d^2" << std::endl;
+        m_logfile << "\tPhase-field degradation function g(d) ="
+        " (1-d)^p / [(1-d)^p + a1*d + a1*a2*d^2 + a1*a3*d^3]" << std::endl;
+        m_logfile << "\t\tSuggested parameters:" << std::endl;
+        m_logfile << "\t\t\tLinear softening curve: "
+        << "p = 2.0, a2 = -0.5, a3 = 0;" << std::endl;
+        m_logfile << "\t\t\tExponential softening curve: "
+        << "p = 2.5, a2 = 0.1748, a3 = 0;" << std::endl;
+        m_logfile << "\t\t\tCornelissen softening curve: "
+        << "p = 2.0, a2 = 1.3868, a3 = 0.9106 or 0.6566;" << std::endl;
+    }
+    else
+    {
+        AssertThrow(false,
+                    ExcMessage("Chosen phase-field model not implemented!"));
+    }
+    
+    
     if (dim == 2)
     {
         if (m_parameters.m_plane_stress)
