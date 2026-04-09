@@ -1588,6 +1588,29 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::read_material_data(const std::st
             m_logfile << "\t\tViscosity for regularization (eta) = "  << viscosity << std::endl;
             m_logfile << "\t\tResidual_k (k) = "  << residual_k << std::endl;
             m_logfile << "\t\tTensile strength (ft) = "  << tensile_strength << std::endl;
+            
+            
+            if(m_parameters.m_phasefield_name == "PFCZM")
+            {
+                m_logfile << "\t\tPFCZM curve type: " << std::endl;
+                if(p == 2.0 && a2 == -0.5 && a3 == 0)
+                {
+                    m_logfile << "Linear softening curve." << std::endl;
+                }
+                else if(p == 2.5 && a2 == 0.1748 && a3 == 0)
+                {
+                    m_logfile << "Exponential softening curve." << std::endl;
+                }
+                else if(p == 2.0 && a2 == -0.5 && a3 == 0)
+                {
+                    m_logfile << "Cornelissen softening curve." << std::endl;
+                }
+                else
+                {
+                    m_logfile << "Customized curve." << std::endl;
+                }
+            }
+            
             m_logfile << "\t\tp (the polynomial order of the term (1-d)^p\n"
                          "\t\t\tin the degradation function) = "
                   << p << std::endl;
