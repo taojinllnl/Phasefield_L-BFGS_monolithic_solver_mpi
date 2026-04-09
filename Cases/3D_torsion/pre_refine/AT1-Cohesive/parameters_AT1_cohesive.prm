@@ -10,10 +10,10 @@ subsection Scenario
   
   
   # Configuration directory
-  set Config dir = ./Cases/adaptive_refine/3D_torsion/AT2/
+  set Config dir = ./Cases/3D_torsion/pre_refine/AT1-Cohesive/
   
   # Output directory
-  set Output dir = ./output/Case_11/adaptive_refine/AT2/
+  set Output dir = ./output/Case_11/pre_refine/AT1-Cohesive/
   
 
   # Geometry, loading and boundary conditions scenario
@@ -35,8 +35,9 @@ subsection Scenario
   # Shall we write the iteration history to the log file? (yes or no)
   set Output iteration history = yes
   
+  
   # Phase-field model type (AT1, AT1-Cohesive, AT2 or PFCZM)
-  set Phase-field model type = AT2
+  set Phase-field model type = AT1-Cohesive
   
   # Nonlinear solver type (Newton or BFGS or LBFGS)
   set Nonlinear solver type = LBFGS
@@ -48,7 +49,7 @@ subsection Scenario
   set Linear solver type = CG
   
   # Mesh refinement strategy (pre-refine or adaptive-refine)
-  set Mesh refinement strategy = adaptive-refine
+  set Mesh refinement strategy = pre-refine
   
   # The threshold for repartitioning
   set Repartitioning ratio = 1.3
@@ -76,13 +77,13 @@ subsection Scenario
   
   # Allowed maximum ratio between mesh size h and phasefield length scale l
   # insdie the crack zone (nodal phasefield value larger than threshold)
-  set Allowed max hl ratio = 0.5
+  set Allowed max hl ratio = 0.2
   
   # Total number of material regions
   set Material regions = 1
   
   # Material data file name
-  set Material data file = ../../settings/materialDataFile_AT2
+  set Material data file = ../settings/materialDataFile_AT1_cohesive
   
   # Reaction forces face ID (negative number means not to find reaction force)
   set Reaction force face ID = 0
@@ -136,8 +137,8 @@ end
 
 subsection Time
   # End time
-  set End time       = 8.0e-3
+  set End time       = 7.0e-3
   
   # Time data groups
-  set Time data file = ../../settings/timeDataFile_AT2
+  set Time data file = ../settings/timeDataFile_AT1_cohesive
 end

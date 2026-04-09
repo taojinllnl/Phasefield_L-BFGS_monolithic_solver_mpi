@@ -72,7 +72,7 @@ subsection Scenario
   
   # Phasefield-based refinement threshold value 
   # (when nodal phasefield value is larger than threshold, elmt needs to be refined)
-  set Phasefield refine threshold = 0.8
+  set Phasefield refine threshold = 0.2
   
   # Allowed maximum ratio between mesh size h and phasefield length scale l
   # insdie the crack zone (nodal phasefield value larger than threshold)
@@ -82,7 +82,7 @@ subsection Scenario
   set Material regions = 1
   
   # Material data file name
-  set Material data file = ../../settings/materialDataFile_PFCZM
+  set Material data file = ../settings/materialDataFile_PFCZM
   
   # Reaction forces face ID (negative number means not to find reaction force)
   set Reaction force face ID = 0
@@ -136,8 +136,8 @@ end
 
 subsection Time
   # End time
-  set End time       = 7.0e-1
+  set End time       = 7.0e-3
   
   # Time data groups
-  set Time data file = ../../settings/timeDataFile_PFCZM
+  set Time data file = ../settings/timeDataFile_PFCZM
 end

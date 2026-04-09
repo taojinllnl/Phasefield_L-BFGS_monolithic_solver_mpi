@@ -10,10 +10,10 @@ subsection Scenario
   
   
   # Configuration directory
-  set Config dir = ./Cases/3D_torsion/pre_refine/AT1-Cohesive/
+  set Config dir = ./Cases/3D_torsion/pre_refine/AT1/
   
   # Output directory
-  set Output dir = ./output/Case_11/pre_refine/AT1-Cohesive/
+  set Output dir = ./output/Case_11/pre_refine/AT1/
   
 
   # Geometry, loading and boundary conditions scenario
@@ -37,7 +37,7 @@ subsection Scenario
   
   
   # Phase-field model type (AT1, AT1-Cohesive, AT2 or PFCZM)
-  set Phase-field model type = AT1-Cohesive
+  set Phase-field model type = AT1
   
   # Nonlinear solver type (Newton or BFGS or LBFGS)
   set Nonlinear solver type = LBFGS
@@ -83,7 +83,7 @@ subsection Scenario
   set Material regions = 1
   
   # Material data file name
-  set Material data file = ../../settings/materialDataFile_AT1_cohesive
+  set Material data file = ../settings/materialDataFile_AT1
   
   # Reaction forces face ID (negative number means not to find reaction force)
   set Reaction force face ID = 0
@@ -140,5 +140,5 @@ subsection Time
   set End time       = 7.0e-3
   
   # Time data groups
-  set Time data file = ../../settings/timeDataFile_AT1_cohesive
+  set Time data file = ../settings/timeDataFile_AT1
 end
