@@ -83,7 +83,7 @@ subsection Scenario
   set Material regions = 1
   
   # Material data file name
-  set Material data file = ../../materials/materialDataFile_AT1_cohesive
+  set Material data file = ../../settings/materialDataFile_AT1_cohesive
   
   # Reaction forces face ID (negative number means not to find reaction force)
   set Reaction force face ID = 0
@@ -140,5 +140,5 @@ subsection Time
   set End time       = 7.0e-3
   
   # Time data groups
-  set Time data file = ../../time/timeDataFile_AT1_cohesive
+  set Time data file = ../../settings/timeDataFile_AT1_cohesive
 end
