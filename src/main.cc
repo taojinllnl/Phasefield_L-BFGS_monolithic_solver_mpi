@@ -25,15 +25,18 @@
  */
 
 /* A monolithic scheme based on the L-BFGS method to solve the phase-field crack problem
- * 1. The phase-field formulation itself is based on "A phase field model for rate-independent
+ * 1. The phase-field AT-2 model is based on "A phase field model for rate-independent
  *    crack propagation - Robust algorithmic implementation based on operator splits"
  *    by Christian Miehe , Martina Hofacker, Fabian Welschinger
  * 2. This code implements a monolithic approach. The phase-field irreversibility
  *    is enforced through the history field Phi_0^+ and the viscosity parameter.
  * 3. Using TBB for stiffness assembly and Gauss point calculation.
  * 4. Using adaptive mesh refinement.
- * 5. Add the At-1 phase-field model (Feb. 1st, 2026)
+ * 5. Add the AT-1 phase-field model (Feb. 1st, 2026)
  * 6. Add the Phase-field cohesive zone model (PFCZM) (Feb. 7th 2026)
+ * 7. Add a flag to differentiate between plane stress and plane strain
+ *    case in 2D (Feb. 26th, 2026)
+ * 8. Add the AT-1 cohesive phase-field model (April 8th, 2026)
  */
 
 # define ENABLE_REPARTITION 0
