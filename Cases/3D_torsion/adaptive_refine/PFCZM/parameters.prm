@@ -82,7 +82,7 @@ subsection Scenario
   set Material regions = 1
   
   # Material data file name
-  set Material data file = ../../materialDataFile_PFCZM
+  set Material data file = ../../materials/materialDataFile_PFCZM
   
   # Reaction forces face ID (negative number means not to find reaction force)
   set Reaction force face ID = 0
@@ -139,5 +139,5 @@ subsection Time
   set End time       = 7.0e-1
   
   # Time data groups
-  set Time data file = ../../timeDataFile_PFCZM
+  set Time data file = ../../time/timeDataFile_PFCZM
 end
