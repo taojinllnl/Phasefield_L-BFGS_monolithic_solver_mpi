@@ -35,7 +35,7 @@ subsection Scenario
   set Output iteration history = yes
   
 
-  # Phase-field model type (AT1 or AT2 or PFCZM)
+  # Phase-field model type (AT1, AT1-Cohesive, AT2 or PFCZM)
   set Phase-field model type = PFCZM
   
   # Nonlinear solver type (Newton or BFGS or LBFGS)
