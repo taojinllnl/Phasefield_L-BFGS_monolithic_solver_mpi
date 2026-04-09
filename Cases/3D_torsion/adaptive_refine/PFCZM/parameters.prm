@@ -10,7 +10,7 @@ subsection Scenario
   
   
   # Configuration directory
-  set Config dir = ./Cases/adaptive_refine/3D_torsion/PFCZM/
+  set Config dir = ./Cases/3D_torsion/adaptive_refine/PFCZM/
   
   # Output directory
   set Output dir = ./output/Case_11/adaptive_refine/PFCZM/

@@ -10,7 +10,7 @@ subsection Scenario
   
   
   # Configuration directory
-  set Config dir = ./Cases/adaptive_refine/3D_torsion/AT1/
+  set Config dir = ./Cases/3D_torsion/adaptive_refine/AT1/
   
   # Output directory
   set Output dir = ./output/Case_11/adaptive_refine/AT1/
