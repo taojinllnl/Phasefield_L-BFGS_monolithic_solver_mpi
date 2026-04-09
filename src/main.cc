@@ -1592,7 +1592,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::read_material_data(const std::st
             
             if(m_parameters.m_phasefield_name == "PFCZM")
             {
-                m_logfile << "\t\tPFCZM curve type: " << std::endl;
+                m_logfile << "\n\t\tPFCZM softening curve type: ";
                 if(p == 2.0 && a2 == -0.5 && a3 == 0)
                 {
                     m_logfile << "Linear softening curve." << std::endl;
@@ -1608,8 +1608,9 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::read_material_data(const std::st
                 }
                 else
                 {
-                    m_logfile << "Customized curve." << std::endl;
+                    m_logfile << "Customized softening curve." << std::endl;
                 }
+                m_logfile << std::endl;
             }
             
             m_logfile << "\t\tp (the polynomial order of the term (1-d)^p\n"
