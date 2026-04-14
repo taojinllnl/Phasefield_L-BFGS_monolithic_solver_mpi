@@ -41,6 +41,23 @@ enum class SolverType
     Direct, CG
 };
 
+
+enum class PrecType
+{
+    None,
+    Jacobi,
+    BlockJacobi,
+    ILU,
+    ICC,
+    IC,
+    ILUT,
+    SOR,
+    SSOR,
+    Chebyshev,
+    ParaSails,
+};
+
+
 struct Tol
 {
     const unsigned int nIters;
@@ -60,7 +77,8 @@ public:
     using BVector   = ::common::BlockVectorWrapper<LATraits>;
     
 private:
-    const SolverType        __type;
+    const SolverType    __type;
+    const PrecType      __precType;
     
     
     const unsigned int      __u_group_ID;
@@ -78,16 +96,29 @@ private:
                    const BVector & LBFGS_q_vector,
                    const BSMatrix& tangentMatrix);
     
+    
+    
 public:
     
     virtual ~LASolver() = default;
     
+    static SolverType solverType(const std::string& typeName);
+    static PrecType   precType(const std::string& typeName);
     
-    LASolver(const SolverType&   type,
+    LASolver(const SolverType&          type,
+             const PrecType&            precType,
              const common::BlockDesc&    blockDesc,
              const common::MPIInfo&      mpiInfo,
-             const Tol tol_u = Tol(1e6, 1e-9),
-             const Tol tol_d = Tol(1e6, 1e-9));
+             const Tol tol_u = Tol(1e6, 1e-12),
+             const Tol tol_d = Tol(1e6, 1e-12));
+    
+    
+    LASolver(const std::string&         typeName,
+             const std::string&         precTypeName,
+             const common::BlockDesc&    blockDesc,
+             const common::MPIInfo&      mpiInfo,
+             const Tol tol_u = Tol(1e6, 1e-12),
+             const Tol tol_d = Tol(1e6, 1e-12));
     
     void solve(BVector & LBFGS_r_vector,
                const BVector & LBFGS_q_vector,
