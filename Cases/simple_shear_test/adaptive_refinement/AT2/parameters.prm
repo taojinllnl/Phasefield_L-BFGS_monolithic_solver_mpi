@@ -50,6 +50,12 @@ subsection Scenario
   # Line search strategy (GradientBased or StrongWolfe)
   set Line search type = GradientBased
 
+  # Preconditioner type for iterative linear solver:
+  # works for both Trilinos and PETSc: None|BlockJacobi|ILU|SOR|SSOR
+  # Only works for Trilinos: Chebyshev|IC|ILUT
+  # Only works for PETSc: ICC|ParaSails
+  set Preconditioner type for iterative linear solver = BlockJacobi
+
   # Linear solver type for B0 (Direct or CG)
   set Linear solver type = CG
   
