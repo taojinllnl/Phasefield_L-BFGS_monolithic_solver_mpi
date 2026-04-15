@@ -1,5 +1,5 @@
 //
-//  MPICGSolver.h
+//  MPIIterativeSolver.h
 //  main
 //
 //
@@ -13,22 +13,23 @@
 
 /**
  *
- * This class wraps a CG solver for MPI/distributed runs to enforce a global iteration budget.
+ * This class wraps an iterative solver for MPI/distributed runs to enforce a global iteration budget.
  * In some specific versions of dealii, the MPI-version CG solver ignores the upper limit for the number of iterations given by `dealii::SolverControl` and throws an exception at 10,000 iterations even if the residual is close to the prescribed tolerance.
  * That's not suitable for strongly coupled problems.
  * Therefore, this wrapper catches such exceptions and restarts the CG solve, so that the solve only fails (i.e., propagates a NoConvergence) when the global iteration limit is reached.
  *
  */
 
+namespace common{
 template <typename MatrixType, typename CGType>
-class MPICGSolver
+class MPIIterativeSolver
 : public dealii::Subscriptor
 {
 public:
     using SolverControl = dealii::SolverControl;
     
 private:
-
+    
     const float         __tol;
     const unsigned int  __maxStep;
     
@@ -49,8 +50,8 @@ private:
     //                       const unsigned int  maxRetryTimes,
     //                       SolverControl::NoConvergence noConv);
     
-//    void __noConvLog(const std::string& name,
-//                     const SolverControl& solverControl);
+    //    void __noConvLog(const std::string& name,
+    //                     const SolverControl& solverControl);
     
     template <typename VectorxType, typename PrecType>
     bool __solve(const MatrixType& A,
@@ -59,9 +60,9 @@ private:
                  const PrecType& preconditioner);
     
 public:
-    MPICGSolver(const float tol,
+    MPIIterativeSolver(const float tol,
                 const unsigned int maxStep);
-
+    
     
     template <typename VectorxType, typename PrecType>
     unsigned int solve(const MatrixType& A,
@@ -75,8 +76,8 @@ public:
 
 
 template <typename MatrixType, typename CGType>
-MPICGSolver<MatrixType, CGType>
-::MPICGSolver(const float tol,
+MPIIterativeSolver<MatrixType, CGType>
+::MPIIterativeSolver(const float tol,
               const unsigned int maxStep)
 : __tol(tol)
 , __maxStep(maxStep)
@@ -85,7 +86,7 @@ MPICGSolver<MatrixType, CGType>
 
 
 //template <typename MatrixType, typename CGType>
-//void MPICGSolver<MatrixType, CGType>
+//void MPIIterativeSolver<MatrixType, CGType>
 //::__noConvLog(const std::string& name,
 //              const SolverControl& solverControl
 ///*, const unsigned int  maxRetryTimes*/)
@@ -112,7 +113,7 @@ MPICGSolver<MatrixType, CGType>
 
 template <typename MatrixType, typename CGType>
 template <typename VectorxType, typename PrecType>
-bool MPICGSolver<MatrixType, CGType>
+bool MPIIterativeSolver<MatrixType, CGType>
 ::__solve(const MatrixType &A,
           VectorxType &x,
           const VectorxType &b,
@@ -132,7 +133,7 @@ bool MPICGSolver<MatrixType, CGType>
     } catch (SolverControl::NoConvergence& noConv) {
         // update the total iteration number
         __total_iters += noConv.last_step;
-//        __noConvLog(name, solverControl);
+        //        __noConvLog(name, solverControl);
         return false;
     }
     __total_iters += solverControl.last_step();
@@ -141,7 +142,7 @@ bool MPICGSolver<MatrixType, CGType>
 
 template <typename MatrixType, typename CGType>
 template <typename VectorxType, typename PrecType>
-unsigned int MPICGSolver<MatrixType, CGType>
+unsigned int MPIIterativeSolver<MatrixType, CGType>
 ::solve(const MatrixType& A,
         VectorxType& x,
         const VectorxType& b,
@@ -165,5 +166,6 @@ unsigned int MPICGSolver<MatrixType, CGType>
     AssertThrow(false, *__noConv);
 }
 
+}
 
 #endif /* MPICGSolver_h */
