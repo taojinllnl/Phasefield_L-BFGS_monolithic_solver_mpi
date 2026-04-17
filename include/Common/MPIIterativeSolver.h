@@ -10,6 +10,7 @@
 #include <deal.II/lac/generic_linear_algebra.h>
 #include <deal.II/base/mpi.h>
 
+#include "MPIInfo.h"
 
 /**
  *
@@ -29,7 +30,8 @@ public:
     using SolverControl = dealii::SolverControl;
     
 private:
-    
+    const common::MPIInfo&          __mpiInfo;
+    const std::string   __name;
     const float         __tol;
     const unsigned int  __maxStep;
     
@@ -50,8 +52,7 @@ private:
     //                       const unsigned int  maxRetryTimes,
     //                       SolverControl::NoConvergence noConv);
     
-    //    void __noConvLog(const std::string& name,
-    //                     const SolverControl& solverControl);
+    void __noConvLog(const SolverControl& solverControl);
     
     template <typename VectorxType, typename PrecType>
     bool __solve(const MatrixType& A,
@@ -60,7 +61,9 @@ private:
                  const PrecType& preconditioner);
     
 public:
-    MPIIterativeSolver(const float tol,
+    MPIIterativeSolver(const common::MPIInfo& mpiInfo,
+                       const std::string& name,
+                       const float tol,
                 const unsigned int maxStep);
     
     
@@ -77,36 +80,42 @@ public:
 
 template <typename MatrixType, typename CGType>
 MPIIterativeSolver<MatrixType, CGType>
-::MPIIterativeSolver(const float tol,
+::MPIIterativeSolver(const common::MPIInfo&          mpiInfo,
+                     const std::string& name,
+                     const float tol,
               const unsigned int maxStep)
-: __tol(tol)
+: __mpiInfo(mpiInfo)
+, __name(name)
+, __tol(tol)
 , __maxStep(maxStep)
 {}
 
 
 
-//template <typename MatrixType, typename CGType>
-//void MPIIterativeSolver<MatrixType, CGType>
-//::__noConvLog(const std::string& name,
-//              const SolverControl& solverControl
-///*, const unsigned int  maxRetryTimes*/)
-//{
-//    __failAt = solverControl.last_step();
-//    __maxRetryTimes = (unsigned int) __maxStep / __failAt;
-//    if(++__nth_try % 100 == 0)
-//    {
-//        std::cout << "NOT CONV [" << __nth_try  << " / " << __maxRetryTimes
-//        << " times] in solving for [ " << name << " ] at step "
-//        << solverControl.last_step() << " with residual "
-//        << solverControl.last_value() << " ( > "
-//        << solverControl.tolerance() << " [ required residual ] ) "
-//        << "\nMax step: " << solverControl.max_steps()
-//        << std::endl;
-//    }
-//
-//    __noConv = std::make_unique<SolverControl::NoConvergence>(solverControl.last_step(),
-//                                                              solverControl.last_value());
-//}
+template <typename MatrixType, typename CGType>
+void MPIIterativeSolver<MatrixType, CGType>
+::__noConvLog(const SolverControl& solverControl
+/*, const unsigned int  maxRetryTimes*/)
+{
+    __failAt = solverControl.last_step();
+    if (__failAt == 0)
+      __failAt = 1;
+    __maxRetryTimes = __maxStep / __failAt;
+    
+    if(__nth_try % 100 == 0 && __mpiInfo.isRankEqualsTo(0))
+    {
+        std::cout << "NOT CONV [" << __nth_try  << " / " << __maxRetryTimes
+        << " times] in solving for [ " << __name << " ] at step "
+        << solverControl.last_step() << " with residual "
+        << solverControl.last_value() << " ( > "
+        << solverControl.tolerance() << " [ required residual ] ) "
+        << "\nMax step: " << solverControl.max_steps()
+        << std::endl;
+    }
+
+    __noConv = std::make_unique<SolverControl::NoConvergence>(solverControl.last_step(),
+                                                              solverControl.last_value());
+}
 
 
 
@@ -133,7 +142,7 @@ bool MPIIterativeSolver<MatrixType, CGType>
     } catch (SolverControl::NoConvergence& noConv) {
         // update the total iteration number
         __total_iters += noConv.last_step;
-        //        __noConvLog(name, solverControl);
+        __noConvLog(solverControl);
         return false;
     }
     __total_iters += solverControl.last_step();
@@ -148,6 +157,10 @@ unsigned int MPIIterativeSolver<MatrixType, CGType>
         const VectorxType& b,
         const PrecType& preconditioner)
 {
+    __total_iters = 0;
+    __nth_try = 0;
+    __noConv.reset();
+    
     // zero out the unknown vector
     x = 0.;
     
