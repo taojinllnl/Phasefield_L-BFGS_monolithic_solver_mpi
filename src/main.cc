@@ -424,13 +424,13 @@ void Scenario::declare_parameters(ParameterHandler &prm)
         
         prm.declare_entry("Linear solver type",
                           "Direct",
-                          Patterns::Selection("Direct|CG"),
+                          Patterns::Selection("Direct|CG|GMRes|Bicgstab"),
                           "Type of solver used to solve the linear system B0");
         
         prm.declare_entry("Preconditioner type for iterative linear solver",
                           "None",
-                          Patterns::Selection("None|BlockJacobi|ILU|SOR|SSOR|Chebyshev|IC|ILUT|ICC|ParaSails"),
-                          "Preconditioner type for iterative linear solver: works for both Trilinos and PETSc: None|BlockJacobi|ILU|SOR|SSOR\nOnly works for Trilinos: Chebyshev|IC|ILUT\nOnly works for PETSc: ICC|ParaSails");
+                          Patterns::Selection("None|Jacobi|ILU|SOR|SSOR|Chebyshev|IC|ILUT|ICC|ParaSails|Shell|AMG"),
+                          "Preconditioner type for iterative linear solver: works for both Trilinos and PETSc: None|Jacobi|ILU|SOR|SSOR|AMG\nOnly works for Trilinos: Chebyshev|IC|ILUT\nOnly works for PETSc: ICC|ParaSails|Shell");
         
         prm.declare_entry("Mesh refinement strategy",
                           "adaptive-refine",
@@ -742,6 +742,7 @@ public TimeInfo
     std::string histDir;
     std::string oriDir;
     std::string resultsDir;
+    std::string laSolverType;
 };
 
 AllParameters::AllParameters(const std::string &input_file)
