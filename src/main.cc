@@ -1394,6 +1394,7 @@ private:
     void make_grid_case_9();
     void make_grid_case_11();
     void make_grid_case_12();
+    void make_grid_case_13();
     
     void setup_system();
     
@@ -2513,6 +2514,33 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::set_bcs_id()
             }
         }
     }
+    else if (m_parameters.m_scenario == 13)
+    {
+        double const H = 1.0;
+        
+        for(const auto& face : m_triangulation.active_face_iterators())
+        {
+            if (face->at_boundary())
+            {
+                if constexpr (dim == 3) {
+                    const double z = face->center()[2];
+                    
+                    // bottom sureface
+                    if ( (std::fabs(z) < 1.0e-9) )
+                        face->set_boundary_id(900);
+                    // top surface
+                    else if ( (std::fabs(z - H) < 1.0e-9) )
+                        face->set_boundary_id(999);
+                    // other surfaces
+                    else
+                        face->set_boundary_id(4);
+                } else {
+                    AssertThrow(false,
+                                ExcMessage("Dimension Error: it should be 3!"));
+                }
+            }
+        }
+    }
     else
         Assert(false, ExcMessage("The scenario has not been implemented!"));
 }
@@ -2544,6 +2572,8 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid()
         make_grid_case_11();
     else if (m_parameters.m_scenario == 12)
         make_grid_case_12();
+    else if (m_parameters.m_scenario == 13)
+        make_grid_case_13();
     else
     {
         Assert(false, ExcMessage("The scenario has not been implemented!"));
@@ -3929,6 +3959,123 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_12()
 }
 
 template <typename LATraits, typename Tria>
+void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_13()
+{
+    for (unsigned int i = 0; i < 80; ++i)
+        m_logfile << "*";
+    m_logfile << std::endl;
+    m_logfile << "\t\t\t3D tensile test with 2 preexisting cracks (structured)" << std::endl;
+    for (unsigned int i = 0; i < 80; ++i)
+        m_logfile << "*";
+    m_logfile << std::endl;
+    
+    AssertThrow(dim==3, ExcMessage("The dimension has to be 2D!"));
+    
+    GridIn<dim> gridin;
+    gridin.attach_triangulation(m_triangulation);
+    std::ifstream f(m_parameters.m_mesh_file_name);
+    gridin.read_msh(f);
+    
+    for (const auto &cell : m_triangulation.cell_iterators())
+    {
+        cell->set_material_id(0);
+    }
+    
+    m_triangulation.refine_global(m_parameters.m_global_refine_times);
+    
+    const double bw_z  = 0.030;
+    const double bw_xy = 0.025;
+    
+    // global dimensions
+    const double L  = 1.0;   // total length  (x direction)
+    const double W  = 1.0;   // total width   (y direction)
+    
+    // crack-plan sizes in top view
+    const double L1 = 0.3;    // x-size of C1 patch from left boundary
+    const double L2 = 0.3;    // x-size of C2 patch from right boundary
+    const double W1 = 0.3;    // y-size of C1 patch from top boundary
+    const double W2 = 0.3;    // y-size of C2 patch from bottom boundary
+
+    // crack heights in front view
+    const double H1 = 0.55;    // height of C1 crack
+    const double H2 = 0.45;    // height of C2 crack
+
+    
+    
+    // x partition: [0, L1] [middle] [L-L2, L]
+    const double x1 = L1;
+    const double x2 = L - L2;
+
+    // y partition: [0, W2] [middle] [W-W1, W]
+    const double y1 = W2;
+    const double y2 = W - W1;
+
+    // z partition: [0, H2] [H2, H1] [H1, H]
+    const double z1 = H2;
+    const double z2 = H1;
+    
+    if (m_parameters.m_refinement_strategy == "adaptive-refine")
+    {
+        unsigned int material_id;
+        double length_scale;
+        bool initiation_point_refine_unfinished = true;
+        while (initiation_point_refine_unfinished)
+        {
+            initiation_point_refine_unfinished = false;
+            for (const auto &cell : m_triangulation.active_cell_iterators())
+            {
+                if constexpr (is_mpi) {
+                    if (!cell->is_locally_owned()) continue;
+                }
+                if constexpr (dim == 3) {
+                    const double x = cell->center()[0];
+                    const double y = cell->center()[1];
+                    const double z = cell->center()[2];
+                    
+                    if (    (std::fabs(z - z1) < bw_z
+                             &&(   ((std::fabs(x - x2) < bw_xy) && (y  < y1))
+                                || ((std::fabs(y - y1) < bw_xy) && (x  > x2)) ))
+                        || (std::fabs(z - z2) < bw_z
+                            &&(   ((std::fabs(x - x1) < bw_xy) && (y  > y2))
+                               || ((std::fabs(y - y2) < bw_xy) && (x  < x1))  ))
+                        )
+                    {
+                        material_id = cell->material_id();
+                        length_scale = m_material_data[material_id][2];
+                        if (  std::sqrt(cell->measure())
+                            > length_scale * m_parameters.m_allowed_max_h_l_ratio )
+                        {
+                            cell->set_refine_flag();
+                            initiation_point_refine_unfinished = true;
+                        }
+                    }
+                } else {
+                    AssertThrow(false,
+                                ExcMessage("Dimension Error: it should be 3!"));
+                }
+            }
+            if constexpr (is_mpi) {
+                // accumulate local flag over all ranks
+                const unsigned int local_flag = initiation_point_refine_unfinished ? 1u : 0u;
+                const unsigned int global_flag =
+                Utilities::MPI::sum(local_flag, *m_mpiInfo.mpiCommPtr());
+                initiation_point_refine_unfinished = (global_flag > 0u);
+            }
+            if(initiation_point_refine_unfinished){
+                m_triangulation.execute_coarsening_and_refinement();
+                if constexpr(is_mpi && supportRepartioning) m_triangulation.repartition();
+            }
+        }
+    }
+    else
+    {
+        AssertThrow(false,
+                    ExcMessage("Selected mesh refinement strategy not implemented!"));
+    }
+}
+
+
+template <typename LATraits, typename Tria>
 void PhaseFieldMonolithicSolve<LATraits, Tria>::setup_system()
 {
     const std::string sectionName = "Setup system";
@@ -4483,6 +4630,30 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
                                                      Functions::ZeroFunction<dim>(m_n_components),
                                                      m_constraints,
                                                      m_fe.component_mask(y_displacement));
+        } 
+        else if (m_parameters.m_scenario == 13)
+        {
+            // Dirichlet B.C. bottom surface (z = 0)
+            const int boundary_id_btm_surface = 900;
+            VectorTools::interpolate_boundary_values(m_dof_handler,
+                                                     boundary_id_btm_surface,
+                                                     Functions::ZeroFunction<dim>(m_n_components),
+                                                     m_constraints,
+                                                     m_fe.component_mask(displacements));
+            
+            
+            
+            const double time_inc = m_time.get_delta_t();
+            double disp_magnitude = m_time.get_magnitude();
+            const double displacement = disp_magnitude*time_inc;
+            const auto du = Functions::ConstantFunction<dim>(displacement,
+                                                             m_n_components);
+            const int boundary_id_top_surfaces = 999;
+            VectorTools::interpolate_boundary_values(m_dof_handler,
+                                                     boundary_id_top_surfaces,
+                                                     du,
+                                                     m_constraints,
+                                                     m_fe.component_mask(z_displacement));
         }
         else
             Assert(false, ExcMessage("The scenario has not been implemented!"));
