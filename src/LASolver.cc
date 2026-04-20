@@ -9,8 +9,8 @@
 
 using namespace ::dealii;
 
-using namespace PhaseField;
-using namespace common;
+using namespace ::PhaseField;
+using namespace ::common;
 
 
 
@@ -34,6 +34,10 @@ LASolver<LATraits>
         return SolverType::Direct;
     else if (typeName == "CG")
         return SolverType::CG;
+    else if (typeName == "GMRes")
+        return SolverType::GMRes;
+    else if (typeName == "Bicgstab")
+        return SolverType::Bicgstab;
     
     AssertThrow(false, ExcMessage("Unknown LA solver type: " + typeName));
 }
@@ -42,17 +46,19 @@ template <typename LATraits>
 PrecType
 LASolver<LATraits>::precType(const std::string &typeName)
 {
-    if (typeName == "BlockJacobi")
-        return PrecType::BlockJacobi;
+    if (typeName == "Jacobi")
+        return PrecType::Jacobi;
     else if (typeName == "ILU")
         return PrecType::ILU;
+    else if (typeName == "AMG")
+        return PrecType::AMG;
     else if (typeName == "SOR")
         return PrecType::SOR;
     else if (typeName == "SSOR")
         return PrecType::SSOR;
     else if (typeName == "Chebyshev") // only for Trilinos
         return PrecType::Chebyshev;
-    else if (typeName == "IC") // only for Trilinos
+    else if (typeName == "IC")      // only for Trilinos
         return PrecType::IC;
     else if (typeName == "ILUT")  // only for Trilinos
         return PrecType::ILUT;
@@ -60,6 +66,8 @@ LASolver<LATraits>::precType(const std::string &typeName)
         return PrecType::ICC;
     else if (typeName == "ParaSails") // only for PETSc
         return PrecType::ParaSails;
+    else if (typeName == "Shell") // only for PETSc
+        return PrecType::Shell;
     else if (typeName == "None")
         return PrecType::None;
     
@@ -111,8 +119,30 @@ LASolver<LATraits>::solve(BVector & LBFGS_r_vector,
     LBFGS_r_vector.initialize();
     if (__type == SolverType::Direct) {
         __directSolve(LBFGS_r_vector, LBFGS_q_vector, tangent_matrix);
-    } else {
-        __cgSolve(LBFGS_r_vector, LBFGS_q_vector, tangent_matrix);
+    } else if (__type == SolverType::CG){
+        //        __cgSolve(LBFGS_r_vector, LBFGS_q_vector, tangent_matrix);
+        using SSolver = SolverCG<Vector<double>>;
+        using PSolver = PETScWrappers::SolverCG;
+        using TSolver = TrilinosWrappers::SolverCG;
+        __iterativeSolve<SSolver, PSolver, TSolver>(LBFGS_r_vector,
+                                                    LBFGS_q_vector,
+                                                    tangent_matrix);
+    } else if (__type == SolverType::GMRes){
+        //        __gmResSolve(LBFGS_r_vector, LBFGS_q_vector, tangent_matrix);
+        using SSolver = SolverGMRES<Vector<double>>;
+        using PSolver = PETScWrappers::SolverGMRES;
+        using TSolver = TrilinosWrappers::SolverGMRES;
+        __iterativeSolve<SSolver, PSolver, TSolver>(LBFGS_r_vector,
+                                                    LBFGS_q_vector,
+                                                    tangent_matrix);
+    } else if (__type == SolverType::Bicgstab){
+        //        __gmResSolve(LBFGS_r_vector, LBFGS_q_vector, tangent_matrix);
+        using SSolver = SolverBicgstab<Vector<double>>;
+        using PSolver = PETScWrappers::SolverBicgstab;
+        using TSolver = TrilinosWrappers::SolverBicgstab;
+        __iterativeSolve<SSolver, PSolver, TSolver>(LBFGS_r_vector,
+                                                    LBFGS_q_vector,
+                                                    tangent_matrix);
     }
 }
 
@@ -137,7 +167,7 @@ LASolver<LATraits>::__directSolve(BVector & LBFGS_r_vector,
         // https://dealii.org/current/doxygen/deal.II/classPETScWrappers_1_1SparseDirectMUMPS.html
         
 #ifdef HAVE_PETSC
-        using PrecJacobi = PETScWrappers::PreconditionBlockJacobi;
+        using PrecJacobi = PETScWrappers::PreconditionJacobi;
         using PrecILU    = PETScWrappers::PreconditionILU;
         using PrecICC    = PETScWrappers::PreconditionICC;
         using PrecPSails = PETScWrappers::PreconditionParaSails;
@@ -187,227 +217,7 @@ LASolver<LATraits>::__directSolve(BVector & LBFGS_r_vector,
 #endif
 }
 
-template <typename LATraits>
-void
-LASolver<LATraits>::__cgSolve(BVector & LBFGS_r_vector,
-                              const BVector & LBFGS_q_vector,
-                              const BSMatrix& tangent_matrix)
-{
-    using namespace dealii;
-    if constexpr (std::is_same_v<typename LATraits::TMTag, ::common::TagSerial>) {
-        for (unsigned int ithGroup = 0; ithGroup < __blockDesc.nBlocks(); ++ithGroup)
-        {
-            SolverControl            solver_control(__tolList[ithGroup].nIters,
-                                                    __tolList[ithGroup].tol);
-            SolverCG<Vector<double>> cg(solver_control);
-            
-            PreconditionJacobi<SparseMatrix<double>> preconditioner;
-            preconditioner.initialize(tangent_matrix.block(ithGroup, ithGroup),
-                                      1.0);
-            
-            cg.solve(tangent_matrix.block(ithGroup, ithGroup),
-                     LBFGS_r_vector.block(ithGroup),
-                     LBFGS_q_vector.block(ithGroup),
-                     preconditioner);
-        }
-        
-    } else if constexpr (std::is_same_v<typename LATraits::TMTag, ::common::TagPETSc>) {
-#ifdef HAVE_PETSC
-        using PrecJacobi = PETScWrappers::PreconditionBlockJacobi;
-        using PrecILU    = PETScWrappers::PreconditionILU;
-        using PrecICC    = PETScWrappers::PreconditionICC;
-        using PrecPSails = PETScWrappers::PreconditionParaSails;
-        using PrecSOR    = PETScWrappers::PreconditionSOR;
-        using PrecSSOR   = PETScWrappers::PreconditionSSOR;
-        //        using PrecShell  = PETScWrappers::PreconditionShell;
-        using PrecNone   = PETScWrappers::PreconditionNone;
-        
-        using MatBlock   = typename LATraits::MatrixBlock;
-        
-        
-        
-        using PrecType = PrecNone;
-        using CGSolver = MPICGSolver<MatBlock, PETScWrappers::SolverCG>;
-        
-        for (unsigned int ithGroup = 0; ithGroup < __blockDesc.nBlocks(); ++ithGroup)
-        {
-            CGSolver cg(__tolList[ithGroup].tol,
-                        __tolList[ithGroup].nIters);
-            
-            const auto &A = tangent_matrix.block(ithGroup, ithGroup);
-            auto       &x = LBFGS_r_vector.block(ithGroup);
-            const auto &b = LBFGS_q_vector.block(ithGroup);
-            
-            switch (__precType)
-            {
-                case PhaseField::PrecType::BlockJacobi:
-                {
-                    PETScWrappers::PreconditionBlockJacobi prec;
-                    prec.initialize(A);
-                    cg.solve(A, x, b, prec);
-                    break;
-                }
-                    
-                case PhaseField::PrecType::ILU:
-                {
-                    PETScWrappers::PreconditionILU prec;
-                    prec.initialize(A);
-                    cg.solve(A, x, b, prec);
-                    break;
-                }
-                    
-                case PhaseField::PrecType::ICC:
-                {
-                    PETScWrappers::PreconditionICC prec;
-                    prec.initialize(A);
-                    cg.solve(A, x, b, prec);
-                    break;
-                }
-                    
-                case PhaseField::PrecType::ParaSails:
-                {
-                    PETScWrappers::PreconditionParaSails prec;
-                    prec.initialize(A);
-                    cg.solve(A, x, b, prec);
-                    break;
-                }
-                    
-                case PhaseField::PrecType::SOR:
-                {
-                    PETScWrappers::PreconditionSOR prec;
-                    prec.initialize(A);
-                    cg.solve(A, x, b, prec);
-                    break;
-                }
-                    
-                case PhaseField::PrecType::SSOR:
-                {
-                    PETScWrappers::PreconditionSSOR prec;
-                    prec.initialize(A);
-                    cg.solve(A, x, b, prec);
-                    break;
-                }
-                    
-                case PhaseField::PrecType::None:
-                {
-                    PETScWrappers::PreconditionNone prec;
-                    prec.initialize(A);
-                    cg.solve(A, x, b, prec);
-                    break;
-                }
-                    
-                default:
-                    AssertThrow(false, ExcMessage("Unsupported PETSc preconditioner"));
-            }
-        }
-#endif
-        
-    } else if constexpr (std::is_same_v<typename LATraits::TMTag, ::common::TagTrilinos>) {
-        
-#ifdef HAVE_TRILINOS
-        using PrecJacobi = TrilinosWrappers::PreconditionBlockJacobi;
-        using PrecILU    = TrilinosWrappers::PreconditionILU;
-        using PrecIC     = TrilinosWrappers::PreconditionIC;
-        using PrecILUT   = TrilinosWrappers::PreconditionILUT;
-        using PrecSOR    = TrilinosWrappers::PreconditionSOR;
-        using PrecSSOR   = TrilinosWrappers::PreconditionSSOR;
-        using PrecShebs  = TrilinosWrappers::PreconditionChebyshev;
-        using PrecI      = TrilinosWrappers::PreconditionIdentity;
-        
-        using MatBlock   = typename LATraits::MatrixBlock;
-        
-        
-        using PrecType   = PrecILUT;
-        using CGSolver   = MPICGSolver<MatBlock, TrilinosWrappers::SolverCG>;
-        
-        for (unsigned int ithGroup = 0; ithGroup < __blockDesc.nBlocks(); ++ithGroup)
-        {
-            
-            CGSolver cg(__tolList[ithGroup].tol,
-                        __tolList[ithGroup].nIters);
-            
-            const auto &A = tangent_matrix.block(ithGroup, ithGroup);
-            auto       &x = LBFGS_r_vector.block(ithGroup);
-            const auto &b = LBFGS_q_vector.block(ithGroup);
-            
-            switch (__precType)
-            {
-                    
-                case PhaseField::PrecType::BlockJacobi:
-                {
-                    TrilinosWrappers::PreconditionBlockJacobi prec;
-                    prec.initialize(A);
-                    cg.solve(A, x, b, prec);
-                    break;
-                }
-                    
-                case PhaseField::PrecType::ILU:
-                {
-                    TrilinosWrappers::PreconditionILU prec;
-                    prec.initialize(A);
-                    cg.solve(A, x, b, prec);
-                    break;
-                }
-                    
-                    
-                case PhaseField::PrecType::IC:
-                {
-                    TrilinosWrappers::PreconditionIC prec;
-                    prec.initialize(A);
-                    cg.solve(A, x, b, prec);
-                    break;
-                }
-                    
-                case PhaseField::PrecType::ILUT:
-                {
-                    TrilinosWrappers::PreconditionILUT prec;
-                    prec.initialize(A);
-                    cg.solve(A, x, b, prec);
-                    break;
-                }
 
-                    
-                case PhaseField::PrecType::SOR:
-                {
-                    TrilinosWrappers::PreconditionSOR prec;
-                    prec.initialize(A);
-                    cg.solve(A, x, b, prec);
-                    break;
-                }
-                    
-                case PhaseField::PrecType::SSOR:
-                {
-                    TrilinosWrappers::PreconditionSSOR prec;
-                    prec.initialize(A);
-                    cg.solve(A, x, b, prec);
-                    break;
-                }
-                    
-                case PhaseField::PrecType::Chebyshev:
-                {
-                    TrilinosWrappers::PreconditionChebyshev prec;
-                    prec.initialize(A);
-                    cg.solve(A, x, b, prec);
-                    break;
-                }
-                    
-                    
-                case PhaseField::PrecType::None:
-                {
-                    TrilinosWrappers::PreconditionIdentity prec;
-                    prec.initialize(A);
-                    cg.solve(A, x, b, prec);
-                    break;
-                }
-                 
-                
-                default:
-                    AssertThrow(false, ExcMessage("Unsupported Trilinos preconditioner"));
-            }
-        }
-    }
-#endif
-}
 
 
 

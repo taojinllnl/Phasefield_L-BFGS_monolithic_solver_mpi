@@ -7,8 +7,15 @@
 #ifndef LASolver_hpp
 #define LASolver_hpp
 
+#include <memory>
+
 #include <variant>
 #include <array>
+
+#include <deal.II/lac/solver_gmres.h>
+#include <deal.II/lac/solver_bicgstab.h>
+
+
 
 #include <deal.II/lac/sparse_direct.h>
 #include <deal.II/lac/precondition.h>
@@ -21,7 +28,7 @@
 #include "Common/BlockDesc.h"
 #include "Common/MPIInfo.h"
 
-#include "MPICGSolver.h"
+#include "Common/MPIIterativeSolver.h"
 
 namespace PhaseField {
 
@@ -38,7 +45,7 @@ namespace PhaseField {
 
 enum class SolverType
 {
-    Direct, CG
+    Direct, CG, GMRes, Bicgstab
 };
 
 
@@ -46,7 +53,7 @@ enum class PrecType
 {
     None,
     Jacobi,
-    BlockJacobi,
+    AMG,
     ILU,
     ICC,
     IC,
@@ -55,6 +62,7 @@ enum class PrecType
     SSOR,
     Chebyshev,
     ParaSails,
+    Shell,
 };
 
 
@@ -77,6 +85,7 @@ public:
     using BVector   = ::common::BlockVectorWrapper<LATraits>;
     
 private:
+    const std::array<std::string, 2> __names = {{"u", "d"}};
     const SolverType    __type;
     const PrecType      __precType;
     
@@ -92,12 +101,11 @@ private:
     void __directSolve(BVector & LBFGS_r_vector,
                        const BVector & LBFGS_q_vector,
                        const BSMatrix& tangentMatrix);
-    void __cgSolve(BVector & LBFGS_r_vector,
-                   const BVector & LBFGS_q_vector,
-                   const BSMatrix& tangentMatrix);
     
-    
-    
+    template<typename SSolver, typename PSolver, typename TSolver>
+    void __iterativeSolve(BVector & LBFGS_r_vector,
+                          const BVector & LBFGS_q_vector,
+                          const BSMatrix& tangentMatrix);
 public:
     
     virtual ~LASolver() = default;
@@ -127,6 +135,236 @@ public:
 };
 
 
+
+template <typename LATraits>
+template<typename SSolver, typename PSolver, typename TSolver>
+void
+LASolver<LATraits>
+::__iterativeSolve(BVector & LBFGS_r_vector,
+                   const BVector & LBFGS_q_vector,
+                   const BSMatrix& tangent_matrix)
+{
+    using namespace ::dealii;
+    using namespace ::common;
+    if constexpr (std::is_same_v<typename LATraits::TMTag, TagSerial>) {
+        for (unsigned int ithGroup = 0; ithGroup < __blockDesc.nBlocks(); ++ithGroup)
+        {
+            SolverControl            solver_control(__tolList[ithGroup].nIters,
+                                                    __tolList[ithGroup].tol);
+            SSolver laSolver(solver_control);
+            
+            PreconditionJacobi<SparseMatrix<double>> preconditioner;
+            preconditioner.initialize(tangent_matrix.block(ithGroup,
+                                                           ithGroup),
+                                      1.0);
+            
+            laSolver.solve(tangent_matrix.block(ithGroup, ithGroup),
+                           LBFGS_r_vector.block(ithGroup),
+                           LBFGS_q_vector.block(ithGroup),
+                           preconditioner);
+        }
+        
+        
+    } else if constexpr (std::is_same_v<typename LATraits::TMTag, TagPETSc>) {
+#ifdef HAVE_PETSC
+        using MatBlock   = typename LATraits::MatrixBlock;
+        using LASolver = MPIIterativeSolver<MatBlock, PSolver>;
+        
+        
+        for (unsigned int ithGroup = 0; ithGroup < __blockDesc.nBlocks(); ++ithGroup)
+        {
+            LASolver laSolver(__mpiInfo,
+                              __names[ithGroup],
+                              __tolList[ithGroup].tol,
+                              __tolList[ithGroup].nIters);
+            
+            const auto &A = tangent_matrix.block(ithGroup, ithGroup);
+            auto       &x = LBFGS_r_vector.block(ithGroup);
+            const auto &b = LBFGS_q_vector.block(ithGroup);
+            
+            switch (__precType)
+            {
+                case PhaseField::PrecType::Jacobi:
+                {
+                    typename LATraits::PrecJacobi prec;
+                    prec.initialize(A);
+                    laSolver.solve(A, x, b, prec);
+                    break;
+                }
+                    
+                case PhaseField::PrecType::AMG:
+                {
+                    typename LATraits::PrecAMG prec;
+                    prec.initialize(A);
+                    laSolver.solve(A, x, b, prec);
+                    break;
+                }
+                    
+                case PhaseField::PrecType::ILU:
+                {
+                    typename LATraits::PrecILU prec;
+                    prec.initialize(A);
+                    laSolver.solve(A, x, b, prec);
+                    break;
+                }
+                    
+                case PhaseField::PrecType::ICC:
+                {
+                    typename LATraits::PrecICC prec;
+                    prec.initialize(A);
+                    laSolver.solve(A, x, b, prec);
+                    break;
+                }
+                    
+                case PhaseField::PrecType::ParaSails:
+                {
+                    typename LATraits::PrecPSails prec;
+                    prec.initialize(A);
+                    laSolver.solve(A, x, b, prec);
+                    break;
+                }
+                    
+                case PhaseField::PrecType::SOR:
+                {
+                    typename LATraits::PrecSOR prec;
+                    prec.initialize(A);
+                    laSolver.solve(A, x, b, prec);
+                    break;
+                }
+                    
+                case PhaseField::PrecType::SSOR:
+                {
+                    typename LATraits::PrecSSOR prec;
+                    prec.initialize(A);
+                    laSolver.solve(A, x, b, prec);
+                    break;
+                }
+                    
+                case PhaseField::PrecType::Shell:
+                {
+                    typename LATraits::PrecShell prec(A);
+                    laSolver.solve(A, x, b, prec);
+                    break;
+                }
+                    
+                case PhaseField::PrecType::None:
+                {
+                    typename LATraits::PrecNone prec;
+                    prec.initialize(A);
+                    laSolver.solve(A, x, b, prec);
+                    break;
+                }
+                    
+                default:
+                    AssertThrow(false, ExcMessage("Unsupported PETSc preconditioner"));
+            }
+        }
+#endif
+        
+        
+    } else if constexpr (std::is_same_v<typename LATraits::TMTag, TagTrilinos>) {
+#ifdef HAVE_TRILINOS
+        using MatBlock   = typename LATraits::MatrixBlock;
+        using LASolver = MPIIterativeSolver<MatBlock, TSolver>;
+        
+        
+        for (unsigned int ithGroup = 0; ithGroup < __blockDesc.nBlocks(); ++ithGroup)
+        {
+            LASolver laSolver(__mpiInfo,
+                              __names[ithGroup],
+                              __tolList[ithGroup].tol,
+                              __tolList[ithGroup].nIters);
+            
+            const auto &A = tangent_matrix.block(ithGroup, ithGroup);
+            auto       &x = LBFGS_r_vector.block(ithGroup);
+            const auto &b = LBFGS_q_vector.block(ithGroup);
+            
+            switch (__precType)
+            {
+                    
+                case PhaseField::PrecType::Jacobi:
+                {
+                    typename LATraits::PrecJacobi prec;
+                    prec.initialize(A);
+                    laSolver.solve(A, x, b, prec);
+                    break;
+                }
+                    
+                case PhaseField::PrecType::AMG:
+                {
+                    typename LATraits::PrecAMG prec;
+                    prec.initialize(A);
+                    laSolver.solve(A, x, b, prec);
+                    break;
+                }
+                    
+                case PhaseField::PrecType::ILU:
+                {
+                    typename LATraits::PrecILU prec;
+                    prec.initialize(A);
+                    laSolver.solve(A, x, b, prec);
+                    break;
+                }
+                    
+                    
+                case PhaseField::PrecType::IC:
+                {
+                    typename LATraits::PrecIC prec;
+                    prec.initialize(A);
+                    laSolver.solve(A, x, b, prec);
+                    break;
+                }
+                    
+                case PhaseField::PrecType::ILUT:
+                {
+                    typename LATraits::PrecILUT prec;
+                    prec.initialize(A);
+                    laSolver.solve(A, x, b, prec);
+                    break;
+                }
+                    
+                    
+                case PhaseField::PrecType::SOR:
+                {
+                    typename LATraits::PrecSOR prec;
+                    prec.initialize(A);
+                    laSolver.solve(A, x, b, prec);
+                    break;
+                }
+                    
+                case PhaseField::PrecType::SSOR:
+                {
+                    typename LATraits::PrecSSOR prec;
+                    prec.initialize(A);
+                    laSolver.solve(A, x, b, prec);
+                    break;
+                }
+                    
+                case PhaseField::PrecType::Chebyshev:
+                {
+                    typename LATraits::PrecChebs prec;
+                    prec.initialize(A);
+                    laSolver.solve(A, x, b, prec);
+                    break;
+                }
+                    
+                    
+                case PhaseField::PrecType::None:
+                {
+                    typename LATraits::PrecI prec;
+                    prec.initialize(A);
+                    laSolver.solve(A, x, b, prec);
+                    break;
+                }
+                    
+                    
+                default:
+                    AssertThrow(false, ExcMessage("Unsupported Trilinos preconditioner"));
+            }
+        }
+    }
+#endif
+}
 
 
 
