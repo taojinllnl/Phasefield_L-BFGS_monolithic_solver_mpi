@@ -1521,6 +1521,8 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::get_error_residual(Errors &error
     
     error_res.base() = m_system_rhs.base();
     m_constraints.set_zero(error_res.base());
+    if constexpr (is_mpi)
+        error_res.compress(VectorOperation::insert);
     
     error_residual.m_norm = error_res.l2_norm();
     error_residual.m_u    = error_res.block(m_u_dof).l2_norm();
@@ -1536,6 +1538,8 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::get_error_update(const BVector &
     
     error_ud.base() = newton_update.base();
     m_constraints.set_zero(error_ud.base());
+    if constexpr (is_mpi)
+        error_ud.compress(VectorOperation::insert);
     
     error_update.m_norm = error_ud.l2_norm();
     error_update.m_u    = error_ud.block(m_u_dof).l2_norm();
