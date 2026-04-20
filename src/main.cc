@@ -6702,16 +6702,10 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::output_results() const
     m_timer.enter_subsection(sectionName);
     
     
-    std::string solverType = m_parameters.m_type_linear_solver;
-    if(m_parameters.m_type_linear_solver != "Direct")
-    {
-        solverType += "["+m_parameters.m_prec_type_linear_solver+"]";
-    }
-    
     m_output.output(m_time.get_timestep(),
                     m_parameters.m_poly_degree,
                     m_parameters.resultsDir,
-                    solverType,
+                    m_parameters.laSolverType,
                     m_solution,
                     m_quadrature_point_history);
     
@@ -7763,13 +7757,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::print_parameter_information()
     m_logfile << "Nonlinear solver type = " << m_parameters.m_type_nonlinear_solver << std::endl;
     m_logfile << "Line search type = " << m_parameters.m_type_line_search << std::endl;
     
-    std::string solverType = m_parameters.m_type_linear_solver;
-    if(m_parameters.m_type_linear_solver != "Direct")
-    {
-        solverType += "["+m_parameters.m_prec_type_linear_solver+"]";
-    }
-    
-    m_logfile << "Linear solver type = " << solverType << std::endl;
+    m_logfile << "Linear solver type = " << m_parameters.laSolverType << std::endl;
     m_logfile << "Mesh refinement strategy = " << m_parameters.m_refinement_strategy << std::endl;
     
     if (m_parameters.m_refinement_strategy == "adaptive-refine")
@@ -8017,29 +8005,32 @@ int main(int argc, char* argv[])
     
     
     
+    parameters.laSolverType = parameters.m_type_linear_solver;
+    if(parameters.m_type_linear_solver != "Direct")
+    {
+        parameters.laSolverType += "+"+parameters.m_prec_type_linear_solver;
+    }
+    
     std::ofstream      log_fstream;
     // output the directory inforamtion
     if(mpiInfo.isRankEqualsTo(0))
     {
+        const std::string logFileName = parameters.m_logfile_name
+        + "_" + parameters.m_mpi_type
+        + "_" + std::to_string(mpiInfo.nRanks())
+        + "_" + parameters.laSolverType
+        + "_" + parameters.m_phasefield_name
+        + ".log";
+        
         std::cout << "\nOutput dir: \t" << parameters.m_output_dir << std::endl;
         std::cout << "Input dir: \t" << parameters.m_config_dir << std::endl;
         std::cout << "Type: \t" << parameters.m_mpi_type << std::endl;
-        std::cout << "Log: \t" << parameters.m_logfile_name << std::endl << std::endl;
+        std::cout << "Linear solver type: \t" << parameters.laSolverType << std::endl;
+        std::cout << "Log: \t" << logFileName << std::endl << std::endl;
         
-        std::string solverType = parameters.m_type_linear_solver;
-        if(parameters.m_type_linear_solver != "Direct")
-        {
-            solverType += "["+parameters.m_prec_type_linear_solver+"]";
-        }
         
         // only rank 0 creates logfile to avoid overriding in MPI mode
-        log_fstream.open(parameters.m_output_dir
-                         + parameters.m_logfile_name
-                         + "_" + parameters.m_mpi_type
-                         + "_" + std::to_string(mpiInfo.nRanks())
-                         + "_" + solverType
-                         + "_" + parameters.m_phasefield_name
-                         + ".log");
+        log_fstream.open(parameters.m_output_dir + logFileName);
     }
     ConditionalOStream logfile(log_fstream, mpiInfo.rank() == 0);
     
