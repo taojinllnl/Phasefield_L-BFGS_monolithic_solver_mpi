@@ -11,7 +11,7 @@
 #include <deal.II/lac/generic_linear_algebra.h>
 #include <deal.II/grid/tria.h>
 #include <deal.II/numerics/solution_transfer.h>
-
+#include <deal.II/lac/precondition_selector.h>
 
 namespace common {
 
@@ -67,6 +67,17 @@ struct Traits<TagPETSc>
     using VectorBlock   = ::dealii::LinearAlgebraPETSc::MPI::Vector;
     
     static constexpr bool IS_MPI = true;
+    
+    // https://dealii.org/current/doxygen/deal.II/classPETScWrappers_1_1PreconditionBase.html
+    using PrecJacobi = ::dealii::PETScWrappers::PreconditionJacobi;
+    using PrecILU    = ::dealii::PETScWrappers::PreconditionILU;
+    using PrecICC    = ::dealii::PETScWrappers::PreconditionICC;
+    using PrecPSails = ::dealii::PETScWrappers::PreconditionParaSails;
+    using PrecSOR    = ::dealii::PETScWrappers::PreconditionSOR;
+    using PrecSSOR   = ::dealii::PETScWrappers::PreconditionSSOR;
+    using PrecShell  = ::dealii::PETScWrappers::PreconditionShell;
+    using PrecAMG    = ::dealii::PETScWrappers::PreconditionBoomerAMG;
+    using PrecNone   = ::dealii::PETScWrappers::PreconditionNone;
 };
 }
 
@@ -94,6 +105,17 @@ struct Traits<TagTrilinos>
     using VectorBlock   = ::dealii::LinearAlgebraTrilinos::MPI::Vector;
     
     static constexpr bool IS_MPI = true;
+    
+    // https://dealii.org/current/doxygen/deal.II/classTrilinosWrappers_1_1PreconditionBase.html
+    using PrecJacobi = ::dealii::TrilinosWrappers::PreconditionJacobi;
+    using PrecILU    = ::dealii::TrilinosWrappers::PreconditionILU;
+    using PrecIC     = ::dealii::TrilinosWrappers::PreconditionIC;
+    using PrecILUT   = ::dealii::TrilinosWrappers::PreconditionILUT;
+    using PrecSOR    = ::dealii::TrilinosWrappers::PreconditionSOR;
+    using PrecSSOR   = ::dealii::TrilinosWrappers::PreconditionSSOR;
+    using PrecChebs  = ::dealii::TrilinosWrappers::PreconditionChebyshev;
+    using PrecAMG    = ::dealii::TrilinosWrappers::PreconditionAMG;
+    using PrecI      = ::dealii::TrilinosWrappers::PreconditionIdentity;
 };
 }
 
