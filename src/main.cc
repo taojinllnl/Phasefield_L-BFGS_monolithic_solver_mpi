@@ -1600,56 +1600,18 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::read_material_data(const std::st
             m_logfile << "\t\tTensile strength (ft) = "  << tensile_strength << std::endl;
             
             
-            if(m_parameters.m_phasefield_name == "PFCZM")
-            {
-                m_logfile << "\n\t\tPFCZM softening curve type: ";
-                if(p == 2.0 && a2 == -0.5 && a3 == 0)
-                {
-                    m_logfile << "Linear softening curve." << std::endl;
-                }
-                else if(p == 2.5 && a2 == 0.1748 && a3 == 0)
-                {
-                    m_logfile << "Exponential softening curve." << std::endl;
-                }
-                else if(     p == 2.0    && a2 == 1.3868
-                        && (a3 == 0.9106 || a3 == 0.6566))
-                {
-                    m_logfile << "Cornelissen softening curve." << std::endl;
-                }
-                else
-                {
-                    m_logfile << "Customized softening curve." << std::endl;
-                }
-                m_logfile << std::endl;
+            if(     m_parameters.m_phasefield_name == "AT1-Cohesive"
+               ||   m_parameters.m_phasefield_name == "PFCZM"){
+                m_logfile << "\t\tp (the polynomial order of the term (1-d)^p\n"
+                "\t\t\tin the degradation function) = "
+                << p << std::endl;
+                m_logfile << "\t\ta2 (the coefficient of the a1*a2*d^2 term\n"
+                "\t\t\tin the denominator of the degradation function) = "
+                << a2 << std::endl;
+                m_logfile << "\t\ta3 (the coefficient of the a1*a3*d^3 term\n"
+                "\t\t\tin the denominator of the degradation function) = "
+                << a3 << std::endl;
             }
-            else  if(m_parameters.m_phasefield_name == "AT1-Cohesive")
-            {
-                m_logfile << "\n\t\tAT1-Cohesive degradation function type: ";
-                if(p == 1.0 && a2 == 0 && a3 == 0)
-                {
-                    m_logfile << "Quasi-linear degradation function." << std::endl;
-                }
-                else if(p == 2 && a2 >= 1 && a3 == 0)
-                {
-                    m_logfile << "Quasi-quadratic degradation function." << std::endl;
-                }
-                else
-                {
-                    m_logfile << "Customized degradation function." << std::endl;
-                }
-                m_logfile << std::endl;
-            }
-            
-            m_logfile << "\t\tp (the polynomial order of the term (1-d)^p\n"
-                         "\t\t\tin the degradation function) = "
-                  << p << std::endl;
-            m_logfile << "\t\ta2 (the coefficient of the a1*a2*d^2 term\n"
-                         "\t\t\tin the denominator of the degradation function) = "
-                  << a2 << std::endl;
-            m_logfile << "\t\ta3 (the coefficient of the a1*a3*d^3 term\n"
-                         "\t\t\tin the denominator of the degradation function) = "
-                  << a3 << std::endl;
-            
             
             // 2D plane stress case
             if (    dim == 2
@@ -1716,9 +1678,28 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::read_material_data(const std::st
                                            "upper limit!"));
                 }
                 else
+                {
                     AssertThrow(false,
                                 ExcMessage("For AT-1 cohesive model, "
                                            "p = 1 (quasi-linear) or 2 (quasi-quadratic)"));
+                    
+                }
+                
+                
+                m_logfile << "\n\t\tAT1-Cohesive degradation function type: ";
+                if(std::fabs(p-1) < 1.0e-9 && a2 == 0.0 && a3 == 0.0)
+                {
+                    m_logfile << "Quasi-linear degradation function." << std::endl;
+                }
+                else if(std::fabs(p-2) < 1.0e-9 && a2 >= 1.0 && a3 == 0.0)
+                {
+                    m_logfile << "Quasi-quadratic degradation function." << std::endl;
+                }
+                else
+                {
+                    m_logfile << "Customized degradation function." << std::endl;
+                }
+                m_logfile << std::endl;
             }
             else if (m_parameters.m_phasefield_name == "PFCZM")
             {
@@ -1737,6 +1718,26 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::read_material_data(const std::st
                 AssertThrow(length_scale < upper_l,
                             ExcMessage("The provided length-scale is over the "
                                        "upper limit!"));
+                
+                m_logfile << "\n\t\tPFCZM softening curve type: ";
+                if(p == 2.0 && a2 == -0.5 && a3 == 0)
+                {
+                    m_logfile << "Linear softening curve." << std::endl;
+                }
+                else if(p == 2.5 && a2 == 0.1748 && a3 == 0)
+                {
+                    m_logfile << "Exponential softening curve." << std::endl;
+                }
+                else if(     p == 2.0    && a2 == 1.3868
+                        && (a3 == 0.9106 || a3 == 0.6566))
+                {
+                    m_logfile << "Cornelissen softening curve." << std::endl;
+                }
+                else
+                {
+                    m_logfile << "Customized softening curve." << std::endl;
+                }
+                m_logfile << std::endl;
                 
             }
             else
