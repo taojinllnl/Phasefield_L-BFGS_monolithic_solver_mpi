@@ -6710,6 +6710,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::output_results() const
     m_output.output(m_time.get_timestep(),
                     m_parameters.m_poly_degree,
                     m_parameters.resultsDir,
+                    m_parameters.m_phasefield_name,
                     m_parameters.laSolverType,
                     m_solution,
                     m_quadrature_point_history);

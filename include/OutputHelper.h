@@ -106,6 +106,7 @@ public:
     void output(const unsigned int ithTimeStep,
                 const unsigned int polyDegree,
                 const std::string& dir,
+                const std::string& modeType,
                 const std::string& laSolver,
                 const BVector&     solution,
                 const CellDataStorage& qPntHistory) const;
@@ -322,13 +323,14 @@ void OutputHelper<LATraits, Tria, PointHistory>
 ::output(const unsigned int ithTimeStep,
          const unsigned int polyDegree,
          const std::string& dir,
+         const std::string& modeType,
          const std::string& laSolver,
          const BVector&     solution,
          const CellDataStorage& qPntHistory) const
 {
     using namespace dealii;
     
-    const std::string filename = __solutionName + laSolver + "_" + __mpiType + "-";
+    const std::string filename = __solutionName + "_" + modeType + "_" + laSolver + "_" + __mpiType + "-";
     
     
     DataOut<dim> data_out;
