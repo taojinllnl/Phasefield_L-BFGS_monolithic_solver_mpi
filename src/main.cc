@@ -781,6 +781,7 @@ public:
     , m_time_end(time_end)
     , m_delta_t(0.0)
     , m_magnitude(1.0)
+    , m_need_output(false)
     {}
     
     virtual ~Time() = default;
@@ -805,24 +806,41 @@ public:
     {
         return m_timestep;
     }
-    void increment(std::vector<std::array<double, 4>> time_table)
+    bool need_output() const
     {
-        double t_1, t_delta, t_magnitude;
-        for (auto & time_group : time_table)
+        return m_need_output;
+    }
+    void increment(const std::vector<std::array<double, 4>>& time_table,
+                   const std::vector<unsigned int>& intervals)
+    {
+        unsigned int i = 0;
+        double t_0 = 0;
+        double t_1 = 0;
+        unsigned int slot = 0;
+        bool has_found = false;
+        for (unsigned int i = 0; i < time_table.size(); ++i)
         {
+            const auto& time_group = time_table[i];
+            t_0 = time_group[0];
             t_1 = time_group[1];
-            t_delta = time_group[2];
-            t_magnitude = time_group[3];
+            m_delta_t = time_group[2];
+            m_magnitude = time_group[3];
             
-            if (m_time_current < t_1 - 1.0e-6*t_delta)
+            if (m_time_current < t_1 - 1.0e-6*m_delta_t)
             {
-                m_delta_t = t_delta;
-                m_magnitude = t_magnitude;
+                has_found = true;
+                slot = i;
                 break;
             }
         }
         
+        AssertThrow(has_found, ExcMessage("No active time slot found."));
         m_time_current += m_delta_t;
+        
+        const unsigned int step_in_slot = static_cast<unsigned int>(std::round((m_time_current - t_0) / m_delta_t));
+        
+        m_need_output = (step_in_slot % intervals[slot] == 0);
+        
         ++m_timestep;
     }
     
@@ -832,6 +850,7 @@ private:
     const double m_time_end;
     double m_delta_t;
     double m_magnitude;
+    bool m_need_output;
 };
 
 template <int dim>
@@ -1488,7 +1507,8 @@ private:
                             const unsigned int total_material_regions);
     
     void read_time_data(const std::string &data_file,
-                        std::vector<std::array<double, 4>> & time_table);
+                        std::vector<std::array<double, 4>> & time_table,
+                        std::vector<unsigned int>& intervals);
     
     void print_conv_header_newton();
     
@@ -1769,12 +1789,15 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::read_material_data(const std::st
 }
 
 template <typename LATraits, typename Tria>
-void PhaseFieldMonolithicSolve<LATraits, Tria>::read_time_data(const std::string &data_file,
-                                                               std::vector<std::array<double, 4>> & time_table)
+void PhaseFieldMonolithicSolve<LATraits, Tria>
+::read_time_data(const std::string &data_file,
+                 std::vector<std::array<double, 4>> & time_table,
+                 std::vector<unsigned int>& intervals)
 {
     std::ifstream myfile (data_file);
     
     double t_0, t_1, delta_t, t_magnitude;
+    unsigned int interval;
     
     if (myfile.is_open())
     {
@@ -1783,12 +1806,18 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::read_time_data(const std::string
         while ( myfile >> t_0
                >> t_1
                >> delta_t
-               >> t_magnitude)
+               >> t_magnitude
+               >> interval)
         {
             Assert( t_0 < t_1,
                    ExcMessage("For each time pair, "
                               "the start time should be smaller than the end time"));
             time_table.push_back({{t_0, t_1, delta_t, t_magnitude}});
+            // If the given interval is equal to 0, the output for this time step will be turned off.
+            if (interval == 0) {
+                interval = std::numeric_limits<unsigned int>::max();
+            }
+            intervals.push_back(interval);
         }
         
         Assert(std::fabs(t_1 - m_parameters.m_end_time) < 1.0e-9,
@@ -1804,13 +1833,16 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::read_time_data(const std::string
         Assert(false, ExcMessage("Failed to read time data file"));
     }
     
+    unsigned int i = 0;
     for (auto & time_group : time_table)
     {
-        m_logfile << "\t\t"
+        m_logfile << "\t\tinterval:"
+        << intervals[i++] << ",\ttime slot: "
         << time_group[0] << ",\t"
         << time_group[1] << ",\t"
         << time_group[2] << ",\t"
-        << time_group[3] << std::endl;
+        << time_group[3] << ",\t"
+        << std::endl;
     }
 }
 
@@ -6708,13 +6740,14 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::output_results() const
     m_timer.enter_subsection(sectionName);
     
     
-    m_output.output(m_time.get_timestep(),
-                    m_parameters.m_poly_degree,
-                    m_parameters.resultsDir,
-                    m_parameters.m_phasefield_name,
-                    m_parameters.laSolverType,
-                    m_solution,
-                    m_quadrature_point_history);
+    if(m_time.need_output())
+        m_output.output(m_time.get_timestep(),
+                        m_parameters.m_poly_degree,
+                        m_parameters.resultsDir,
+                        m_parameters.m_phasefield_name,
+                        m_parameters.laSolverType,
+                        m_solution,
+                        m_quadrature_point_history);
     
     m_timer.leave_subsection(sectionName);
 }
@@ -7813,17 +7846,17 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::run()
                        m_parameters.m_total_material_regions);
     
     std::vector<std::array<double, 4>> time_table;
-    
+    std::vector<unsigned int> intervals;
     read_time_data(m_parameters.m_config_dir
                    + m_parameters.m_time_file_name,
-                   time_table);
+                   time_table, intervals);
     
     
     make_grid();
     setup_system();
     output_results();
     
-    m_time.increment(time_table);
+    m_time.increment(time_table, intervals);
     
     while(m_time.current() < m_time.end() + m_time.get_delta_t()*1.0e-6)
     {
@@ -7939,7 +7972,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::run()
         
         write_history_data();
         
-        m_time.increment(time_table);
+        m_time.increment(time_table, intervals);
     } // while(m_time.current() < m_time.end() + m_time.get_delta_t()*1.0e-6)
 }
 } // namespace PhaseField
