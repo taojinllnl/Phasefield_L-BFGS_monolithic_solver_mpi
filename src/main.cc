@@ -2603,6 +2603,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid()
         const std::string filename = "original_mesh";
         DataOut<dim> data_out;
         data_out.attach_dof_handler(m_dof_handler);
+        data_out.build_patches();
         data_out.write_vtu_with_pvtu_record(m_parameters.oriDir,
                                             filename,
                                             0,
