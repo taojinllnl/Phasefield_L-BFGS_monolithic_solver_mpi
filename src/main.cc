@@ -4007,65 +4007,65 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_13()
         m_logfile << "*";
     m_logfile << std::endl;
     
-    AssertThrow(dim==3, ExcMessage("The dimension has to be 2D!"));
-    
-    GridIn<dim> gridin;
-    gridin.attach_triangulation(m_triangulation);
-    std::ifstream f(m_parameters.m_mesh_file_name);
-    gridin.read_msh(f);
-    
-    for (const auto &cell : m_triangulation.cell_iterators())
-    {
-        cell->set_material_id(0);
-    }
-    
-    m_triangulation.refine_global(m_parameters.m_global_refine_times);
-    
-    const double bw_z  = 0.030;
-    const double bw_xy = 0.025;
-    
-    // global dimensions
-    const double L  = 1.0;   // total length  (x direction)
-    const double W  = 1.0;   // total width   (y direction)
-    
-    // crack-plan sizes in top view
-    const double L1 = 0.3;    // x-size of C1 patch from left boundary
-    const double L2 = 0.3;    // x-size of C2 patch from right boundary
-    const double W1 = 0.3;    // y-size of C1 patch from top boundary
-    const double W2 = 0.3;    // y-size of C2 patch from bottom boundary
-
-    // crack heights in front view
-    const double H1 = 0.55;    // height of C1 crack
-    const double H2 = 0.45;    // height of C2 crack
-
-    
-    
-    // x partition: [0, L1] [middle] [L-L2, L]
-    const double x1 = L1;
-    const double x2 = L - L2;
-
-    // y partition: [0, W2] [middle] [W-W1, W]
-    const double y1 = W2;
-    const double y2 = W - W1;
-
-    // z partition: [0, H2] [H2, H1] [H1, H]
-    const double z1 = H2;
-    const double z2 = H1;
-    
-    if (m_parameters.m_refinement_strategy == "adaptive-refine")
-    {
-        unsigned int material_id;
-        double length_scale;
-        bool initiation_point_refine_unfinished = true;
-        while (initiation_point_refine_unfinished)
+    if constexpr (dim == 3) {
+        
+        GridIn<dim> gridin;
+        gridin.attach_triangulation(m_triangulation);
+        std::ifstream f(m_parameters.m_mesh_file_name);
+        gridin.read_msh(f);
+        
+        for (const auto &cell : m_triangulation.cell_iterators())
         {
-            initiation_point_refine_unfinished = false;
-            for (const auto &cell : m_triangulation.active_cell_iterators())
+            cell->set_material_id(0);
+        }
+        
+        m_triangulation.refine_global(m_parameters.m_global_refine_times);
+        
+        const double bw_z  = 0.030;
+        const double bw_xy = 0.030;
+        
+        // global dimensions
+        const double L  = 1.0;   // total length  (x direction)
+        const double W  = 1.0;   // total width   (y direction)
+        
+        // crack-plan sizes in top view
+        const double L1 = 0.3;    // x-size of C1 patch from left boundary
+        const double L2 = 0.3;    // x-size of C2 patch from right boundary
+        const double W1 = 0.3;    // y-size of C1 patch from top boundary
+        const double W2 = 0.3;    // y-size of C2 patch from bottom boundary
+        
+        // crack heights in front view
+        const double H1 = 0.55;    // height of C1 crack
+        const double H2 = 0.45;    // height of C2 crack
+        
+        
+        
+        // x partition: [0, L1] [middle] [L-L2, L]
+        const double x1 = L1;
+        const double x2 = L - L2;
+        
+        // y partition: [0, W2] [middle] [W-W1, W]
+        const double y1 = W2;
+        const double y2 = W - W1;
+        
+        // z partition: [0, H2] [H2, H1] [H1, H]
+        const double z1 = H2;
+        const double z2 = H1;
+        
+        if (m_parameters.m_refinement_strategy == "adaptive-refine")
+        {
+            unsigned int material_id;
+            double length_scale;
+            bool initiation_point_refine_unfinished = true;
+            while (initiation_point_refine_unfinished)
             {
-                if constexpr (is_mpi) {
-                    if (!cell->is_locally_owned()) continue;
-                }
-                if constexpr (dim == 3) {
+                initiation_point_refine_unfinished = false;
+                for (const auto &cell : m_triangulation.active_cell_iterators())
+                {
+                    if constexpr (is_mpi) {
+                        if (!cell->is_locally_owned()) continue;
+                    }
+                    
                     const double x = cell->center()[0];
                     const double y = cell->center()[1];
                     const double z = cell->center()[2];
@@ -4080,35 +4080,93 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_13()
                     {
                         material_id = cell->material_id();
                         length_scale = m_material_data[material_id][2];
-                        if (  std::sqrt(cell->measure())
+                        if (  std::cbrt(cell->measure())
                             > length_scale * m_parameters.m_allowed_max_h_l_ratio )
                         {
                             cell->set_refine_flag();
                             initiation_point_refine_unfinished = true;
                         }
                     }
-                } else {
-                    AssertThrow(false,
-                                ExcMessage("Dimension Error: it should be 3!"));
+                }
+                if constexpr (is_mpi) {
+                    // accumulate local flag over all ranks
+                    const unsigned int local_flag = initiation_point_refine_unfinished ? 1u : 0u;
+                    const unsigned int global_flag =
+                    Utilities::MPI::sum(local_flag, *m_mpiInfo.mpiCommPtr());
+                    initiation_point_refine_unfinished = (global_flag > 0u);
+                }
+                if(initiation_point_refine_unfinished){
+                    m_triangulation.execute_coarsening_and_refinement();
+                    if constexpr(is_mpi && supportRepartioning) m_triangulation.repartition();
                 }
             }
-            if constexpr (is_mpi) {
-                // accumulate local flag over all ranks
-                const unsigned int local_flag = initiation_point_refine_unfinished ? 1u : 0u;
-                const unsigned int global_flag =
-                Utilities::MPI::sum(local_flag, *m_mpiInfo.mpiCommPtr());
-                initiation_point_refine_unfinished = (global_flag > 0u);
-            }
-            if(initiation_point_refine_unfinished){
-                m_triangulation.execute_coarsening_and_refinement();
-                if constexpr(is_mpi && supportRepartioning) m_triangulation.repartition();
+        } 
+        else if (m_parameters.m_refinement_strategy == "pre-refine")
+        {
+            unsigned int material_id;
+            double length_scale;
+            bool initiation_point_refine_unfinished = true;
+            
+            
+            const double upper = H1 + 0.05;
+            const double lower = H2 - 0.05;
+            
+            const double x1_mod = x1 - bw_xy;
+            const double x2_mod = x2 + bw_xy;
+            const double y1_mod = y1 - bw_xy;
+            const double y2_mod = y2 + bw_xy;
+            
+            while (initiation_point_refine_unfinished)
+            {
+                initiation_point_refine_unfinished = false;
+                for (const auto &cell : m_triangulation.active_cell_iterators())
+                {
+                    if constexpr (is_mpi) {
+                        if (!cell->is_locally_owned()) continue;
+                    }
+                    const double z = cell->center()[2];
+                    
+                    if (! (z <= upper && z >= lower)) continue;;
+                    
+                    const double x = cell->center()[0];
+                    const double y = cell->center()[1];
+                    if (    (x <= x1_mod && y <= y2_mod)
+                        ||  (x >= x1_mod && x <= x2_mod)
+                        ||  (x >= x2_mod && y >= y1_mod))
+                    {
+                        material_id = cell->material_id();
+                        length_scale = m_material_data[material_id][2];
+                        if (  std::cbrt(cell->measure())
+                            > length_scale * m_parameters.m_allowed_max_h_l_ratio )
+                        {
+                            cell->set_refine_flag();
+                            initiation_point_refine_unfinished = true;
+                        }
+                    }
+                    
+                }
+                if constexpr (is_mpi) {
+                    // accumulate local flag over all ranks
+                    const unsigned int local_flag = initiation_point_refine_unfinished ? 1u : 0u;
+                    const unsigned int global_flag =
+                    Utilities::MPI::sum(local_flag, *m_mpiInfo.mpiCommPtr());
+                    initiation_point_refine_unfinished = (global_flag > 0u);
+                }
+                if(initiation_point_refine_unfinished){
+                    m_triangulation.execute_coarsening_and_refinement();
+                    if constexpr(is_mpi && supportRepartioning) m_triangulation.repartition();
+                }
             }
         }
-    }
+        else
+        {
+            AssertThrow(false,
+                        ExcMessage("Selected mesh refinement strategy not implemented!"));
+        }
+    } 
     else
     {
-        AssertThrow(false,
-                    ExcMessage("Selected mesh refinement strategy not implemented!"));
+        AssertThrow(false, ExcMessage("The dimension has to be 2D!"));
     }
 }
 
