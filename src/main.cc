@@ -781,7 +781,7 @@ public:
     , m_time_end(time_end)
     , m_delta_t(0.0)
     , m_magnitude(1.0)
-    , m_need_output(false)
+    , m_need_output(true)
     {}
     
     virtual ~Time() = default;
@@ -813,7 +813,6 @@ public:
     void increment(const std::vector<std::array<double, 4>>& time_table,
                    const std::vector<unsigned int>& intervals)
     {
-        unsigned int i = 0;
         double t_0 = 0;
         double t_1 = 0;
         unsigned int slot = 0;
@@ -1834,14 +1833,15 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
     }
     
     unsigned int i = 0;
+    m_logfile << "\tinterval\t\tt0\t\tt1\t\t∆t\t\tmagnitude" << std::endl;
     for (auto & time_group : time_table)
     {
-        m_logfile << "\t\tinterval:"
-        << intervals[i++] << ",\ttime slot: "
-        << time_group[0] << ",\t"
-        << time_group[1] << ",\t"
-        << time_group[2] << ",\t"
-        << time_group[3] << ",\t"
+        m_logfile << "\t"
+        << intervals[i++] << "\t\t"
+        << time_group[0] << "\t\t"
+        << time_group[1] << "\t\t"
+        << time_group[2] << "\t\t"
+        << time_group[3] << "\t\t"
         << std::endl;
     }
 }
