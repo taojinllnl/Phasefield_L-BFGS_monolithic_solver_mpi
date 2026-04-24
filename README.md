@@ -273,3 +273,54 @@ To avoid this, adaptive repartitioning can be controlled by a threshold based on
      - The default threshold is `2.0`.
      - Repartitioning will be performed after every refinement step if the threshold is equal to or smaller than `1.0`.
 
+---
+
+### Time table and visualization files output
+
+A time table can be provided to define a temporal simulation for fracture propagation.
+The simulation is divided into several sequential time slots, as shown below.
+
+- Example:
+
+```text
+0.0        2.5e-3     2.5e-5    1.0     10
+2.5e-3    25.0e-3     2.5e-5    1.0     10
+```
+
+This example contains two time slots. Each row defines one time slot and contains the following quantities:
+
+```text
+start_time   end_time   time_step   magnitude   output_interval
+```
+
+where `start_time` and `end_time` define the time range of the current time slot, `time_step` is the timestep size, `magnitude` is used by the program to apply boundary conditions, and `output_interval` controls how often visualization files are written.
+
+Each time slot is interpreted as `(start_time, end_time]`. Let `N` be the total number of timesteps in the current time slot.
+
+- Output intervals:
+    - `interval = 0` or `interval > N`: disable visualization output in the current time slot.
+    - `interval = 1`: write visualization files after every timestep.
+    - `1 < interval < N`: write visualization files every `interval` timesteps.
+    - `interval = N`: write visualization files only at the last timestep of the current time slot.
+
+For example, if `N = 100` and `interval = 10`, visualization files are written at timesteps:
+
+```text
+10, 20, 30, ..., 100
+```
+
+The visualization file for timestep 0, i.e. the initial state, is written by default. 
+This behavior can be disabled in `subsection Scenario` of the given `.prm` file:
+
+```text
+subsection Scenario
+
+  # other parameters .......
+
+  # If this is set to yes, the visualization file for the initial state will be written. (yes|no)
+  set Output timestep 0 = no
+
+  # other parameters .......
+
+end
+```
