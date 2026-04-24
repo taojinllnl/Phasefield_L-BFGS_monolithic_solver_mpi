@@ -2572,7 +2572,10 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::set_bcs_id()
     }
     else if (m_parameters.m_scenario == 13)
     {
-        double const H = 1.0;
+        
+        AssertThrow(!m_extra_data.empty(),
+                    ExcMessage("The geo data has not been read in Case 13."));
+        double const H = m_extra_data.at("H");
         
         for(const auto& face : m_triangulation.active_face_iterators())
         {
@@ -4026,6 +4029,20 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_13()
         m_logfile << "*";
     m_logfile << std::endl;
     
+    if(m_extra_data.empty())
+    {
+        const std::vector<std::string> parameter_names = {
+                "L", "W", "H",
+                "L1", "L2", "W1", "W2",
+                "H1", "H2",
+                "C1", "C2",
+                "lc"
+            };
+        common::DataListReader::read_keys_values(m_parameters.m_extra_data_file,
+                                          parameter_names,
+                                          m_extra_data);
+    }
+    
     if constexpr (dim == 3) {
         
         GridIn<dim> gridin;
@@ -4044,18 +4061,18 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_13()
         const double bw_xy = 0.030;
         
         // global dimensions
-        const double L  = 1.0;   // total length  (x direction)
-        const double W  = 1.0;   // total width   (y direction)
+        const double L  = m_extra_data.at("L");   // total length  (x direction)
+        const double W  = m_extra_data.at("W");   // total width   (y direction)
         
         // crack-plan sizes in top view
-        const double L1 = 0.3;    // x-size of C1 patch from left boundary
-        const double L2 = 0.3;    // x-size of C2 patch from right boundary
-        const double W1 = 0.3;    // y-size of C1 patch from top boundary
-        const double W2 = 0.3;    // y-size of C2 patch from bottom boundary
+        const double L1 = m_extra_data.at("L1");    // x-size of C1 patch from left boundary
+        const double L2 = m_extra_data.at("L2");    // x-size of C2 patch from right boundary
+        const double W1 = m_extra_data.at("W1");    // y-size of C1 patch from top boundary
+        const double W2 = m_extra_data.at("W2");    // y-size of C2 patch from bottom boundary
         
         // crack heights in front view
-        const double H1 = 0.55;    // height of C1 crack
-        const double H2 = 0.45;    // height of C2 crack
+        const double H1 = m_extra_data.at("H1");    // height of C1 crack
+        const double H2 = m_extra_data.at("H2");    // height of C2 crack
         
         
         
