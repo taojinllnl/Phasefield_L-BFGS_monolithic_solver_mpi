@@ -1831,7 +1831,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
                               "the start time should be smaller than the end time"));
             time_table.push_back({{t_0, t_1, delta_t, t_magnitude}});
             // If the given interval is equal to 0, the output for this time step will be turned off.
-            if (interval == 0 || interval > std::round((t_1-t0)/delta_t)) {
+            if (interval == 0 || interval > std::round((t_1-t_0)/delta_t)) {
                 m_logfile << intervals.size() << "-th time slot will NOT output any .vtu files." << std::endl;
                 interval = std::numeric_limits<unsigned int>::max();
             }
