@@ -51,7 +51,7 @@ namespace common{
 class BlockDesc
 {
 private:
-    using IndexSet = dealii::IndexSet;
+    using IndexSet = ::dealii::IndexSet;
     using InitType = std::pair<unsigned int, std::string>;
     
 public:

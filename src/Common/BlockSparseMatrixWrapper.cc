@@ -5,7 +5,7 @@
 //
 
 #include "../../include/Common/BlockSparseMatrixWrapper.h"
-using namespace common;
+using namespace ::common;
 
 template <typename TraitsType>
 using BSMatrix = BlockSparseMatrixWrapper<TraitsType>;

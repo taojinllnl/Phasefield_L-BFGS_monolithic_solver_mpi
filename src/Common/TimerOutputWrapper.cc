@@ -6,12 +6,12 @@
 
 #include "../../include/Common/TimerOutputWrapper.h"
 
-using namespace dealii;
-using namespace common;
+using namespace ::dealii;
+using namespace ::common;
 
-using OutputFrequency   =  dealii::TimerOutput::OutputFrequency;
-using OutputType        =  dealii::TimerOutput::OutputType;
-using OutputData        =  dealii::TimerOutput::OutputData;
+using OutputFrequency   =  TimerOutput::OutputFrequency;
+using OutputType        =  TimerOutput::OutputType;
+using OutputData        =  TimerOutput::OutputData;
 
 template <typename LATraits>
 TimerOutputWrapper<LATraits>

@@ -7,8 +7,8 @@
 #include "../../include/Common/BlockVectorWrapper.h"
 
 
-using namespace common;
-using namespace dealii;
+using namespace ::common;
+using namespace ::dealii;
 
 template <typename TraitsType>
 BlockVectorWrapper<TraitsType>
@@ -188,7 +188,7 @@ BlockVectorWrapper<TraitsType>
 template <typename TraitsType>
 void
 BlockVectorWrapper<TraitsType>
-::distributeCst(const dealii::AffineConstraints<double>& constraints,
+::distributeCst(const AffineConstraints<double>& constraints,
                 const bool updateGhostValues)
 {
     constraints.distribute(base());

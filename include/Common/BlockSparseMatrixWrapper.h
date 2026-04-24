@@ -95,7 +95,7 @@ BlockSparseMatrixWrapper<TraitsType>
             const bool                                 keep_constrained_dofs,
             const ::dealii::types::subdomain_id        subdomain_id)
 {
-    using namespace dealii;
+    using namespace ::dealii;
     
     TraitsType::Matrix::clear();
     

@@ -6,9 +6,9 @@
 
 #include "../../include/Common/MPIInfo.h"
 
-using namespace dealii;
-using namespace common;
+using namespace ::dealii;
 using MPIInit = Utilities::MPI::MPI_InitFinalize;
+using namespace ::common;
 
 MPIInfo::MPIInfo(const bool mpiSupport,
                  int argc, char* argv[])

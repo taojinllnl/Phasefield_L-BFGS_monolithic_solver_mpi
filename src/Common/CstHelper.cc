@@ -7,8 +7,8 @@
 #include "../../include/Common/CstHelper.h"
 
 
-using namespace dealii;
-using namespace bcs;
+using namespace ::dealii;
+using namespace ::bcs;
 
 void CstHelper
 ::cstReinit(AffineConstraints<double>& constraints,

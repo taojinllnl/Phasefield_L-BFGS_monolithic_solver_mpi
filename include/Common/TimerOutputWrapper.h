@@ -30,14 +30,14 @@ class TimerOutputWrapper
 {
 private:
     
-    using OutputFrequency   =  dealii::TimerOutput::OutputFrequency;
-    using OutputType        =  dealii::TimerOutput::OutputType;
-    using OutputData        =  dealii::TimerOutput::OutputData;
-    using Scope             =  dealii::TimerOutput::Scope;
+    using OutputFrequency   =  ::dealii::TimerOutput::OutputFrequency;
+    using OutputType        =  ::dealii::TimerOutput::OutputType;
+    using OutputData        =  ::dealii::TimerOutput::OutputData;
+    using Scope             =  ::dealii::TimerOutput::Scope;
     
     const MPIInfo&                          __mpiInfo;
     
-    std::unique_ptr<dealii::TimerOutput>    __timerPtr;
+    std::unique_ptr<::dealii::TimerOutput>    __timerPtr;
     
     
     std::map<std::string, std::unique_ptr<Scope>>   __scopeMap;
@@ -50,14 +50,14 @@ public:
                                 const OutputFrequency output_frequency,
                                 const OutputType output_type);
     
-    explicit TimerOutputWrapper(dealii::ConditionalOStream &stream,
+    explicit TimerOutputWrapper(::dealii::ConditionalOStream &stream,
                                 const MPIInfo& mpiInfo,
                                 const OutputFrequency output_frequency,
                                 const OutputType output_type);
     
     
     
-    dealii::TimerOutput& timer();
+    ::dealii::TimerOutput& timer();
     
     
     

@@ -6,7 +6,7 @@
 
 #include "../../include/Common/BlockDesc.h"
 
-using namespace common;
+using namespace ::common;
 
 BlockDesc::Block::Block(const unsigned int dim,
                         const unsigned int groupID,
