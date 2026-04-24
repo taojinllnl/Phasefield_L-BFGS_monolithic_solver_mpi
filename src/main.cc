@@ -109,6 +109,7 @@
 #include "../include/Common/TimerOutputWrapper.h"
 #include "../include/Common/Traits.h"
 
+#include "../include/Common/DataListReader.h"
 
 #include "../include/Common/BlockDesc.h"
 
@@ -327,6 +328,8 @@ struct Scenario
     std::string m_config_dir;
     std::string m_output_dir;
     std::string m_mesh_file_name;
+    std::string m_extra_data_file;
+    bool m_output_step_0;
     
     unsigned int m_scenario;
     std::string m_logfile_name;
@@ -383,6 +386,16 @@ void Scenario::declare_parameters(ParameterHandler &prm)
                           "./",
                           Patterns::FileName(Patterns::FileName::input),
                           "Mesh file name");
+        
+        prm.declare_entry("Extra data file",
+                          "N/A",
+                          Patterns::FileName(Patterns::FileName::input),
+                          "Extra data file (default: N/A)");
+        
+        prm.declare_entry("Output timestep 0",
+                          "yes",
+                          Patterns::Selection("yes|no"),
+                          "If it is yes, the .vtu file of the timestep-1 will be created.");
         
         
         
@@ -506,7 +519,13 @@ void Scenario::parse_parameters(ParameterHandler &prm)
         m_config_dir = prm.get("Config dir");
         m_output_dir = prm.get("Output dir");
         m_mesh_file_name = prm.get("Mesh file name");
+        m_extra_data_file = prm.get("Extra data file");
         m_mesh_file_name = m_config_dir + m_mesh_file_name;
+        if(m_extra_data_file != "N/A")
+        {
+            m_extra_data_file = m_config_dir + m_extra_data_file;
+        }
+        m_output_step_0 = prm.get_bool("Output timestep 0");
         
         m_scenario = (unsigned int) prm.get_integer("Scenario number");
         m_logfile_name = prm.get("Log file name");
@@ -775,13 +794,14 @@ void AllParameters::parse_parameters(ParameterHandler &prm)
 class Time
 {
 public:
-    Time(const double time_end)
+    Time(const double time_end,
+         const bool output_step_0)
     : m_timestep(0)
     , m_time_current(0.0)
     , m_time_end(time_end)
     , m_delta_t(0.0)
     , m_magnitude(1.0)
-    , m_need_output(true)
+    , m_need_output(output_step_0)
     {}
     
     virtual ~Time() = default;
@@ -816,7 +836,6 @@ public:
         double t_0 = 0;
         double t_1 = 0;
         unsigned int slot = 0;
-        bool has_found = false;
         for (unsigned int i = 0; i < time_table.size(); ++i)
         {
             const auto& time_group = time_table[i];
@@ -827,13 +846,11 @@ public:
             
             if (m_time_current < t_1 - 1.0e-6*m_delta_t)
             {
-                has_found = true;
                 slot = i;
                 break;
             }
         }
         
-        AssertThrow(has_found, ExcMessage("No active time slot found."));
         m_time_current += m_delta_t;
         
         const unsigned int step_in_slot = static_cast<unsigned int>(std::round((m_time_current - t_0) / m_delta_t));
@@ -1356,7 +1373,7 @@ private:
     
     SparseDirectUMFPACK       m_A_direct;
     
-    
+    std::unordered_map<std::string, double>     m_extra_data;
     std::map<unsigned int, std::vector<double>> m_material_data;
     
     std::vector<std::pair<double, std::vector<double>>> m_history_reaction_force;
@@ -1813,7 +1830,8 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
                               "the start time should be smaller than the end time"));
             time_table.push_back({{t_0, t_1, delta_t, t_magnitude}});
             // If the given interval is equal to 0, the output for this time step will be turned off.
-            if (interval == 0) {
+            if (interval == 0 || interval > std::round((t_1-t0)/delta_t)) {
+                m_logfile << intervals.size() << "-th time slot will NOT output any .vtu files." << std::endl;
                 interval = std::numeric_limits<unsigned int>::max();
             }
             intervals.push_back(interval);
@@ -2306,7 +2324,7 @@ PhaseFieldMonolithicSolve<LATraits, Tria>
                             Tria& tria)
 : m_parameters(parameters)
 , m_triangulation(tria)
-, m_time(m_parameters.m_end_time)
+, m_time(m_parameters.m_end_time, m_parameters.m_output_step_0)
 , m_mpiInfo(mpiInfo)
 , m_logfile(logfile)
 , m_timer(m_logfile, m_mpiInfo,
