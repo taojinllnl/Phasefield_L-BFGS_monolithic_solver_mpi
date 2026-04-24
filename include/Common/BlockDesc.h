@@ -136,17 +136,17 @@ public:
 
 
 template <int dim, int spacedim>
-void BlockDesc::updateDoFsInfo(dealii::DoFHandler<dim, spacedim>& dof_handler)
+void BlockDesc::updateDoFsInfo(::dealii::DoFHandler<dim, spacedim>& dof_handler)
 {
-    using namespace dealii;
+    using namespace ::dealii;
     
     
     if(!__dofs_per_block)
     {
-        __dofs_per_block = std::make_unique<std::vector<dealii::types::global_dof_index>>();
+        __dofs_per_block = std::make_unique<std::vector<types::global_dof_index>>();
     }
     
-    // the __dofs_per_block is rand-independent
+    // the __dofs_per_block is rank-independent
     (*__dofs_per_block) = DoFTools::count_dofs_per_fe_block(dof_handler, __groupIDs);
     
     
