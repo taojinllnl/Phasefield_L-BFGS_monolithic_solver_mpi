@@ -324,3 +324,13 @@ subsection Scenario
 
 end
 ```
+
+---
+
+### Key-value based extra data
+
+The extra data may be applied to specific tests, such as Case 13, 3-dimensional tensile test with two pre-existing cracks on the edge.
+ 
+For example, the parameters of geometry in Case 13 can be modified without re-compiling the binary file and will be read from the `.geo` file, which is used to generate the mesh via Gmsh. 
+Once the geometry is changed in the `.geo`, and the corresponding `.msh` file has been saved, the program can read the newly defined parameters and regenerated/generated .msh file.
+ 
