@@ -326,7 +326,7 @@ struct Scenario
 {
     unsigned int m_dim;
     std::string m_mpi_type;
-    std::string m_config_dir;
+    std::string m_library_dir;
     std::string m_output_dir;
     std::string m_mesh_file_name;
     std::string m_extra_data_file;
@@ -373,10 +373,10 @@ void Scenario::declare_parameters(ParameterHandler &prm)
                           Patterns::Selection("PETSc|Trilinos|Serial"),
                           "underlying mpi type");
         
-        prm.declare_entry("Config dir",
-                          "./",
+        prm.declare_entry("Library dir",
+                          "./library/",
                           Patterns::FileName(Patterns::FileName::input),
-                          "Configuration directory");
+                          "Library directory");
         
         prm.declare_entry("Output dir",
                           "./",
@@ -517,14 +517,16 @@ void Scenario::parse_parameters(ParameterHandler &prm)
     {
         m_dim  = (unsigned int)prm.get_integer("dimension");
         m_mpi_type = prm.get("mpi type");
-        m_config_dir = prm.get("Config dir");
+        m_library_dir = prm.get("Library dir");
         m_output_dir = prm.get("Output dir");
         m_mesh_file_name = prm.get("Mesh file name");
+        
         m_extra_data_file = prm.get("Extra data file");
-        m_mesh_file_name = m_config_dir + m_mesh_file_name;
+        m_mesh_file_name = m_library_dir + m_mesh_file_name;
+        
         if(m_extra_data_file != "N/A")
         {
-            m_extra_data_file = m_config_dir + m_extra_data_file;
+            m_extra_data_file = m_library_dir + m_extra_data_file;
         }
         m_output_step_0 = prm.get_bool("Output timestep 0");
         
@@ -550,6 +552,10 @@ void Scenario::parse_parameters(ParameterHandler &prm)
         m_total_material_regions = (unsigned int) prm.get_integer("Material regions");
         m_material_file_name = prm.get("Material data file");
         m_reaction_force_face_id = (unsigned int) prm.get_integer("Reaction force face ID");
+        
+        
+        
+        m_output_dir += m_refinement_strategy + "/" + m_phasefield_name + "/";
     }
     prm.leave_subsection();
 }
