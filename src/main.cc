@@ -4962,10 +4962,11 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
                         if (   (std::fabs(point[0] - x_loading) < 1.0e-9)
                             && (std::fabs(point[1] - Y1) < 1.0e-9) )
                         {
-                            const types::global_dof_index dofY = cell->vertex_dof_index(vertex, 1);
                             // node applied with y-displacement
-                            m_constraints.add_line(dofY);
-                            m_constraints.set_inhomogeneity(dofY, du_y);
+                            CstHelper::addPntCst(m_constraints,
+                                                 cell,
+                                                 vertex,
+                                                 1, du_y);
                         }
                     }
                 }
