@@ -1707,8 +1707,9 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::get_error_update(const BVector &
 }
 
 template <typename LATraits, typename Tria>
-void PhaseFieldMonolithicSolve<LATraits, Tria>::read_material_data(const std::string &data_file,
-                                                                   const unsigned int total_material_regions)
+void PhaseFieldMonolithicSolve<LATraits, Tria>
+::read_material_data(const std::string &data_file,
+                     const unsigned int total_material_regions)
 {
     std::ifstream myfile (data_file);
     
