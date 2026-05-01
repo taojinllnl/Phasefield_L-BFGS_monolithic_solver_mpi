@@ -1472,6 +1472,12 @@ private:
     Errors m_error_residual, m_error_residual_0, m_error_residual_norm, m_error_update,
     m_error_update_0, m_error_update_norm;
     
+    template <typename CellIter>
+    bool setRefineFlagByCellSize(CellIter&  cell,
+                                 const double hlRatio);
+    
+    void executeRefinement(bool& isRefineFlagSet);
+    
     void get_error_residual(Errors &error_residual);
     void get_error_update(const BVector &newton_update,
                           Errors & error_update);
@@ -1608,6 +1614,61 @@ private:
                      const typename LATraits::VectorBlock& H_vector,
                      const typename LATraits::VectorBlock& H_vector_rele);
 }; // class PhaseFieldMonolithicSolve
+
+
+
+
+template <typename LATraits, typename Tria>
+template <typename CellIter>
+bool PhaseFieldMonolithicSolve<LATraits, Tria>
+::setRefineFlagByCellSize(CellIter&  cell,
+                          const double hlRatio)
+{
+    bool initiation_point_refine_unfinished = false;
+    
+    const double lengthScale = m_material_data[cell->material_id()][2];
+    
+    double cellSize = 0;
+    
+    if constexpr (dim == 2)
+    {
+        cellSize = std::sqrt(cell->measure());
+    } else if constexpr (dim == 3)
+    {
+        cellSize = std::cbrt(cell->measure());
+    } else
+    {
+        AssertThrow(false,
+                    ExcMessage("The dimension should be " + std::to_string(dim)));
+    }
+    
+    if ( cellSize > lengthScale * hlRatio )
+    {
+        cell->set_refine_flag();
+        initiation_point_refine_unfinished = true;
+    }
+    
+    return initiation_point_refine_unfinished;
+}
+
+template <typename LATraits, typename Tria>
+void
+PhaseFieldMonolithicSolve<LATraits, Tria>
+::executeRefinement(bool& isRefineFlagSet)
+{
+    if constexpr (is_mpi) {
+        // accumulate local flag over all ranks
+        const unsigned int local_flag = isRefineFlagSet ? 1u : 0u;
+        const unsigned int global_flag =
+        Utilities::MPI::sum(local_flag, *m_mpiInfo.mpiCommPtr());
+        isRefineFlagSet = (global_flag > 0u);
+    }
+    if(isRefineFlagSet){
+        m_triangulation.execute_coarsening_and_refinement();
+        if constexpr(is_mpi && supportRepartioning) m_triangulation.repartition();
+    }
+}
+
 
 template <typename LATraits, typename Tria>
 void PhaseFieldMonolithicSolve<LATraits, Tria>::get_error_residual(Errors &error_residual)
