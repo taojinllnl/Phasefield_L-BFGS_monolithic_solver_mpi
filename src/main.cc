@@ -4949,6 +4949,19 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
         }
         else if (m_parameters.m_scenario == 9)
         {
+            
+            const double a  = m_extra_data.at("a");
+            const double Y1 = m_extra_data.at("Y1");
+            const double X1 = m_extra_data.at("X1");
+            const double X2 = m_extra_data.at("X2");
+            
+            const double x_loading = X1 + X2 - a;
+            
+            
+            const double time_inc = m_time.get_delta_t();
+            const double disp_magnitude = m_time.get_magnitude();
+            const double du_y = disp_magnitude * time_inc;
+            
             // Dirichlet B,C. bottom surface
             const int boundary_id_bottom_surface = 0;
             VectorTools::interpolate_boundary_values(m_dof_handler,
@@ -4971,16 +4984,13 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
                         
                         const Point<dim> point = cell->vertex(vertex);
                         
-                        if (   (std::fabs(point[0] - 470.0) < 1.0e-9)
-                            && (std::fabs(point[1] - 250.0) < 1.0e-9) )
+                        if (   (std::fabs(point[0] - x_loading) < 1.0e-9)
+                            && (std::fabs(point[1] - Y1) < 1.0e-9) )
                         {
                             const types::global_dof_index dofY = cell->vertex_dof_index(vertex, 1);
                             // node applied with y-displacement
-                            const double time_inc = m_time.get_delta_t();
-                            double disp_magnitude = m_time.get_magnitude();
-                            
                             m_constraints.add_line(dofY);
-                            m_constraints.set_inhomogeneity(dofY, disp_magnitude*time_inc);
+                            m_constraints.set_inhomogeneity(dofY, du_y);
                         }
                     }
                 }
@@ -4991,16 +5001,14 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
                 
                 for (; vertex_itr != m_triangulation.end_vertex(); ++vertex_itr)
                 {
-                    if (   (std::fabs(vertex_itr->vertex()[0] - 470.0) < 1.0e-9)
-                        && (std::fabs(vertex_itr->vertex()[1] - 250.0) < 1.0e-9) )
+                    if (   (std::fabs(vertex_itr->vertex()[0] - x_loading) < 1.0e-9)
+                        && (std::fabs(vertex_itr->vertex()[1] - Y1) < 1.0e-9) )
                     {
                         node_disp_control = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
                         // node applied with y-displacement
-                        const double time_inc = m_time.get_delta_t();
-                        double disp_magnitude = m_time.get_magnitude();
-                        
                         m_constraints.add_line(node_disp_control[1]);
-                        m_constraints.set_inhomogeneity(node_disp_control[1], disp_magnitude*time_inc);
+                        m_constraints.set_inhomogeneity(node_disp_control[1],
+                                                        du_y);
                     }
                 }
             }
