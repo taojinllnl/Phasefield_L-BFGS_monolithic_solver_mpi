@@ -1496,6 +1496,8 @@ private:
     void make_grid_case_11();
     void make_grid_case_12();
     void make_grid_case_13();
+    void make_grid_case_14();
+    void make_grid_case_15();
     
     void setup_system();
     
