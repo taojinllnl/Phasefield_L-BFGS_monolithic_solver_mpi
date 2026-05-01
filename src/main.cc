@@ -1431,7 +1431,9 @@ private:
     
     SparseDirectUMFPACK       m_A_direct;
     
-    std::unordered_map<std::string, double>     m_extra_data;
+    std::unordered_map<std::string, const double>           m_extra_data;
+    std::unordered_map<std::string, const unsigned int>     m_bcs_id;
+    
     std::map<unsigned int, std::vector<double>> m_material_data;
     
     std::vector<std::pair<double, std::vector<double>>> m_history_reaction_force;
