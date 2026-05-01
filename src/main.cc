@@ -5180,6 +5180,367 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
                                                      m_constraints,
                                                      m_fe.component_mask(z_displacement));
         }
+        else if (m_parameters.m_scenario == 14)
+        {
+            // Dirichlet B.C. bottom surface (z = 0)
+                    
+            const double time_inc = m_time.get_delta_t();
+            double disp_magnitude_x = m_time.get_magnitude(0);
+            double disp_magnitude_z = m_time.get_magnitude(1);
+            const double displacement_x = disp_magnitude_x*time_inc;
+            const double displacement_z = disp_magnitude_z*time_inc;
+            
+            const auto dx = Functions::ConstantFunction<dim>(displacement_x,
+                                                             m_n_components);
+            const auto dx_ = Functions::ConstantFunction<dim>(-displacement_x,
+                                                              m_n_components);
+            
+            const auto dz = Functions::ConstantFunction<dim>(displacement_z,
+                                                             m_n_components);
+            const auto dz_ = Functions::ConstantFunction<dim>(-displacement_z,
+                                                              m_n_components);
+            
+            
+            const auto shear = m_fe.component_mask(x_displacement);
+            auto tensile = m_fe.component_mask(y_displacement);
+            if constexpr (dim == 3)
+            {
+                tensile = m_fe.component_mask(z_displacement);
+            }
+            
+            VectorTools::interpolate_boundary_values(m_dof_handler,
+                                                     m_bcs_id.at("btm"),
+                                                     dz_,
+                                                     m_constraints,
+                                                     tensile);
+            
+            VectorTools::interpolate_boundary_values(m_dof_handler,
+                                                     m_bcs_id.at("top"),
+                                                     dz,
+                                                     m_constraints,
+                                                     tensile);
+            
+            
+            VectorTools::interpolate_boundary_values(m_dof_handler,
+                                                     m_bcs_id.at("top"),
+                                                     dx_,
+                                                     m_constraints,
+                                                     shear);
+            
+            
+            VectorTools::interpolate_boundary_values(m_dof_handler,
+                                                     m_bcs_id.at("btm"),
+                                                     dx,
+                                                     m_constraints,
+                                                     shear);
+            
+            
+        }
+        else if (   m_parameters.m_scenario == 15)
+        {
+            /**
+            Three-point bending
+                ex3 < 0
+                ex4 < 0
+                dz  > 0
+                                  load = dz > 0
+                                    ↓  x = halfLength
+            + ---|------------------|------------------|---  ---> x
+            | ---|                                     |---
+            | ---|------------------^------------------|---
+            |    ▲ support                             ▲ support
+            |    ex1 fixed x,y,z                       ex2 fixed y,z
+            |
+            v z
+             
+            
+            Four-point bending (1)
+                ex3 > 0
+                ex4 > 0
+                dz  > 0
+                       load = dz > 0     load = dz > 0
+                              ↓ x = ex3   ↓ x = ex4
+            + ---|------------|-----------|------------|--- ---> x
+            | ---|                                     |---
+            | ---|------------|-----^-----|------------|---
+            |    ▲ support                             ▲ support
+            |    ex1 fixed x,y,z                      ex2 fixed y,z
+            |
+            v z
+             
+             
+            Four-point bending (2)
+                ex3 > 0
+                ex4 > 0
+                dz  < 0
+            ^ z
+            |   load = dz < 0                            load = dz < 0
+            |    ↓ ex1                                     ↓ ex2
+            | ---|-------------|------v-------|------------|---
+            | ---|                                         |---
+            + ---|-------------|--------------|------------|--- ---> x
+                               ▲ support      ▲ support
+                               ex3            ex4
+                               fixed x,y,z    fixed y,z
+             */
+            
+            if constexpr (dim == 3)
+            {
+                const double ex1     = m_extra_data.at("ex1");
+                const double ex2     = m_extra_data.at("ex2");
+                const double ex3     = m_extra_data.at("ex3");
+                const double ex4     = m_extra_data.at("ex4");
+                
+                const bool isFourPntBending  = (ex3 > 0.0 && ex4 > 0.0);
+                
+                
+                const double length = m_extra_data.at("length");
+                const double x_crack_factor = m_extra_data.at("x_crack_factor");
+                
+                const double halfLength = length * x_crack_factor;
+                const double ex1_x  = ex1;
+                const double ex2_x  = length - ex2;
+                
+                const double ex3_x  = ex3;
+                const double ex4_x  = length - ex4;
+                
+                if (isFourPntBending)
+                {
+                    AssertThrow(ex1_x < ex3_x && ex3_x < ex4_x && ex4_x < ex2_x,
+                                ExcMessage("Invalid four-point bending geometry: expected ex1_x < ex3_x < ex4_x < ex2_x."));
+                }
+                
+                
+                const double intactZ  = 0.0;
+                const double notchedZ = m_extra_data.at("height");
+                
+                // top-center node applied with y-displacement
+                const double time_inc = m_time.get_delta_t();
+                const double disp_magnitude = m_time.get_magnitude();
+                double dz = time_inc * disp_magnitude;
+                
+                if(!isFourPntBending)
+                {
+                    // guarantee the dz is positive in the three-point bending
+                    if (dz < 0) dz = -dz;
+                }
+                
+                const bool isdzPositive = dz > 0 ? true : false;
+                
+                using namespace bcs;
+                                
+                if constexpr (is_mpi)
+                {
+                    std::vector<bool> locally_owned_vertices =  GridTools::get_locally_owned_vertices(m_dof_handler.get_triangulation());
+                    
+                    for (auto const & cell : m_dof_handler.active_cell_iterators())
+                    {
+                        if (!cell->is_locally_owned() || !cell->at_boundary()) continue;
+                        
+                        
+                        for (const auto vertex : cell->vertex_indices())
+                        {
+                            // skip ghost cells
+                            if (!locally_owned_vertices[cell->vertex_index(vertex)]) continue;
+                            
+                            const Point<dim> point = cell->vertex(vertex);
+                            const double x = point[0];
+                            const double z = point[2];
+                            
+                            if (   (std::fabs(x - ex1_x)    < 1.0e-9)
+                                && (std::fabs(z - notchedZ) < 1.0e-9) )
+                            {
+                                if(isdzPositive) 
+                                {
+                                    // Three-point + Four-point bending (1)
+                                    // the line fixed along x, y, and z on the notched surface
+                                    CstHelper::addPntCst(m_constraints,
+                                                         cell, vertex, 0);
+                                    CstHelper::addPntCst(m_constraints,
+                                                         cell, vertex, 1);
+                                    CstHelper::addPntCst(m_constraints,
+                                                         cell, vertex, 2);
+                                } else {
+                                    // forth-point bending (2)
+                                    // loading point
+                                    CstHelper::addPntCst(m_constraints,
+                                                         cell, vertex, 2, dz);
+                                }
+                                
+                                continue;
+                            }
+                            
+                            if (   (std::fabs(x - ex2_x)    < 1.0e-9)
+                                && (std::fabs(z - notchedZ) < 1.0e-9) )
+                            {
+                                if(isdzPositive)
+                                {
+                                    // Three-point + Four-point bending (1)
+                                    // the line fixed along y, and z on the notched surface
+                                    CstHelper::addPntCst(m_constraints,
+                                                         cell, vertex, 1);
+                                    CstHelper::addPntCst(m_constraints,
+                                                         cell, vertex, 2);
+                                } else {
+                                    // Forth-point bending (2)
+                                    // loading point
+                                    CstHelper::addPntCst(m_constraints,
+                                                         cell, vertex, 2, dz);
+                                }
+                                continue;
+                            }
+                            
+                            if (!isFourPntBending
+                                && (std::fabs(x - halfLength) < 1.0e-9)
+                                && (std::fabs(z - intactZ)    < 1.0e-9) )
+                            {
+                                // Three-point bending
+                                // top-center nodes applied with z-displacement
+                                CstHelper::addPntCst(m_constraints,
+                                                     cell, vertex, 2, dz);
+                                continue;
+                            }
+                            else if (isFourPntBending)
+                            {
+                                if (   (std::fabs(z - intactZ)  < 1.0e-9)
+                                    &&(   (std::fabs(x - ex3_x)    < 1.0e-9)
+                                       || (std::fabs(x - ex4_x)    < 1.0e-9)))
+                                {
+                                    if(isdzPositive)
+                                    {
+                                        // Four-point bending (1)
+                                        // the line fixed along x, y, and z on the notched surface
+                                        CstHelper::addPntCst(m_constraints,
+                                                             cell, vertex,
+                                                             2, dz);
+                                        
+                                    } else {
+                                        // Four-point bending (2)
+                                        // the line fixed along x, y, and z on the notched surface
+                                        if(std::fabs(x - ex3_x) < 1.0e-9)
+                                            CstHelper::addPntCst(m_constraints,
+                                                                 cell,
+                                                                 vertex, 0);
+                                        CstHelper::addPntCst(m_constraints,
+                                                             cell, vertex, 1);
+                                        CstHelper::addPntCst(m_constraints,
+                                                             cell, vertex, 2);
+                                    }
+                                    continue;
+                                }
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    typename Triangulation<dim>::active_vertex_iterator vertex_itr;
+                    vertex_itr = m_triangulation.begin_active_vertex();
+                    std::vector<types::global_dof_index> node_notched_ex1_x(m_fe.dofs_per_vertex);
+                    std::vector<types::global_dof_index> node_notched_ex2_x(m_fe.dofs_per_vertex);
+                    std::vector<types::global_dof_index> intact_ex3_4(m_fe.dofs_per_vertex);
+
+                    std::vector<types::global_dof_index> node_topcenter(m_fe.dofs_per_vertex);
+                    
+                    for (; vertex_itr != m_triangulation.end_vertex(); ++vertex_itr)
+                    {
+                        const double x = vertex_itr->vertex()[0];
+                        const double z = vertex_itr->vertex()[2];
+                        
+                        if (   (std::fabs(x - ex1_x)    < 1.0e-9)
+                            && (std::fabs(z - notchedZ) < 1.0e-9) )
+                        {
+                            node_notched_ex1_x = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
+                            if(isdzPositive)
+                            {
+                                // Three-point + Four-point bending (1)
+                                // the line fixed along x, y, and z on the notched surface
+                                CstHelper::addPntCst(m_constraints,
+                                                     node_notched_ex1_x[0]);
+                                CstHelper::addPntCst(m_constraints,
+                                                     node_notched_ex1_x[1]);
+                                CstHelper::addPntCst(m_constraints,
+                                                     node_notched_ex1_x[2]);
+                                
+                            } else {
+                                // forth-point bending (2)
+                                // loading point
+                                CstHelper::addPntCst(m_constraints,
+                                                     node_notched_ex1_x[2],
+                                                     dz);
+                            }
+                            
+                            continue;
+                        }
+                        
+                        if (   (std::fabs(x - ex2_x)    < 1.0e-9)
+                            && (std::fabs(z - notchedZ) < 1.0e-9) )
+                        {
+                            node_notched_ex2_x = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
+                            if(isdzPositive)
+                            {
+                                // Three-point + Four-point bending (1)
+                                // the line fixed along y, and z on the notched surface
+                                CstHelper::addPntCst(m_constraints,
+                                                     node_notched_ex2_x[1]);
+                                CstHelper::addPntCst(m_constraints,
+                                                     node_notched_ex2_x[2]);
+                            } else {
+                                // Forth-point bending (2)
+                                // loading point
+                                CstHelper::addPntCst(m_constraints,
+                                                     node_notched_ex2_x[2],
+                                                     dz);
+                            }
+                            continue;
+                        }
+                        
+                        if (!isFourPntBending
+                            && (std::fabs(x - halfLength) < 1.0e-9)
+                            && (std::fabs(z - intactZ)    < 1.0e-9) )
+                        {
+                            node_topcenter = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
+                            
+                            // Three-point bending
+                            // top-center nodes applied with z-displacement
+                            CstHelper::addPntCst(m_constraints,
+                                                 node_topcenter[2], dz);
+                            continue;
+                        }
+                        else if (isFourPntBending)
+                        {
+                            if (   (std::fabs(z - intactZ)  < 1.0e-9)
+                                &&(   (std::fabs(x - ex3_x)    < 1.0e-9)
+                                   || (std::fabs(x - ex4_x)    < 1.0e-9)))
+                            {
+                                intact_ex3_4 = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
+                                
+                                if(isdzPositive)
+                                {
+                                    // Four-point bending (1)
+                                    // the line fixed along x, y, and z on the notched surface
+                                    CstHelper::addPntCst(m_constraints,
+                                                         intact_ex3_4[2], dz);
+                                } else {
+                                    // Four-point bending (2)
+                                    // the line fixed along x, y, and z on the notched surface
+                                    if(std::fabs(x - ex3_x) < 1.0e-9)
+                                        CstHelper::addPntCst(m_constraints,
+                                                             intact_ex3_4[0]);
+                                    CstHelper::addPntCst(m_constraints,
+                                                         intact_ex3_4[1]);
+                                    CstHelper::addPntCst(m_constraints,
+                                                         intact_ex3_4[2]);
+                                }
+                                continue;
+                            }
+                        }
+                        
+                        
+                    }
+                }
+            }
+        }
         else
             Assert(false, ExcMessage("The scenario has not been implemented!"));
         
