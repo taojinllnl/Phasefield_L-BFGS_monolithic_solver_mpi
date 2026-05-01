@@ -4188,6 +4188,307 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_13()
 
 
 template <typename LATraits, typename Tria>
+void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_14()
+{
+    for (unsigned int i = 0; i < 80; ++i)
+        m_logfile << "*";
+    m_logfile << std::endl;
+    m_logfile << "\t\t\tNooru-Mohamed test " << dim << "d (structured)" << std::endl;
+    for (unsigned int i = 0; i < 80; ++i)
+        m_logfile << "*";
+    m_logfile << std::endl;
+    
+    
+    GridIn<dim> gridin;
+    gridin.attach_triangulation(m_triangulation);
+    std::ifstream f(m_parameters.m_mesh_file_name);
+    gridin.read_msh(f);
+    
+    for (const auto &cell : m_triangulation.cell_iterators())
+    {
+        cell->set_material_id(0);
+    }
+    
+    m_triangulation.refine_global(m_parameters.m_global_refine_times);
+    
+    
+    if(m_extra_data.empty())
+    {
+        const std::vector<std::string> parameter_names = {
+            "L", "W", "H",
+            "L1", "L2", "W1", "W2",
+            "H1", "H2",
+            "C1", "C2",
+            "lc"
+        };
+        common::DataListReader::read_keys_values(m_parameters.m_extra_data_file,
+                                                 parameter_names,
+                                                 m_extra_data);
+    }
+    
+    
+    
+    const double bw_z  = 0.030;
+    const double bw_xy = 0.030;
+    
+    // global dimensions
+    const double L  = m_extra_data.at("L");   // total length  (x direction)
+    const double W  = m_extra_data.at("W");   // total width   (y direction)
+    
+    // crack-plan sizes in top view
+    const double L1 = m_extra_data.at("L1");    // x-size of C1 patch from left boundary
+    const double L2 = m_extra_data.at("L2");    // x-size of C2 patch from right boundary
+    const double W1 = m_extra_data.at("W1");    // y-size of C1 patch from top boundary
+    const double W2 = m_extra_data.at("W2");    // y-size of C2 patch from bottom boundary
+    
+    // crack heights in front view
+    const double H1 = m_extra_data.at("H1");    // height of C1 crack
+    const double H2 = m_extra_data.at("H2");    // height of C2 crack
+    
+    
+    
+    // x partition: [0, L1] [middle] [L-L2, L]
+    const double x1 = L1;
+    const double x2 = L - L2;
+    
+    // y partition: [0, W2] [middle] [W-W1, W]
+    const double y1 = W2;
+    const double y2 = W - W1;
+    
+    // z partition: [0, H2] [H2, H1] [H1, H]
+    const double z1 = H2;
+    const double z2 = H1;
+    
+    const double hlRatio = m_parameters.m_allowed_max_h_l_ratio;
+    
+    if (m_parameters.m_refinement_strategy == "adaptive-refine")
+    {
+        bool initiation_point_refine_unfinished = true;
+        while (initiation_point_refine_unfinished)
+        {
+            initiation_point_refine_unfinished = false;
+            for (const auto &cell : m_triangulation.active_cell_iterators())
+            {
+                if constexpr (is_mpi) {
+                    if (!cell->is_locally_owned()) continue;
+                }
+                
+                const double x = cell->center()[0];
+                const double y = cell->center()[1];
+                
+                bool willBeRefined = false;
+                if constexpr (dim == 2)
+                {
+                    willBeRefined = (    std::fabs(y - H1) < bw_z
+                                     &&  std::fabs(x - x1) < bw_xy)
+                    || ( std::fabs(y - H2) < bw_z
+                        &&  std::fabs(x - x2) < bw_xy);
+                }
+                else if constexpr (dim == 3) {
+                    const double z = cell->center()[2];
+                    
+                    willBeRefined = (std::fabs(z - z1) < bw_z
+                                     &&(   ((std::fabs(x - x2) < bw_xy)) ))
+                    || (std::fabs(z - z2) < bw_z
+                        &&   ((std::fabs(x - x1) < bw_xy)   ));
+                }
+                        
+                        
+                if (willBeRefined)
+                {
+                    initiation_point_refine_unfinished = setRefineFlagByCellSize(cell, hlRatio);
+                }
+            }
+            executeRefinement(initiation_point_refine_unfinished);
+        }
+    }
+    else if (m_parameters.m_refinement_strategy == "pre-refine")
+    {
+        bool initiation_point_refine_unfinished = true;
+        
+        
+        const double upper = H1 + 0.05;
+        const double lower = H2 - 0.05;
+        
+        const double x1_mod = x1 - bw_xy;
+        const double x2_mod = x2 + bw_xy;
+        const double y1_mod = y1 - bw_xy;
+        const double y2_mod = y2 + bw_xy;
+        
+        while (initiation_point_refine_unfinished)
+        {
+            initiation_point_refine_unfinished = false;
+            for (const auto &cell : m_triangulation.active_cell_iterators())
+            {
+                if constexpr (is_mpi) {
+                    if (!cell->is_locally_owned()) continue;
+                }
+                if constexpr (dim == 3) {
+                    const double z = cell->center()[2];
+                    
+                    if (! (z <= upper && z >= lower)) continue;;
+                }
+                
+                const double x = cell->center()[0];
+                const double y = cell->center()[1];
+                if (    (x <= x1_mod && y <= y2_mod)
+                    ||  (x >= x1_mod && x <= x2_mod)
+                    ||  (x >= x2_mod && y >= y1_mod))
+                {
+                    initiation_point_refine_unfinished = setRefineFlagByCellSize(cell, hlRatio);
+                }
+                
+            }
+            executeRefinement(initiation_point_refine_unfinished);
+        }
+    }
+    else
+    {
+        AssertThrow(false,
+                    ExcMessage("Selected mesh refinement strategy not implemented!"));
+    }
+    
+}
+
+
+
+template <typename LATraits, typename Tria>
+void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_15()
+{
+    if(m_extra_data.empty())
+    {
+        
+        const std::vector<std::string> parameter_names = {
+            "length", "thickness", "height",
+            "ex1", "ex2", "ex3", "ex4",
+            "crack_depth", "theta", "x_crack_factor", "notch_width_normal"
+        };
+        common::DataListReader::read_keys_values(m_parameters.m_extra_data_file,
+                                                 parameter_names,
+                                                 m_extra_data);
+    }
+    
+
+    const double ex3     = m_extra_data.at("ex3");
+    const double ex4     = m_extra_data.at("ex4");
+    const bool isThreePntBending = (ex3 < 0.0 && ex4 < 0.0);
+    const bool isFourPntBending  = (ex3 > 0.0 && ex4 > 0.0);
+    
+    for (unsigned int i = 0; i < 80; ++i)
+        m_logfile << "*";
+    m_logfile << "\n\t\t\t3D notched beam bending with slanted notch (structured)\n\t\t\ttheta: " <<  std::round(m_extra_data.at("theta")* 180.0 / std::acos(-1.0)*1e2) / 1e2 << "º\n\t\t\t";
+    if(isThreePntBending)
+    {
+        m_logfile << "3-point bending" << std::endl;
+    }
+    else if(isFourPntBending)
+    {
+        m_logfile << "4-point bending [ loading at ";
+        if(m_time.get_magnitude() > 0)
+        {
+            m_logfile << "notched end (z = " << m_extra_data.at("height") << ")]" << std::endl;
+        } 
+        else 
+        {
+            m_logfile << "intact end (z = 0) ]" << std::endl;
+        }
+    }
+    else
+    {
+        
+        m_logfile << "Invalid parameters: ex3 and ex4 must both be negative for three-point bending or both positive for four-point bending."<< std::endl;
+        
+        AssertThrow(isThreePntBending || isFourPntBending,
+                    ExcMessage("Invalid parameters: ex3 and ex4 must both be negative for three-point bending or both positive for four-point bending."));
+    }
+    for (unsigned int i = 0; i < 80; ++i)
+        m_logfile << "*";
+    m_logfile << std::endl;
+    
+    
+    if constexpr (dim == 3) {
+        
+        GridIn<dim> gridin;
+        gridin.attach_triangulation(m_triangulation);
+        std::ifstream f(m_parameters.m_mesh_file_name);
+        gridin.read_msh(f);
+
+        for (const auto &cell : m_triangulation.cell_iterators())
+        {
+            cell->set_material_id(0);
+        }
+        
+        m_triangulation.refine_global(m_parameters.m_global_refine_times);
+        
+        const double hlRatio = m_parameters.m_allowed_max_h_l_ratio;
+        
+        // global dimensions
+        const double x_crack_factor = m_extra_data.at("x_crack_factor");
+        const double halfLength     = m_extra_data.at("length") * x_crack_factor;
+        const double halfThickness  = m_extra_data.at("thickness") * 0.5;
+        // crack heights
+        const double Hc = m_extra_data.at("height") - m_extra_data.at("crack_depth") ;// height of C1 crack
+        const double tan_theta = std::tan(m_extra_data.at("theta"));
+                
+        
+        
+        double       bandWidth_x          = 5.0;
+        double       offset_z_under_crack = 0.0;
+        const double offset_z_above_crack = 1.0;
+        
+        if(m_parameters.m_refinement_strategy == "adaptive-refine")
+        {
+            offset_z_under_crack  = 4.0;
+        }
+        else if(m_parameters.m_refinement_strategy == "pre-refine")
+        {
+            bandWidth_x           = halfThickness*tan_theta * 1.35;
+            offset_z_under_crack  = Hc;
+        }
+        else
+        {
+            AssertThrow(false,
+                        ExcMessage("Selected mesh refinement strategy not implemented!"));
+        }
+        
+
+        bool initiation_point_refine_unfinished = true;
+        
+        while (initiation_point_refine_unfinished)
+        {
+            initiation_point_refine_unfinished = false;
+            for (const auto &cell : m_triangulation.active_cell_iterators())
+            {
+                if constexpr (is_mpi) {
+                    if (!cell->is_locally_owned()) continue;
+                }
+                
+                const Point<3> center = cell->center();
+                const double x = center[0];
+                const double y = center[1];
+                const double z = center[2];
+                
+                if (   z <= (Hc + offset_z_above_crack)
+                    && z >  (Hc - offset_z_under_crack) &&
+                    (std::fabs(x  - halfLength - (y - halfThickness)*tan_theta) < bandWidth_x)
+                    )
+                {
+                    initiation_point_refine_unfinished = setRefineFlagByCellSize(cell, hlRatio);
+                }
+            }
+            
+            executeRefinement(initiation_point_refine_unfinished);
+        }
+        
+    }
+    else
+    {
+        AssertThrow(false, ExcMessage("The dimension has to be 2D!"));
+    }
+}
+
+
+template <typename LATraits, typename Tria>
 void PhaseFieldMonolithicSolve<LATraits, Tria>::setup_system()
 {
     const std::string sectionName = "Setup system";
