@@ -13,7 +13,7 @@ subsection Scenario
   set Config dir = ./cases/3D_notched_beam_bending/
   
   # Output directory
-  set Output dir = ./output/Case_15/pre_refine/AT2/
+  set Output dir = ./output/Case_15/
   
   # Mesh file name (starting from `Config dir`. default: `Config dir`)
   set Mesh file name = ../MeshLib/mshFiles/3PntBendingVNotch/260mmX10mmX60mm/20mmX2mmCrack/45degree.msh
@@ -92,7 +92,7 @@ subsection Scenario
   set Material regions = 1
   
   # Material data file name
-  set Material data file = settings/materialDataFile_AT2
+  set Material data file = material/PolyMethyl_MethAccrylate_PMMA/l=1.0/AT2/materialDataFile
   
   # Reaction forces face ID (negative number means not to find reaction force)
   set Reaction force face ID = 0
@@ -149,5 +149,5 @@ subsection Time
   set End time       = 1.0
   
   # Time data groups
-  set Time data file = settings/timeDataFile_AT2
+  set Time data file = ./cases/3D_notched_beam_bending/settings/timeDataFile_AT2
 end

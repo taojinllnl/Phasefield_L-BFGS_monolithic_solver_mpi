@@ -8,18 +8,18 @@ subsection Scenario
   # underlying mpi type: (PETSc|Trilinos|Serial)
   set mpi type = PETSc
   
-  
-  # Configuration directory
-  set Config dir = ./cases/3D_tensile_notches/
-  
   # Output directory
-  set Output dir = ./output/Case_13/adaptive_refine/AT2/
+  set Output dir = ./output/Case_13/
   
-  # Mesh file name (starting from `Config dir`. default: `Config dir`)
-  set Mesh file name = ../MeshLib/mshFiles/edgeNothcedCube/1mmX1mmX1mm/0.3mmX0.3mmCracks/0.2mmDistance.msh
+  # Library directory
+  set Library dir = ./library/
   
-  # Extra data file (starting from `Config dir`. default: `N/A`)
-  set Extra data file = ../MeshLib/prms/edgeNothcedCube/1mmX1mmX1mm/0.3mmX0.3mmCracks/0.2mmDistance.geo
+  
+  # Mesh file name (starting from `Library dir`)
+  set Mesh file name = mesh/mshFiles/edgeNothcedCube/1mmX1mmX1mm/0.3mmX0.3mmCracks/0.2mmDistance.msh
+  
+  # Extra data file (starting from `Library dir`. default: `N/A`)
+  set Extra data file = mesh/prms/edgeNothcedCube/1mmX1mmX1mm/0.3mmX0.3mmCracks/0.2mmDistance.geo
   
   # If this is set to yes, the visualization file for the initial state will be written. (yes|no)
   set Output timestep 0 = yes
@@ -31,12 +31,12 @@ subsection Scenario
   # 4 - square shear   (2D structured mesh)
   # 5 - three-point bending (2D structured mesh)
   # 6 - 3D sphere inclusion (3D structured mesh 1)
-  # 7 - 3D sphere inclusion (3D structured mesh 2) 
-  # 8 - 3D sphere inclusion (3D structured mesh 2 with barriers) 
-  # 9 - 2D L-shape bending (2D structured) 
+  # 7 - 3D sphere inclusion (3D structured mesh 2)
+  # 8 - 3D sphere inclusion (3D structured mesh 2 with barriers)
+  # 9 - 2D L-shape bending (2D structured)
   #11 - 3D torsion (3D structured)
   #13 - 3D tensile notches (3D structured)
-  #14 - 3D shear notches (3D structured)
+  #14 - 2D/3D Nooru-Mohamed test (2D/3D structured)
   #15 - 3D notched beam bending (3D structured)
   set Scenario number = 13
   
@@ -99,7 +99,7 @@ subsection Scenario
   set Material regions = 1
   
   # Material data file name
-  set Material data file = settings/materialDataFile_AT2
+  set Material data file = material/concrete/A/ft=0.003/l=0.015/AT2/materialDataFile
   
   # Reaction forces face ID (negative number means not to find reaction force)
   set Reaction force face ID = 900
@@ -156,5 +156,5 @@ subsection Time
   set End time       = 6.0e-3
   
   # Time data groups
-  set Time data file = settings/timeDataFile_AT2
+  set Time data file = cases/3D_tensile_edge_notches/settings/timeDataFile_AT2
 end

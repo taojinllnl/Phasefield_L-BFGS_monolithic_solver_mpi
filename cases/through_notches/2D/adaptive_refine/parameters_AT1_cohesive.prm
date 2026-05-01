@@ -8,18 +8,18 @@ subsection Scenario
   # underlying mpi type: (PETSc|Trilinos|Serial)
   set mpi type = PETSc
   
-  
-  # Configuration directory
-  set Config dir = ./cases/through_notches/
-  
   # Output directory
-  set Output dir = ./output/Case_13/adaptive_refine/AT1-Cohesive/
+  set Output dir = ./output/Case_14/2D/
   
-  # Mesh file name (starting from `Config dir`. default: `Config dir`)
-  set Mesh file name = ../MeshLib/3D_tensile_notches.msh
+  # Library directory
+  set Library dir = ./library/
 
-  # Extra data file (starting from `Config dir`. default: `N/A`)
-  set Extra data file = ../MeshLib/geoFiles/3D_tensile_notches.geo
+  
+  # Mesh file name (starting from `Library dir`)
+  set Mesh file name = mesh/mshFiles/throughVNotchedCube/1mmX1mm/0.3mmCracks/0.2mmDistance.msh
+  
+  # Extra data file (starting from `Library dir`. default: `N/A`)
+  set Extra data file = mesh/prms/throughVNotchedCube/1mmX1mm/0.3mmCracks/0.2mmDistance.geo
 
   # Geometry, loading and boundary conditions scenario
   # 1 - square tension (2D unstructured mesh)
@@ -33,9 +33,9 @@ subsection Scenario
   # 9 - 2D L-shape bending (2D structured)
   #11 - 3D torsion (3D structured)
   #13 - 3D tensile notches (3D structured)
-  #14 - 3D shear notches (3D structured)
+  #14 - 2D/3D Nooru-Mohamed test (2D/3D structured)
   #15 - 3D notched beam bending (3D structured)
-  set Scenario number = 13
+  set Scenario number = 14
   
   # Name of the log file
   set Log file name = 2D_Nooru_Mohamed_structured
@@ -96,7 +96,7 @@ subsection Scenario
   set Material regions = 1
   
   # Material data file name
-  set Material data file = settings/materialDataFile_AT1_cohesive
+  set Material data file = material/concrete/A/ft=0.003/l=0.0075/AT1_cohesive/materialDataFile_quasi_linear
   
   # Reaction forces face ID (negative number means not to find reaction force)
   set Reaction force face ID = 0
@@ -151,7 +151,11 @@ end
 subsection Time
   # End time
   set End time       = 7.0e-3
-  
+
+  # Number of factors
+  set n factors = 2
+
+
   # Time data groups
-  set Time data file = settings/timeDataFile_AT1_cohesive
+  set Time data file = cases/through_notches/settings/timeDataFile_AT1_cohesive
 end

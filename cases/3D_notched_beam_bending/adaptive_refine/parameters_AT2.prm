@@ -9,11 +9,14 @@ subsection Scenario
   set mpi type = PETSc
   
   
-  # Configuration directory
-  set Library dir = ./library/
   
   # Output directory
-  set Output dir = ./output/Case_15/adaptive_refine/AT2/
+  set Output dir = ./output/Case_15/
+  
+  
+  # Library directory
+  set Library dir = ./library/
+
   
   # Mesh file name (starting from `Library dir`)
   set Mesh file name = mesh/mshFiles/3PntBendingVNotch/260mmX10mmX60mm/20mmX2mmCrack/45degree.msh
@@ -30,7 +33,7 @@ subsection Scenario
   # 6 - 3D sphere inclusion (3D structured mesh 1)
   # 7 - 3D sphere inclusion (3D structured mesh 2) 
   # 8 - 3D sphere inclusion (3D structured mesh 2 with barriers) 
-  # 9 - 2D/3D L-shape bending (2D/3D structured) 
+  # 9 - 2D/3D L-shape bending (2D/3D structured)
   #11 - 3D torsion (3D structured)
   #13 - 3D tensile notches (3D structured)
   #14 - 3D shear notches (3D structured)
@@ -153,5 +156,5 @@ subsection Time
   set End time       = 1.0
   
   # Time data groups
-  set Time data file = settings/timeDataFile_AT2
+  set Time data file = ./cases/3D_notched_beam_bending/settings/timeDataFile_AT2
 end

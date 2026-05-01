@@ -9,15 +9,21 @@ subsection Scenario
   set mpi type = Trilinos
   
   
-  # Configuration directory
-  set Config dir = ./cases/L_shape_bending_cyclic_loading/pre_refine/AT1/
-  
   # Output directory
-  set Output dir = ./output/Case_9/pre_refine/AT1/
+  set Output dir = ./output/Case_9/2D/
   
-  # Mesh file name (starting from `Config dir`. default: `Config dir`)
-  set Mesh file name = ../../L-Shape.msh
-
+  # Library directory
+  set Library dir = ./library/
+  
+  
+  # Mesh file name (starting from `Library dir`)
+  set Mesh file name = mesh/mshFiles/LShapeBending/250mmX250mmX250mmX250mm/0mmThickness30mmLoading.msh
+  
+  # Extra data file (starting from `Library dir`. default: `N/A`)
+  set Extra data file = mesh/prms/LShapeBending/250mmX250mmX250mmX250mm/0mmThickness30mmLoading.geo
+  
+  # If this is set to yes, the visualization file for the initial state will be written. (yes|no)
+  set Output timestep 0 = yes
 
   # Geometry, loading and boundary conditions scenario
   # 1 - square tension (2D unstructured mesh)
@@ -26,9 +32,13 @@ subsection Scenario
   # 4 - square shear   (2D structured mesh)
   # 5 - three-point bending (2D structured mesh)
   # 6 - 3D sphere inclusion (3D structured mesh 1)
-  # 7 - 3D sphere inclusion (3D structured mesh 2) 
-  # 8 - 3D sphere inclusion (3D structured mesh 2 with barriers) 
-  # 9 - 2D L-shape bending (2D structured) 
+  # 7 - 3D sphere inclusion (3D structured mesh 2)
+  # 8 - 3D sphere inclusion (3D structured mesh 2 with barriers)
+  # 9 - 2D L-shape bending (2D structured)
+  #11 - 3D torsion (3D structured)
+  #13 - 3D tensile notches (3D structured)
+  #14 - 2D/3D Nooru-Mohamed test (2D/3D structured)
+  #15 - 3D notched beam bending (3D structured)
   set Scenario number = 9
   
   # Name of the log file
@@ -91,7 +101,7 @@ subsection Scenario
   set Material regions = 1
   
   # Material data file name
-  set Material data file = materialDataFile
+  set Material data file = material/concrete/B/ft=2.7e-3/l=5.0/AT1/materialDataFile
   
   # Reaction forces face ID (negative number means not to find reaction force)
   set Reaction force face ID = 0
@@ -148,5 +158,5 @@ subsection Time
   set End time       = 2.0
   
   # Time data groups
-  set Time data file = ../../timeDataFile
+  set Time data file = ./cases/L_shape_bending_cyclic_loading/settings/timeDataFile
 end

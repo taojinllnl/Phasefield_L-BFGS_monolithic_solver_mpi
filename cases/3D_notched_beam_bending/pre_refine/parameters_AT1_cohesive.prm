@@ -9,11 +9,13 @@ subsection Scenario
   set mpi type = PETSc
   
   
+  # Output directory
+  set Output dir = ./output/Case_15/
+  
   # Configuration directory
   set Config dir = ./cases/3D_tensile_notches/
   
-  # Output directory
-  set Output dir = ./output/Case_13/pre_refine/AT1-cohesive/
+
   
   # Mesh file name (starting from `Config dir`. default: `Config dir`)
   set Mesh file name = ../MeshLib/mshFiles/3PntBendingVNotch/260mmX10mmX60mm/20mmX2mmCrack/45degree.msh
@@ -95,7 +97,7 @@ subsection Scenario
   set Material regions = 1
   
   # Material data file name
-  set Material data file = settings/materialDataFile_AT1_cohesive
+  set Material data file = material/PolyMethyl_MethAccrylate_PMMA/l=1.0/AT1_cohesive/materialDataFile_quasi_linear
   
   # Reaction forces face ID (negative number means not to find reaction force)
   set Reaction force face ID = 0
@@ -152,5 +154,5 @@ subsection Time
   set End time       = 7.0e-3
   
   # Time data groups
-  set Time data file = settings/timeDataFile_AT1_cohesive
+  set Time data file = ./cases/3D_notched_beam_bending/settings/timeDataFile_AT2
 end

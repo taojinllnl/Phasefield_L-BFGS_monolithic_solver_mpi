@@ -8,18 +8,18 @@ subsection Scenario
   # underlying mpi type: (PETSc|Trilinos|Serial)
   set mpi type = PETSc
   
-  
-  # Configuration directory
-  set Config dir = ./cases/through_notches/
-  
   # Output directory
-  set Output dir = ./output/Case_13/adaptive_refine/PFCZM/
- 
-  # Mesh file name (starting from `Config dir`. default: `Config dir`)
-  set Mesh file name = ../MeshLib/3D_tensile_notches_0.02mm.msh
+  set Output dir = ./output/Case_14/2D/
+  
+  # Library directory
+  set Library dir = ./library/
 
-  # Extra data file (starting from `Config dir`. default: `N/A`)
-  set Extra data file = ../MeshLib/geoFiles/3D_tensile_notches.geo
+  
+  # Mesh file name (starting from `Library dir`)
+  set Mesh file name = mesh/mshFiles/throughVNotchedCube/1mmX1mm/0.3mmCracks/0.2mmDistance.msh
+  
+  # Extra data file (starting from `Library dir`. default: `N/A`)
+  set Extra data file = mesh/prms/throughVNotchedCube/1mmX1mm/0.3mmCracks/0.2mmDistance.geo
 
   # Geometry, loading and boundary conditions scenario
   # 1 - square tension (2D unstructured mesh)
@@ -28,11 +28,14 @@ subsection Scenario
   # 4 - square shear   (2D structured mesh)
   # 5 - three-point bending (2D structured mesh)
   # 6 - 3D sphere inclusion (3D structured mesh 1)
-  # 7 - 3D sphere inclusion (3D structured mesh 2) 
-  # 8 - 3D sphere inclusion (3D structured mesh 2 with barriers) 
-  # 9 - 2D L-shape bending (2D structured) 
-  #11 - 3D torsion (3D structured) 
-  set Scenario number = 13
+  # 7 - 3D sphere inclusion (3D structured mesh 2)
+  # 8 - 3D sphere inclusion (3D structured mesh 2 with barriers)
+  # 9 - 2D L-shape bending (2D structured)
+  #11 - 3D torsion (3D structured)
+  #13 - 3D tensile notches (3D structured)
+  #14 - 2D/3D Nooru-Mohamed test (2D/3D structured)
+  #15 - 3D notched beam bending (3D structured)
+  set Scenario number = 14
   
   # Name of the log file
   set Log file name = 2D_Nooru_Mohamed_structured
@@ -94,7 +97,7 @@ subsection Scenario
   set Material regions = 1
   
   # Material data file name
-  set Material data file = settings/materialDataFile_PFCZM
+  set Material data file = material/concrete/A/ft=0.003/l=0.0075/PFCZM/materialDataFile_exponential
   
   # Reaction forces face ID (negative number means not to find reaction force)
   set Reaction force face ID = 900
@@ -149,7 +152,11 @@ end
 subsection Time
   # End time
   set End time       = 50.0e-3
-  
+
+  # Number of factors
+  set n factors = 2
+
+
   # Time data groups
-  set Time data file = settings/timeDataFile_PFCZM
+  set Time data file = cases/through_notches/settings/timeDataFile_PFCZM
 end
