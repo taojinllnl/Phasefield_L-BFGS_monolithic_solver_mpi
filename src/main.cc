@@ -1808,34 +1808,96 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::read_material_data(const std::st
 template <typename LATraits, typename Tria>
 void PhaseFieldMonolithicSolve<LATraits, Tria>
 ::read_time_data(const std::string &data_file,
-                 std::vector<std::array<double, 4>> & time_table,
+                 std::vector<std::array<double, 3>> & time_table,
+                 std::vector<std::vector<double>> & factorList,
                  std::vector<unsigned int>& intervals)
 {
     std::ifstream myfile (data_file);
     
-    double t_0, t_1, delta_t, t_magnitude;
+    double t_0, t_1, delta_t;
+    
     unsigned int interval;
+    
+    const unsigned int n_factors = m_parameters.m_n_factors;
+    
     
     if (myfile.is_open())
     {
         m_logfile << "Reading time data file ..." << std::endl;
-        
-        while ( myfile >> t_0
-               >> t_1
-               >> delta_t
-               >> t_magnitude
-               >> interval)
+
+        std::string line;
+        unsigned int line_id = 0;
+
+        while (std::getline(myfile, line))
         {
-            Assert( t_0 < t_1,
-                   ExcMessage("For each time pair, "
-                              "the start time should be smaller than the end time"));
-            time_table.push_back({{t_0, t_1, delta_t, t_magnitude}});
-            // If the given interval is equal to 0, the output for this time step will be turned off.
-            if (interval == 0 || interval > std::round((t_1-t_0)/delta_t)) {
-                m_logfile << intervals.size() << "-th time slot will NOT output any .vtu files." << std::endl;
-                interval = std::numeric_limits<unsigned int>::max();
+            ++line_id;
+
+            // remove comments after '#'
+            const std::size_t comment_pos = line.find('#');
+            if (comment_pos != std::string::npos)
+            {
+                line.erase(comment_pos);
             }
-            intervals.push_back(interval);
+
+            // Skip empty lines
+            if (line.find_first_not_of(" \t\r\n") == std::string::npos)
+            {
+                continue;
+            }
+
+            std::istringstream iss(line);
+
+            if (iss >> t_0 >> t_1 >> delta_t)
+            {
+                time_table.push_back({{t_0, t_1, delta_t}});
+            } else {
+                AssertThrow(false,
+                            ExcMessage(
+                    "Invalid time data line " + std::to_string(line_id) +
+                    ": failed to read t_0, t_1, and delta_t."));
+            }
+
+            std::vector<double> t_magnitude_list(n_factors);
+
+            for (unsigned int i = 0; i < n_factors; ++i)
+            {
+                if (!(iss >> t_magnitude_list[i]))
+                {
+                    AssertThrow(false,
+                                ExcMessage(
+                        "Invalid time data line " + std::to_string(line_id) +
+                        ": failed to read magnitude factor " +
+                        std::to_string(i) + "."));
+                }
+            }
+            factorList.push_back(t_magnitude_list);
+
+            if (iss >> interval)
+            {
+                // If the given interval is equal to 0, the output for this time step will be turned off.
+                if (interval == 0 || interval > std::round((t_1-t_0)/delta_t))
+                {
+                    m_logfile << intervals.size() << "-th time slot will NOT output any .vtu files." << std::endl;
+                    interval = std::numeric_limits<unsigned int>::max();
+                }
+                intervals.push_back(interval);
+            } else {
+                AssertThrow(false,
+                            ExcMessage(
+                    "Invalid time data line " + std::to_string(line_id) +
+                    ": failed to read output interval."));
+            }
+
+            // Check whether there are extra unexpected values
+            std::string extra_token;
+            if (iss >> extra_token)
+            {
+                AssertThrow(false,
+                            ExcMessage(
+                    "Invalid time data line " + std::to_string(line_id) +
+                    ": too many entries. Expected " +
+                    std::to_string(n_factors) + " values."));
+            }
         }
         
         Assert(std::fabs(t_1 - m_parameters.m_end_time) < 1.0e-9,
@@ -1851,17 +1913,27 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
         Assert(false, ExcMessage("Failed to read time data file"));
     }
     
-    unsigned int i = 0;
-    m_logfile << "\tinterval\t\tt0\t\tt1\t\t∆t\t\tmagnitude" << std::endl;
-    for (auto & time_group : time_table)
+    m_logfile << "\tsteps[output interval], \t(t0, t1], ∆t \t| magnitudes" << std::endl;
+    
+    for (unsigned int i = 0; i < time_table.size(); ++i)
     {
+        const auto &time_group = time_table[i];
+        
+        const unsigned int n_steps =
+        static_cast<unsigned int>(std::round((time_group[1] - time_group[0]) / time_group[2]));
+        
         m_logfile << "\t"
-        << intervals[i++] << "\t\t"
-        << time_group[0] << "\t\t"
-        << time_group[1] << "\t\t"
-        << time_group[2] << "\t\t"
-        << time_group[3] << "\t\t"
-        << std::endl;
+        << n_steps << " steps[" << intervals[i] << "], \t("
+        << time_group[0] << ", "
+        << time_group[1] << "], "
+        << time_group[2] << " \t| ";
+        
+        for (const double factor : factorList[i])
+        {
+            m_logfile << factor << ", ";
+        }
+        
+        m_logfile << std::endl;
     }
 }
 
