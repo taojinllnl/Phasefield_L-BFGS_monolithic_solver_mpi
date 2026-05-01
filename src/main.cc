@@ -3785,39 +3785,62 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_8()
 template <typename LATraits, typename Tria>
 void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_9()
 {
-    AssertThrow(dim==2, ExcMessage("The dimension has to be 2D!"));
     
     for (unsigned int i = 0; i < 80; ++i)
         m_logfile << "*";
     m_logfile << std::endl;
-    m_logfile << "\t\t\t\tL-shape bending (2D structured)" << std::endl;
+    m_logfile << "\t\t\t\tL-shape bending (" << dim << "D structured)" << std::endl;
     for (unsigned int i = 0; i < 80; ++i)
         m_logfile << "*";
     m_logfile << std::endl;
+    
+    if(m_extra_data.empty())
+    {
+        
+        const std::vector<std::string> parameter_names = {
+            "X1", "X2",
+            "Y1", "Y2",
+            "a",  "thickness",
+            "lc"
+        };
+        common::DataListReader::read_keys_values(m_parameters.m_extra_data_file,
+                                                 parameter_names,
+                                                 m_extra_data);
+    }
+    
+    const double X1 = m_extra_data.at("X1");
+    const double Y1 = m_extra_data.at("Y1");
+    const double thickness = m_extra_data.at("thickness");
+    const double lc = m_extra_data.at("lc");
+    
+    
+    
+    if constexpr (dim == 3)
+    {
+        AssertThrow(thickness > 0, ExcMessage("The thickness should be negative in 3-dimensional test for L-shape bending tests."));
+    }
+        
     
     GridIn<dim> gridin;
     gridin.attach_triangulation(m_triangulation);
     std::ifstream f(m_parameters.m_mesh_file_name);
     gridin.read_msh(f);
-    
-    //    for (const auto &cell : m_triangulation.active_cell_iterators())
-    //      for (const auto &face : cell->face_iterators())
-    //	{
-    //	  if (face->at_boundary() == true)
-    //	    {
-    //	      if (std::fabs(face->center()[1] - 0.0 ) < 1.0e-9 )
-    //		face->set_boundary_id(0);
-    //	      else
-    //	        face->set_boundary_id(1);
-    //	    }
-    //	}
-    
+        
+
     m_triangulation.refine_global(m_parameters.m_global_refine_times);
     
+    for (const auto &cell : m_triangulation.cell_iterators())
+    {
+        cell->set_material_id(0);
+    }
+    
+    const double hlRatio = m_parameters.m_allowed_max_h_l_ratio;
     if (m_parameters.m_refinement_strategy == "pre-refine")
     {
-        unsigned int material_id;
-        double length_scale;
+        const double X1_mod  = X1 + 50;
+        const double Y1_mod  = Y1 - lc * 2.0;
+        const double Y_upper = Y1 + 62.5;
+        
         for (unsigned int i = 0; i < m_parameters.m_local_prerefine_times; i++)
         {
             for (const auto &cell : m_triangulation.active_cell_iterators())
@@ -3825,15 +3848,16 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_9()
                 if constexpr (is_mpi) {
                     if (!cell->is_locally_owned()) continue;
                 }
-                if (    (cell->center()[1] > 242.0)
-                    && (cell->center()[1] < 312.5)
-                    && (cell->center()[0] < 258.0) )
+                
+                const Point<dim>& center = cell->center();
+                const double x = center[0];
+                const double y = center[1];
+                
+                if (   (y > Y1_mod)
+                    && (y < Y_upper)
+                    && (x < X1_mod) )
                 {
-                    material_id = cell->material_id();
-                    length_scale = m_material_data[material_id][2];
-                    if (  std::sqrt(cell->measure())
-                        > length_scale * m_parameters.m_allowed_max_h_l_ratio )
-                        cell->set_refine_flag();
+                    setRefineFlagByCellSize(cell, hlRatio);
                 }
             }
             m_triangulation.execute_coarsening_and_refinement();
@@ -3841,8 +3865,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_9()
     }
     else if (m_parameters.m_refinement_strategy == "adaptive-refine")
     {
-        unsigned int material_id;
-        double length_scale;
+        const double bandwidth = 0.6 * lc;
         bool initiation_point_refine_unfinished = true;
         while (initiation_point_refine_unfinished)
         {
@@ -3852,32 +3875,18 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_9()
                 if constexpr (is_mpi) {
                     if (!cell->is_locally_owned()) continue;
                 }
-                if (             (cell->center()[0] - 250) < 0.0
-                    &&          (cell->center()[0] - 240) > 0.0
-                    && std::fabs(cell->center()[1] - 250) < 10.0 )
+                
+                const Point<dim>& center = cell->center();
+                const double x = center[0];
+                const double y = center[1];
+                
+                if (   (std::fabs(x - X1) < bandwidth)
+                    && (std::fabs(y - Y1) < bandwidth))
                 {
-                    material_id = cell->material_id();
-                    length_scale = m_material_data[material_id][2];
-                    if (  std::sqrt(cell->measure())
-                        > length_scale * m_parameters.m_allowed_max_h_l_ratio )
-                    {
-                        cell->set_refine_flag();
-                        initiation_point_refine_unfinished = true;
-                    }
+                    initiation_point_refine_unfinished = setRefineFlagByCellSize(cell, hlRatio);
                 }
             }
-            
-            if constexpr (is_mpi) {
-                // accumulate local flag over all ranks
-                const unsigned int local_flag = initiation_point_refine_unfinished ? 1u : 0u;
-                const unsigned int global_flag =
-                Utilities::MPI::sum(local_flag, *m_mpiInfo.mpiCommPtr());
-                initiation_point_refine_unfinished = (global_flag > 0u);
-            }
-            if(initiation_point_refine_unfinished){
-                m_triangulation.execute_coarsening_and_refinement();
-                if constexpr(is_mpi && supportRepartioning) m_triangulation.repartition();
-            }
+            executeRefinement(initiation_point_refine_unfinished);
         }
     }
     else
@@ -3885,6 +3894,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_9()
         AssertThrow(false,
                     ExcMessage("Selected mesh refinement strategy not implemented!"));
     }
+    
 }
 
 template <typename LATraits, typename Tria>
