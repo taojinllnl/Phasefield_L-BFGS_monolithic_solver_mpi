@@ -2786,15 +2786,117 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::set_bcs_id()
                     // other surfaces
                     else
                         face->set_boundary_id(4);
-                } else {
-                    AssertThrow(false,
-                                ExcMessage("Dimension Error: it should be 3!"));
                 }
             }
         }
     }
+    else if (m_parameters.m_scenario == 14)
+    {
+        
+        AssertThrow(!m_extra_data.empty(),
+                    ExcMessage("The geo data has not been read in Case 13."));
+        
+        double const H = m_extra_data.at("H");
+        double const L = m_extra_data.at("L");
+//        double const W = m_extra_data.at("W");
+        
+        double const H1 = m_extra_data.at("H1");
+        double const H2 = m_extra_data.at("H2");
+        
+//        double const W1 = m_extra_data.at("W1");
+//        double const W2 = m_extra_data.at("W2");
+        
+//        double const L1 = m_extra_data.at("L1");
+//        double const L2 = m_extra_data.at("L2");
+        
+        if(m_bcs_id.empty())
+        {
+            m_bcs_id.emplace("H1",      101);
+            m_bcs_id.emplace("H2",      201);
+            
+            m_bcs_id.emplace("H1_op",   101);
+            m_bcs_id.emplace("H2_op",   201);
+            
+            m_bcs_id.emplace("top",     999);
+            m_bcs_id.emplace("btm",     900);
+        }
+        
+        if constexpr (dim == 2 || dim == 3)
+        {
+            for(const auto& face : m_triangulation.active_face_iterators())
+            {
+                if (face->at_boundary())
+                {
+                    const Point<dim> center = face->center();
+                    const double x = center[0];
+                    double z = center[1];
+                    
+                    if constexpr (dim == 3)
+                    {
+                        z = center[2];
+                    }
+                    
+                    if( z > H1 && z < H )
+                    {
+                        if(std::fabs(x) < 1.0e-9)
+                            face->set_boundary_id(m_bcs_id.at("H1"));
+                        else if (std::fabs(x - L) < 1.0e-9)
+                            face->set_boundary_id(m_bcs_id.at("H1_op"));
+                    }
+                    else if (z > 0 && z < H2 )
+                    {
+                        if(std::fabs(x - L) < 1.0e-9)
+                            face->set_boundary_id(m_bcs_id.at("H2"));
+                        else if (std::fabs(x) < 1.0e-9)
+                            face->set_boundary_id(m_bcs_id.at("H2_op"));
+                    }
+                    
+                    // top surface
+                    else if ( (std::fabs(z - H) < 1.0e-9) )
+                        face->set_boundary_id(m_bcs_id.at("top"));
+                    // bottom sureface
+                    else if ( (std::fabs(z) < 1.0e-9) )
+                        face->set_boundary_id(m_bcs_id.at("btm"));
+                    // other surfaces
+                    else
+                        face->set_boundary_id(4);
+                }
+            }
+            
+        }
+        else
+        {
+            AssertThrow(false,
+                        ExcMessage("Dimension Error: it should be 2 or 3!"));
+        }
+    }
+    else if (m_parameters.m_scenario == 15)
+    {
+        if(m_bcs_id.empty())
+        {
+            m_bcs_id.emplace("z_0",   900);
+            m_bcs_id.emplace("other", 100);
+        }
+        
+        if constexpr(dim == 3)
+            for(const auto& face : m_triangulation.active_face_iterators())
+            {
+                if (face->at_boundary())
+                {
+                    if (std::fabs(face->center()[2]) < 1.0e-6 )
+                        face->set_boundary_id(m_bcs_id.at("z_0"));
+                    else
+                        face->set_boundary_id(m_bcs_id.at("other"));
+                }
+            }
+        else
+            AssertThrow(false,
+                        ExcMessage("Dimension Error: it should be 3!"));
+    }
     else
+    {
         Assert(false, ExcMessage("The scenario has not been implemented!"));
+    }
 }
 
 
