@@ -2826,6 +2826,10 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid()
         make_grid_case_12();
     else if (m_parameters.m_scenario == 13)
         make_grid_case_13();
+    else if (m_parameters.m_scenario == 14)
+        make_grid_case_14();
+    else if (m_parameters.m_scenario == 15)
+        make_grid_case_15();
     else
     {
         Assert(false, ExcMessage("The scenario has not been implemented!"));
