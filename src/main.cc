@@ -2771,9 +2771,11 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::set_bcs_id()
         double const H = m_extra_data.at("H");
         if constexpr (dim == 3)
         {
-            if (face->at_boundary())
+            for(const auto& face : m_triangulation.active_face_iterators())
             {
-                if constexpr (dim == 3) {
+                if (face->at_boundary())
+                {
+                    
                     const double z = face->center()[2];
                     
                     // bottom sureface
