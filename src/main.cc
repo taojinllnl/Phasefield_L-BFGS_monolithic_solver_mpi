@@ -2725,9 +2725,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::set_bcs_id()
     }
     else if (m_parameters.m_scenario == 11)
     {
-        double const length = 200.0;
-//        double const width = 50.0;
-//        double const delta_L = 25.0;
+        double const length  = m_extra_data.at("length");
         
         for(const auto& face : m_triangulation.active_face_iterators())
         {
@@ -3913,11 +3911,26 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_11()
     m_logfile << std::endl;
     
     Triangulation<2> triangulation_2d;
+
     
-    double const length = 200.0;
-    double const width = 50.0;
-    double const height = 50.0;
-    double const delta_L = 25.0;
+    if(m_extra_data.empty())
+    {
+        m_extra_data.emplace("length", 200.0);
+        m_extra_data.emplace("width",  50.0);
+        m_extra_data.emplace("height", 50.0);
+        m_extra_data.emplace("delta_L", 25.0);
+        
+//        m_extra_data["length"]  = 200;
+//        m_extra_data["width"]   = 50.0;
+//        m_extra_data["height"]  = 50.0;
+//        m_extra_data["delta_L"] = 25.0;
+    }
+    
+    double const length  = m_extra_data.at("length");
+    double const width   = m_extra_data.at("width");
+    double const height  = m_extra_data.at("height");
+    double const delta_L = m_extra_data.at("delta_L");
+    
     double const tan_theta = delta_L / (0.5*width);
     
     std::vector<unsigned int> repetitions(2, 1);
