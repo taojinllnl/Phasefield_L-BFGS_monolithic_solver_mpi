@@ -715,6 +715,7 @@ struct TimeInfo
 {
     double m_end_time;
     std::string m_time_file_name;
+    unsigned int m_n_factors;
     
     static void declare_parameters(ParameterHandler &prm);
     
@@ -731,6 +732,8 @@ void TimeInfo::declare_parameters(ParameterHandler &prm)
                           "1",
                           Patterns::FileName(Patterns::FileName::input),
                           "Time data file");
+        
+        prm.declare_entry("n factors", "1", Patterns::Double(), "Number of factors");
     }
     prm.leave_subsection();
 }
@@ -741,6 +744,7 @@ void TimeInfo::parse_parameters(ParameterHandler &prm)
     {
         m_end_time = prm.get_double("End time");
         m_time_file_name = prm.get("Time data file");
+        m_n_factors = (unsigned int) prm.get_integer("n factors");
     }
     prm.leave_subsection();
 }
