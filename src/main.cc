@@ -4168,7 +4168,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_13()
     for (unsigned int i = 0; i < 80; ++i)
         m_logfile << "*";
     m_logfile << std::endl;
-    m_logfile << "\t\t\t3D tensile test with 2 preexisting cracks (structured)" << std::endl;
+    m_logfile << "\t\t\t3D tensile test with 2 preexisting cracks on the edges (structured)" << std::endl;
     for (unsigned int i = 0; i < 80; ++i)
         m_logfile << "*";
     m_logfile << std::endl;
