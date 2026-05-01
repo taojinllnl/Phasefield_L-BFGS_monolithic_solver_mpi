@@ -110,7 +110,7 @@ DataListReader::read_keys_values(const std::string& filename,
             
             const T value = static_cast<T>(std::stod(match[2].str()));
             
-            values[name] = value;
+            values.emplace(name, value);
         }
         
         // Stop once all requested parameters have been found.
