@@ -3393,6 +3393,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_6()
                     initiation_point_refine_unfinished = setRefineFlagByCellSize(cell, hlRatio);
                 }
             }
+            executeRefinement(initiation_point_refine_unfinished);
         }
     }
     else
@@ -3500,11 +3501,9 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_7()
     //		face->set_boundary_id(4);
     //	    }
     //	}
-    
+    const double hlRatio = m_parameters.m_allowed_max_h_l_ratio;
     if (m_parameters.m_refinement_strategy == "adaptive-refine")
     {
-        unsigned int material_id;
-        double length_scale;
         bool initiation_point_refine_unfinished = true;
         while (initiation_point_refine_unfinished)
         {
@@ -3519,27 +3518,10 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_7()
                     && cell->center()[0] < 0.10
                     && cell->center()[1] < 0.10 )
                 {
-                    material_id = cell->material_id();
-                    length_scale = m_material_data[material_id][2];
-                    if (  std::cbrt(cell->measure())
-                        > length_scale * m_parameters.m_allowed_max_h_l_ratio )
-                    {
-                        cell->set_refine_flag();
-                        initiation_point_refine_unfinished = true;
-                    }
+                    initiation_point_refine_unfinished = setRefineFlagByCellSize(cell, hlRatio);
                 }
             }
-            if constexpr (is_mpi) {
-                // accumulate local flag over all ranks
-                const unsigned int local_flag = initiation_point_refine_unfinished ? 1u : 0u;
-                const unsigned int global_flag =
-                Utilities::MPI::sum(local_flag, *m_mpiInfo.mpiCommPtr());
-                initiation_point_refine_unfinished = (global_flag > 0u);
-            }
-            if(initiation_point_refine_unfinished){
-                m_triangulation.execute_coarsening_and_refinement();
-                if constexpr(is_mpi && supportRepartioning) m_triangulation.repartition();
-            }
+            executeRefinement(initiation_point_refine_unfinished);
         }
     }
     else
@@ -3662,11 +3644,9 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_8()
     //		face->set_boundary_id(4);
     //	    }
     //	}
-    
+    const double hlRatio = m_parameters.m_allowed_max_h_l_ratio;
     if (m_parameters.m_refinement_strategy == "adaptive-refine")
     {
-        unsigned int material_id;
-        double length_scale;
         bool initiation_point_refine_unfinished = true;
         while (initiation_point_refine_unfinished)
         {
@@ -3681,27 +3661,10 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_8()
                     && cell->center()[0] < 0.10
                     && cell->center()[1] < 0.10 )
                 {
-                    material_id = cell->material_id();
-                    length_scale = m_material_data[material_id][2];
-                    if (  std::cbrt(cell->measure())
-                        > length_scale * m_parameters.m_allowed_max_h_l_ratio )
-                    {
-                        cell->set_refine_flag();
-                        initiation_point_refine_unfinished = true;
-                    }
+                    initiation_point_refine_unfinished = setRefineFlagByCellSize(cell, hlRatio);
                 }
             }
-            if constexpr (is_mpi) {
-                // accumulate local flag over all ranks
-                const unsigned int local_flag = initiation_point_refine_unfinished ? 1u : 0u;
-                const unsigned int global_flag =
-                Utilities::MPI::sum(local_flag, *m_mpiInfo.mpiCommPtr());
-                initiation_point_refine_unfinished = (global_flag > 0u);
-            }
-            if(initiation_point_refine_unfinished){
-                m_triangulation.execute_coarsening_and_refinement();
-                if constexpr(is_mpi && supportRepartioning) m_triangulation.repartition();
-            }
+            executeRefinement(initiation_point_refine_unfinished);
         }
     }
     else
