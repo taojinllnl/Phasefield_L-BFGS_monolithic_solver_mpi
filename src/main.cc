@@ -801,7 +801,7 @@ public:
     , m_time_current(0.0)
     , m_time_end(time_end)
     , m_delta_t(0.0)
-    , m_magnitude(1.0)
+    , m_magnitude_list(1, 1.0)
     , m_need_output(output_step_0)
     {}
     
@@ -819,9 +819,9 @@ public:
     {
         return m_delta_t;
     }
-    double get_magnitude() const
+    double get_magnitude(const unsigned int ith=0) const
     {
-        return m_magnitude;
+        return m_magnitude_list[ith];
     }
     unsigned int get_timestep() const
     {
@@ -831,33 +831,80 @@ public:
     {
         return m_need_output;
     }
-    void increment(const std::vector<std::array<double, 4>>& time_table,
+    void increment(const std::vector<std::array<double, 3>> & time_table,
+                   const std::vector<std::vector<double>> & factorList,
                    const std::vector<unsigned int>& intervals)
     {
-        double t_0 = 0;
-        double t_1 = 0;
+        if (time_table.size() != factorList.size() ||
+            time_table.size() != intervals.size())
+        {
+            AssertThrow(false,
+                        ExcMessage(
+                "Time::increment: time_table, factorList, and intervals must have the same size."));
+        }
+
+        bool found_slot = false;
+
+        double t_0 = 0.0;
+        double t_1 = 0.0;
+
         unsigned int slot = 0;
+
         for (unsigned int i = 0; i < time_table.size(); ++i)
         {
             const auto& time_group = time_table[i];
+
             t_0 = time_group[0];
             t_1 = time_group[1];
             m_delta_t = time_group[2];
-            m_magnitude = time_group[3];
-            
-            if (m_time_current < t_1 - 1.0e-6*m_delta_t)
+
+            if (m_delta_t <= 0.0)
             {
+                AssertThrow(false,
+                            ExcMessage(
+                    "Time::increment: delta_t must be positive."));
+            }
+
+            const double tol = 1.0e-6 * m_delta_t;
+
+            if (m_time_current >= t_0 - tol &&
+                m_time_current <  t_1 - tol)
+            {
+                m_magnitude_list = factorList[i];
                 slot = i;
+                found_slot = true;
                 break;
             }
         }
-        
+
+        if (!found_slot)
+        {
+            AssertThrow(false,
+                        ExcMessage(
+                "Time::increment: current time is not inside any time slot."));
+        }
+
         m_time_current += m_delta_t;
-        
-        const unsigned int step_in_slot = static_cast<unsigned int>(std::round((m_time_current - t_0) / m_delta_t));
-        
-        m_need_output = (step_in_slot % intervals[slot] == 0);
-        
+
+        const unsigned int step_in_slot =
+            static_cast<unsigned int>(
+                std::round((m_time_current - t_0) / m_delta_t));
+
+        const unsigned int n_steps_in_slot =
+            static_cast<unsigned int>(
+                std::round((t_1 - t_0) / m_delta_t));
+
+        const unsigned int interval = intervals[slot];
+
+        if (interval == 0 || interval > n_steps_in_slot)
+        {
+            m_need_output = false; // turn off output at current slot
+        }
+        else
+        {
+            m_need_output = (step_in_slot % interval == 0);
+        }
+
         ++m_timestep;
     }
     
@@ -866,7 +913,7 @@ private:
     double       m_time_current;
     const double m_time_end;
     double m_delta_t;
-    double m_magnitude;
+    std::vector<double> m_magnitude_list;
     bool m_need_output;
 };
 
