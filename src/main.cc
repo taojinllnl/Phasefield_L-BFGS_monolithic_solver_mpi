@@ -1589,7 +1589,8 @@ private:
                             const unsigned int total_material_regions);
     
     void read_time_data(const std::string &data_file,
-                        std::vector<std::array<double, 4>> & time_table,
+                        std::vector<std::array<double, 3>> & time_table,
+                        std::vector<std::vector<double>> & factorList,
                         std::vector<unsigned int>& intervals);
     
     void print_conv_header_newton();
@@ -7914,18 +7915,19 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::run()
                        + m_parameters.m_material_file_name,
                        m_parameters.m_total_material_regions);
     
-    std::vector<std::array<double, 4>> time_table;
+    
+    std::vector<std::array<double, 3>> time_table;
+    std::vector<std::vector<double>> factors;
     std::vector<unsigned int> intervals;
-    read_time_data(m_parameters.m_config_dir
-                   + m_parameters.m_time_file_name,
-                   time_table, intervals);
+    read_time_data(m_parameters.m_time_file_name,
+                   time_table, factors, intervals);
     
     
     make_grid();
     setup_system();
     output_results();
     
-    m_time.increment(time_table, intervals);
+    m_time.increment(time_table, factors, intervals);
     
     while(m_time.current() < m_time.end() + m_time.get_delta_t()*1.0e-6)
     {
@@ -8041,7 +8043,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::run()
         
         write_history_data();
         
-        m_time.increment(time_table, intervals);
+        m_time.increment(time_table, factors, intervals);
     } // while(m_time.current() < m_time.end() + m_time.get_delta_t()*1.0e-6)
 }
 } // namespace PhaseField
