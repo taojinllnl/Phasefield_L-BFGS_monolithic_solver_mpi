@@ -4648,6 +4648,8 @@ template <typename LATraits, typename Tria>
 void PhaseFieldMonolithicSolve<LATraits, Tria>
 ::make_constraints(const unsigned int it_nr)
 {
+    using namespace ::bcs;
+    
     const bool apply_dirichlet_bc = (it_nr == 0);
     
     if (it_nr > 1)
@@ -4692,54 +4694,14 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
                                                      m_constraints,
                                                      m_fe.component_mask(y_displacement));
             
-            if constexpr (is_mpi)
-            {
-                std::vector<bool> locally_owned_vertices =  GridTools::get_locally_owned_vertices(m_dof_handler.get_triangulation());
-                
-                for (auto const & cell : m_dof_handler.active_cell_iterators()) {
-                    if (!cell->is_locally_owned() || !cell->at_boundary()) continue;
-                    
-                    for (const auto vertex : cell->vertex_indices())
-                    {
-                        // skip ghost cells
-                        if (!locally_owned_vertices[cell->vertex_index(vertex)]) continue;
-                        
-                        const Point<dim> point = cell->vertex(vertex);
-                        if (   (std::fabs(point[0] - 0.0) < 1.0e-9)
-                            && (std::fabs(point[1] - 0.0) < 1.0e-9) )
-                        {
-                            const types::global_dof_index dofX = cell->vertex_dof_index(vertex, 0);
-                            const types::global_dof_index dofY = cell->vertex_dof_index(vertex, 1);
-                            
-                            
-                            m_constraints.add_line(dofX);
-                            m_constraints.set_inhomogeneity(dofX, 0.0);
-                            
-                            m_constraints.add_line(dofY);
-                            m_constraints.set_inhomogeneity(dofY, 0.0);
-                        }
-                    }
-                }
-            } else {
-                typename Triangulation<dim>::active_vertex_iterator vertex_itr;
-                vertex_itr = m_triangulation.begin_active_vertex();
-                std::vector<types::global_dof_index> node_xy(m_fe.dofs_per_vertex);
-                
-                for (; vertex_itr != m_triangulation.end_vertex(); ++vertex_itr)
-                {
-                    if (   (std::fabs(vertex_itr->vertex()[0] - 0.0) < 1.0e-9)
-                        && (std::fabs(vertex_itr->vertex()[1] - 0.0) < 1.0e-9) )
-                    {
-                        node_xy = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
-                    }
-                }
-                m_constraints.add_line(node_xy[0]);
-                m_constraints.set_inhomogeneity(node_xy[0], 0.0);
-                
-                m_constraints.add_line(node_xy[1]);
-                m_constraints.set_inhomogeneity(node_xy[1], 0.0);
-                
-            }
+            const CstPnt   fixedXY({{0.0, 0.0, 0.0}},
+                                   {CstEntry(0), CstEntry(1)});
+            
+            CstHelper::addPntCsts(m_triangulation,
+                                  m_dof_handler,
+                                  m_constraints,
+                                  {fixedXY});
+            
             
             const int boundary_id_top_surface = 1;
             /*
@@ -4794,100 +4756,31 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
         }
         else if (m_parameters.m_scenario == 5)
         {
+            const unsigned int xDoF = 0;
+            const unsigned int yDoF = 1;
+            // top-center node applied with y-displacement
+            const double time_inc = m_time.get_delta_t();
+            const double disp_magnitude = m_time.get_magnitude();
+            const double du_y = time_inc * disp_magnitude;
             
-            if constexpr (is_mpi)
-            {
-                std::vector<bool> locally_owned_vertices =  GridTools::get_locally_owned_vertices(m_dof_handler.get_triangulation());
-                
-                for (auto const & cell : m_dof_handler.active_cell_iterators()) {
-                    if (!cell->is_locally_owned() || !cell->at_boundary()) continue;
-                    
-                    for (const auto vertex : cell->vertex_indices())
-                    {
-                        // skip ghost cells
-                        if (!locally_owned_vertices[cell->vertex_index(vertex)]) continue;
-                        
-                        const Point<dim> point = cell->vertex(vertex);
-                        
-                        if (   (std::fabs(point[0] - 0.0) < 1.0e-9)
-                            && (std::fabs(point[1] - 0.0) < 1.0e-9) )
-                        {
-                            const types::global_dof_index dofX = cell->vertex_dof_index(vertex, 0);
-                            // bottom-left node fixed in both x- and y-directions
-                            m_constraints.add_line(dofX);
-                            m_constraints.set_inhomogeneity(dofX, 0.0);
-                            
-                            const types::global_dof_index dofY = cell->vertex_dof_index(vertex, 1);
-                            m_constraints.add_line(dofY);
-                            m_constraints.set_inhomogeneity(dofY, 0.0);
-                            continue;
-                        }
-                        if (   (std::fabs(point[0] - 8.0) < 1.0e-9)
-                            && (std::fabs(point[1] - 0.0) < 1.0e-9) )
-                        {
-                            const types::global_dof_index dofY = cell->vertex_dof_index(vertex, 1);
-                            // bottom-right node only fixed in y-direction
-                            m_constraints.add_line(dofY);
-                            m_constraints.set_inhomogeneity(dofY, 0.0);
-                            continue;
-                        }
-                        if (   (std::fabs(point[0] - 4.0) < 1.0e-9)
-                            && (std::fabs(point[1] - 2.0) < 1.0e-9) )
-                        {
-                            const types::global_dof_index dofY = cell->vertex_dof_index(vertex, 1);
-                            
-                            // top-center node applied with y-displacement
-                            const double time_inc = m_time.get_delta_t();
-                            double disp_magnitude = m_time.get_magnitude();
-                            
-                            m_constraints.add_line(dofY);
-                            m_constraints.set_inhomogeneity(dofY, disp_magnitude*time_inc);
-                        }
-                    }
-                }
-            } else {
-                typename Triangulation<dim>::active_vertex_iterator vertex_itr;
-                vertex_itr = m_triangulation.begin_active_vertex();
-                std::vector<types::global_dof_index> node_bottomleft(m_fe.dofs_per_vertex);
-                std::vector<types::global_dof_index> node_bottomright(m_fe.dofs_per_vertex);
-                std::vector<types::global_dof_index> node_topcenter(m_fe.dofs_per_vertex);
-                
-                for (; vertex_itr != m_triangulation.end_vertex(); ++vertex_itr)
-                {
-                    if (   (std::fabs(vertex_itr->vertex()[0] - 0.0) < 1.0e-9)
-                        && (std::fabs(vertex_itr->vertex()[1] - 0.0) < 1.0e-9) )
-                    {
-                        node_bottomleft = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
-                    }
-                    if (   (std::fabs(vertex_itr->vertex()[0] - 8.0) < 1.0e-9)
-                        && (std::fabs(vertex_itr->vertex()[1] - 0.0) < 1.0e-9) )
-                    {
-                        node_bottomright = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
-                    }
-                    if (   (std::fabs(vertex_itr->vertex()[0] - 4.0) < 1.0e-9)
-                        && (std::fabs(vertex_itr->vertex()[1] - 2.0) < 1.0e-9) )
-                    {
-                        node_topcenter = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
-                    }
-                }
-                // bottom-left node fixed in both x- and y-directions
-                m_constraints.add_line(node_bottomleft[0]);
-                m_constraints.set_inhomogeneity(node_bottomleft[0], 0.0);
-                
-                m_constraints.add_line(node_bottomleft[1]);
-                m_constraints.set_inhomogeneity(node_bottomleft[1], 0.0);
-                
-                // bottom-right node only fixed in y-direction
-                m_constraints.add_line(node_bottomright[1]);
-                m_constraints.set_inhomogeneity(node_bottomright[1], 0.0);
-                
-                // top-center node applied with y-displacement
-                const double time_inc = m_time.get_delta_t();
-                double disp_magnitude = m_time.get_magnitude();
-                
-                m_constraints.add_line(node_topcenter[1]);
-                m_constraints.set_inhomogeneity(node_topcenter[1], disp_magnitude*time_inc);
-            }
+            const CstEntry loadingCst(yDoF, du_y);
+            const CstEntry fixedXCst(xDoF);
+            const CstEntry fixedYCst(yDoF);
+            
+            const CstPnt   fixedXY({{0.0, 0.0, 0.0}},
+                                   {fixedXCst, fixedYCst});
+            
+            const CstPnt   fixedY({{0.0, 8.0, 0.0}},
+                                  {fixedYCst});
+            
+            const CstPnt   loadingY({{4.0, 2.0, 0.0}},
+                                   {loadingCst});
+            
+            
+            CstHelper::addPntCsts(m_triangulation,
+                                  m_dof_handler,
+                                  m_constraints,
+                                  {fixedXY, fixedY, loadingY});
         }
         else if (   m_parameters.m_scenario == 6
                  || m_parameters.m_scenario == 7
@@ -4945,49 +4838,22 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
                                                      m_constraints,
                                                      m_fe.component_mask(displacements));
             
-            if constexpr (is_mpi)
-            {
-                std::vector<bool> locally_owned_vertices =  GridTools::get_locally_owned_vertices(m_dof_handler.get_triangulation());
-                
-                for (auto const & cell : m_dof_handler.active_cell_iterators()) {
-                    if (!cell->is_locally_owned() || !cell->at_boundary()) continue;
-                    
-                    for (const auto vertex : cell->vertex_indices())
-                    {
-                        // skip ghost cells
-                        if (!locally_owned_vertices[cell->vertex_index(vertex)]) continue;
-                        
-                        const Point<dim> point = cell->vertex(vertex);
-                        
-                        if (   (std::fabs(point[0] - x_loading) < 1.0e-9)
-                            && (std::fabs(point[1] - Y1) < 1.0e-9) )
-                        {
-                            // node applied with y-displacement
-                            CstHelper::addPntCst(m_constraints,
-                                                 cell,
-                                                 vertex,
-                                                 1, du_y);
-                        }
-                    }
-                }
-            } else {
-                typename Triangulation<dim>::active_vertex_iterator vertex_itr;
-                vertex_itr = m_triangulation.begin_active_vertex();
-                std::vector<types::global_dof_index> node_disp_control(m_fe.dofs_per_vertex);
-                
-                for (; vertex_itr != m_triangulation.end_vertex(); ++vertex_itr)
-                {
-                    if (   (std::fabs(vertex_itr->vertex()[0] - x_loading) < 1.0e-9)
-                        && (std::fabs(vertex_itr->vertex()[1] - Y1) < 1.0e-9) )
-                    {
-                        node_disp_control = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
-                        // node applied with y-displacement
-                        m_constraints.add_line(node_disp_control[1]);
-                        m_constraints.set_inhomogeneity(node_disp_control[1],
-                                                        du_y);
-                    }
-                }
-            }
+            const unsigned int yDoF = 1;
+            CstEntry loadingCst(yDoF, du_y);
+            
+            
+            const auto pntSelFunc = [x_loading, Y1](double x, double y, double ) -> bool {
+                return (std::fabs(x - x_loading) < 1.0e-9)
+                && (std::fabs(y - Y1) < 1.0e-9);
+            };
+            
+            const CstFunc   singlePntLoadingCst(pntSelFunc,
+                                                {loadingCst});
+            CstHelper::addPntCsts(m_triangulation,
+                                  m_dof_handler,
+                                  m_constraints,
+                                  {singlePntLoadingCst});
+            
         }
         else if (m_parameters.m_scenario == 11)
         {
@@ -5007,16 +4873,14 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
                                                      m_constraints,
                                                      m_fe.component_mask(x_displacement));
             
+            const double dt = m_time.get_delta_t();
+            const double magnitude = m_time.get_magnitude();
+            const double angle_theta = dt * magnitude;
             
-            
-            const auto rotationCst = [](const double y,
-                                        const double z,
-                                        const double dt,
-                                        const double magnitude,
-                                        const types::global_dof_index dofY,
-                                        const types::global_dof_index dofZ,
-                                        AffineConstraints<double>&    cst)
-            {
+            const auto disp = [angle_theta](const double,
+                                            const double y,
+                                            const double z,
+                                            std::vector<double>& results) {
                 double disp_y = 0.0;
                 double disp_z = 0.0;
                 
@@ -5024,73 +4888,29 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
                 
                 if (node_dist > 0)
                 {
-                    const double angle_theta = dt * magnitude;
                     const double disp_mag = node_dist * std::tan(angle_theta);
                     const double factor = disp_mag / node_dist;
                     disp_y =  z * factor;
                     disp_z = -y * factor;
                 }
-                
-                cst.add_line(dofY);
-                cst.set_inhomogeneity(dofY, disp_y);
-                
-                cst.add_line(dofZ);
-                cst.set_inhomogeneity(dofZ, disp_z);
+                results[0] = 0;
+                results[1] = disp_y;
+                results[2] = disp_z;
             };
             
+                        
+            const auto pntSelFunc = [](double x, double, double) -> bool {
+                return std::fabs(x - 0.0) < 1.0e-9;
+            };
             
-            if constexpr (is_mpi)
-            {
-                std::vector<bool> locally_owned_vertices =  GridTools::get_locally_owned_vertices(m_dof_handler.get_triangulation());
-                
-                for (auto const & cell : m_dof_handler.active_cell_iterators()) {
-                    if (!cell->is_locally_owned() || !cell->at_boundary()) continue;
-                    
-                    for (const auto vertex : cell->vertex_indices())
-                    {
-                        // skip ghost cells
-                        if (!locally_owned_vertices[cell->vertex_index(vertex)]) continue;
-                        
-                        const double x = cell->vertex(vertex)[0];
-                        const double y = cell->vertex(vertex)[1];
-                        const double z = cell->vertex(vertex)[2];
-                        
-                        if (std::fabs(x - 0.0) < 1.0e-9)
-                        {
-                            rotationCst(y, z,
-                                        m_time.get_delta_t(),
-                                        m_time.get_magnitude(),
-                                        cell->vertex_dof_index(vertex, 1),
-                                        cell->vertex_dof_index(vertex, 2),
-                                        m_constraints);
-                        }
-                    }
-                }
-            }
-            else
-            {
-                typename Triangulation<dim>::active_vertex_iterator vertex_itr;
-                vertex_itr = m_triangulation.begin_active_vertex();
-                std::vector<types::global_dof_index> node_rotate(m_fe.dofs_per_vertex);
-                for (; vertex_itr != m_triangulation.end_vertex(); ++vertex_itr)
-                {
-                    if (std::fabs(vertex_itr->vertex()[0] - 0.0) < 1.0e-9)
-                    {
-                        node_rotate = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
-                        
-                        
-                        const double y = vertex_itr->vertex()[1];
-                        const double z = vertex_itr->vertex()[2];
-                        
-                        rotationCst(y, z,
-                                    m_time.get_delta_t(),
-                                    m_time.get_magnitude(),
-                                    node_rotate[1],
-                                    node_rotate[2],
-                                    m_constraints);
-                    }
-                }
-            }
+            const CstFunc   rotationCst(pntSelFunc,
+                                        {CstEntry(1), CstEntry(2)},
+                                        disp);
+            CstHelper::addPntCsts(m_triangulation,
+                                  m_dof_handler,
+                                  m_constraints,
+                                  {rotationCst});
+            
         }
         else if (m_parameters.m_scenario == 12)
         {
@@ -5171,8 +4991,8 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
             // Dirichlet B.C. bottom surface (z = 0)
                     
             const double time_inc = m_time.get_delta_t();
-            double disp_magnitude_x = m_time.get_magnitude(0);
-            double disp_magnitude_z = m_time.get_magnitude(1);
+            const double disp_magnitude_x = m_time.get_magnitude(0);
+            const double disp_magnitude_z = m_time.get_magnitude(1);
             const double displacement_x = disp_magnitude_x*time_inc;
             const double displacement_z = disp_magnitude_z*time_inc;
             
@@ -5208,17 +5028,19 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
             
             
             VectorTools::interpolate_boundary_values(m_dof_handler,
-                                                     m_bcs_id.at("top"),
-                                                     dx_,
+                                                     m_bcs_id.at("H1"),
+                                                     dx,
                                                      m_constraints,
                                                      shear);
             
             
             VectorTools::interpolate_boundary_values(m_dof_handler,
-                                                     m_bcs_id.at("btm"),
-                                                     dx,
+                                                     m_bcs_id.at("H2"),
+                                                     dx_,
                                                      m_constraints,
                                                      shear);
+            
+                    
             
             
         }
@@ -5283,7 +5105,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
                 const double length = m_extra_data.at("length");
                 const double x_crack_factor = m_extra_data.at("x_crack_factor");
                 
-                const double halfLength = length * x_crack_factor;
+                const double notch_x = length * x_crack_factor;
                 const double ex1_x  = ex1;
                 const double ex2_x  = length - ex2;
                 
@@ -5311,219 +5133,104 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
                     if (dz < 0) dz = -dz;
                 }
                 
-                const bool isdzPositive = dz > 0 ? true : false;
+                const bool is1stFourPntBending = isFourPntBending && (dz > 0 ? true : false);
                 
-                using namespace bcs;
-                                
-                if constexpr (is_mpi)
+                
+                const auto ex1_notchedZ = [ex1_x, notchedZ](double x, double, double z) -> bool {
+                    return    (std::fabs(x - ex1_x)    < 1.0e-9)
+                           && (std::fabs(z - notchedZ) < 1.0e-9) ;
+                };
+                
+                const auto ex2_notchedZ = [ex2_x, notchedZ](double x, double, double z) -> bool {
+                    return (std::fabs(x - ex2_x)    < 1.0e-9)
+                        && (std::fabs(z - notchedZ) < 1.0e-9) ;
+                };
+                
+                const auto notchedX_intactZ = [notch_x, intactZ](double x, double, double z) -> bool {
+                    return (std::fabs(x - notch_x)    < 1.0e-9)
+                        && (std::fabs(z - intactZ) < 1.0e-9) ;
+                };
+                
+                const auto ex3_intactZ = [ex3_x, intactZ](double x, double, double z) -> bool {
+                    return (std::fabs(x - ex3_x)    < 1.0e-9)
+                        && (std::fabs(z - intactZ) < 1.0e-9) ;
+                };
+                
+                const auto ex4_intactZ = [ex4_x, intactZ](double x, double, double z) -> bool {
+                    return (std::fabs(x - ex4_x)    < 1.0e-9)
+                        && (std::fabs(z - intactZ) < 1.0e-9) ;
+                };
+                
+                const unsigned int xDoF = 0;
+                const unsigned int yDoF = 1;
+                const unsigned int zDoF = 2;
+                
+                const CstEntry fixedX (xDoF);
+                const CstEntry fixedY (yDoF);
+                const CstEntry fixedZ (zDoF);
+                
+                const CstEntry loadingZ (zDoF, dz);
+                
+                if (isFourPntBending)
                 {
-                    std::vector<bool> locally_owned_vertices =  GridTools::get_locally_owned_vertices(m_dof_handler.get_triangulation());
-                    
-                    for (auto const & cell : m_dof_handler.active_cell_iterators())
+                    if(is1stFourPntBending)
                     {
-                        if (!cell->is_locally_owned() || !cell->at_boundary()) continue;
+                        // Four-point bending (1)
+                        const CstFunc   fixedXYZ(ex1_notchedZ,
+                                                    {loadingZ});
+                        
+                        const CstFunc   fixedYZ(ex2_notchedZ,
+                                                    {loadingZ});
+                        
+                        const CstFunc   loadingPnt1(ex3_intactZ,
+                                                 {fixedX, fixedY, fixedZ});
+                        
+                        const CstFunc   loadingPnt2(ex4_intactZ,
+                                                {fixedY, fixedZ});
+                        
+
+                        CstHelper::addPntCsts(m_triangulation,
+                                              m_dof_handler,
+                                              m_constraints,
+                                              {fixedXYZ, fixedYZ, loadingPnt1, loadingPnt2});
+                        
+                    } else {
+                        // Four-point bending (2)
+                        const CstFunc   fixedXYZ(ex3_intactZ,
+                                                 {fixedX, fixedY, fixedZ});
+                        
+                        const CstFunc   fixedYZ(ex4_intactZ,
+                                                {fixedY, fixedZ});
+                        
+                        const CstFunc   loadingPnt1(ex1_notchedZ,
+                                                    {loadingZ});
+                        
+                        const CstFunc   loadingPnt2(ex2_notchedZ,
+                                                    {loadingZ});
                         
                         
-                        for (const auto vertex : cell->vertex_indices())
-                        {
-                            // skip ghost cells
-                            if (!locally_owned_vertices[cell->vertex_index(vertex)]) continue;
-                            
-                            const Point<dim> point = cell->vertex(vertex);
-                            const double x = point[0];
-                            const double z = point[2];
-                            
-                            if (   (std::fabs(x - ex1_x)    < 1.0e-9)
-                                && (std::fabs(z - notchedZ) < 1.0e-9) )
-                            {
-                                if(isdzPositive) 
-                                {
-                                    // Three-point + Four-point bending (1)
-                                    // the line fixed along x, y, and z on the notched surface
-                                    CstHelper::addPntCst(m_constraints,
-                                                         cell, vertex, 0);
-                                    CstHelper::addPntCst(m_constraints,
-                                                         cell, vertex, 1);
-                                    CstHelper::addPntCst(m_constraints,
-                                                         cell, vertex, 2);
-                                } else {
-                                    // forth-point bending (2)
-                                    // loading point
-                                    CstHelper::addPntCst(m_constraints,
-                                                         cell, vertex, 2, dz);
-                                }
-                                
-                                continue;
-                            }
-                            
-                            if (   (std::fabs(x - ex2_x)    < 1.0e-9)
-                                && (std::fabs(z - notchedZ) < 1.0e-9) )
-                            {
-                                if(isdzPositive)
-                                {
-                                    // Three-point + Four-point bending (1)
-                                    // the line fixed along y, and z on the notched surface
-                                    CstHelper::addPntCst(m_constraints,
-                                                         cell, vertex, 1);
-                                    CstHelper::addPntCst(m_constraints,
-                                                         cell, vertex, 2);
-                                } else {
-                                    // Forth-point bending (2)
-                                    // loading point
-                                    CstHelper::addPntCst(m_constraints,
-                                                         cell, vertex, 2, dz);
-                                }
-                                continue;
-                            }
-                            
-                            if (!isFourPntBending
-                                && (std::fabs(x - halfLength) < 1.0e-9)
-                                && (std::fabs(z - intactZ)    < 1.0e-9) )
-                            {
-                                // Three-point bending
-                                // top-center nodes applied with z-displacement
-                                CstHelper::addPntCst(m_constraints,
-                                                     cell, vertex, 2, dz);
-                                continue;
-                            }
-                            else if (isFourPntBending)
-                            {
-                                if (   (std::fabs(z - intactZ)  < 1.0e-9)
-                                    &&(   (std::fabs(x - ex3_x)    < 1.0e-9)
-                                       || (std::fabs(x - ex4_x)    < 1.0e-9)))
-                                {
-                                    if(isdzPositive)
-                                    {
-                                        // Four-point bending (1)
-                                        // the line fixed along x, y, and z on the notched surface
-                                        CstHelper::addPntCst(m_constraints,
-                                                             cell, vertex,
-                                                             2, dz);
-                                        
-                                    } else {
-                                        // Four-point bending (2)
-                                        // the line fixed along x, y, and z on the notched surface
-                                        if(std::fabs(x - ex3_x) < 1.0e-9)
-                                            CstHelper::addPntCst(m_constraints,
-                                                                 cell,
-                                                                 vertex, 0);
-                                        CstHelper::addPntCst(m_constraints,
-                                                             cell, vertex, 1);
-                                        CstHelper::addPntCst(m_constraints,
-                                                             cell, vertex, 2);
-                                    }
-                                    continue;
-                                }
-                            }
-                        }
+                        CstHelper::addPntCsts(m_triangulation,
+                                              m_dof_handler,
+                                              m_constraints,
+                                              {fixedXYZ, fixedYZ, loadingPnt1, loadingPnt2});
                     }
                 }
                 else
                 {
-                    typename Triangulation<dim>::active_vertex_iterator vertex_itr;
-                    vertex_itr = m_triangulation.begin_active_vertex();
-                    std::vector<types::global_dof_index> node_notched_ex1_x(m_fe.dofs_per_vertex);
-                    std::vector<types::global_dof_index> node_notched_ex2_x(m_fe.dofs_per_vertex);
-                    std::vector<types::global_dof_index> intact_ex3_4(m_fe.dofs_per_vertex);
-
-                    std::vector<types::global_dof_index> node_topcenter(m_fe.dofs_per_vertex);
+                    // Three-point bending
+                    const CstFunc   fixedXYZ(ex1_notchedZ,
+                                             {fixedX, fixedY, fixedZ});
                     
-                    for (; vertex_itr != m_triangulation.end_vertex(); ++vertex_itr)
-                    {
-                        const double x = vertex_itr->vertex()[0];
-                        const double z = vertex_itr->vertex()[2];
-                        
-                        if (   (std::fabs(x - ex1_x)    < 1.0e-9)
-                            && (std::fabs(z - notchedZ) < 1.0e-9) )
-                        {
-                            node_notched_ex1_x = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
-                            if(isdzPositive)
-                            {
-                                // Three-point + Four-point bending (1)
-                                // the line fixed along x, y, and z on the notched surface
-                                CstHelper::addPntCst(m_constraints,
-                                                     node_notched_ex1_x[0]);
-                                CstHelper::addPntCst(m_constraints,
-                                                     node_notched_ex1_x[1]);
-                                CstHelper::addPntCst(m_constraints,
-                                                     node_notched_ex1_x[2]);
-                                
-                            } else {
-                                // forth-point bending (2)
-                                // loading point
-                                CstHelper::addPntCst(m_constraints,
-                                                     node_notched_ex1_x[2],
-                                                     dz);
-                            }
-                            
-                            continue;
-                        }
-                        
-                        if (   (std::fabs(x - ex2_x)    < 1.0e-9)
-                            && (std::fabs(z - notchedZ) < 1.0e-9) )
-                        {
-                            node_notched_ex2_x = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
-                            if(isdzPositive)
-                            {
-                                // Three-point + Four-point bending (1)
-                                // the line fixed along y, and z on the notched surface
-                                CstHelper::addPntCst(m_constraints,
-                                                     node_notched_ex2_x[1]);
-                                CstHelper::addPntCst(m_constraints,
-                                                     node_notched_ex2_x[2]);
-                            } else {
-                                // Forth-point bending (2)
-                                // loading point
-                                CstHelper::addPntCst(m_constraints,
-                                                     node_notched_ex2_x[2],
-                                                     dz);
-                            }
-                            continue;
-                        }
-                        
-                        if (!isFourPntBending
-                            && (std::fabs(x - halfLength) < 1.0e-9)
-                            && (std::fabs(z - intactZ)    < 1.0e-9) )
-                        {
-                            node_topcenter = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
-                            
-                            // Three-point bending
-                            // top-center nodes applied with z-displacement
-                            CstHelper::addPntCst(m_constraints,
-                                                 node_topcenter[2], dz);
-                            continue;
-                        }
-                        else if (isFourPntBending)
-                        {
-                            if (   (std::fabs(z - intactZ)  < 1.0e-9)
-                                &&(   (std::fabs(x - ex3_x)    < 1.0e-9)
-                                   || (std::fabs(x - ex4_x)    < 1.0e-9)))
-                            {
-                                intact_ex3_4 = usr_utilities::get_vertex_dofs(vertex_itr, m_dof_handler);
-                                
-                                if(isdzPositive)
-                                {
-                                    // Four-point bending (1)
-                                    // the line fixed along x, y, and z on the notched surface
-                                    CstHelper::addPntCst(m_constraints,
-                                                         intact_ex3_4[2], dz);
-                                } else {
-                                    // Four-point bending (2)
-                                    // the line fixed along x, y, and z on the notched surface
-                                    if(std::fabs(x - ex3_x) < 1.0e-9)
-                                        CstHelper::addPntCst(m_constraints,
-                                                             intact_ex3_4[0]);
-                                    CstHelper::addPntCst(m_constraints,
-                                                         intact_ex3_4[1]);
-                                    CstHelper::addPntCst(m_constraints,
-                                                         intact_ex3_4[2]);
-                                }
-                                continue;
-                            }
-                        }
-                        
-                        
-                    }
+                    const CstFunc   fixedYZ(ex2_notchedZ,
+                                            {fixedY, fixedZ});
+                    
+                    const CstFunc   loadingPnt(notchedX_intactZ,
+                                               {loadingZ});
+                    
+                    CstHelper::addPntCsts(m_triangulation,
+                                          m_dof_handler,
+                                          m_constraints,
+                                          {fixedXYZ, fixedYZ, loadingPnt});
                 }
             }
         }
