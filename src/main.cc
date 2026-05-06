@@ -330,7 +330,11 @@ struct Scenario
     std::string m_output_dir;
     std::string m_mesh_file_name;
     std::string m_extra_data_file;
+    
+    bool m_output_coarse_ori;
+    bool m_output_refined_ori;
     bool m_output_step_0;
+    
     
     unsigned int m_scenario;
     std::string m_logfile_name;
@@ -392,6 +396,18 @@ void Scenario::declare_parameters(ParameterHandler &prm)
                           "N/A",
                           Patterns::FileName(Patterns::FileName::input),
                           "Extra data file (default: N/A)");
+        
+        
+        
+        prm.declare_entry("Output coarse original mesh",
+                          "yes",
+                          Patterns::Selection("yes|no"),
+                          "If it is yes, the .vtu file of the coarse original mesh will be created.");
+        
+        prm.declare_entry("Output original mesh",
+                          "no",
+                          Patterns::Selection("yes|no"),
+                          "If it is yes, the .vtu file of the original mesh will be created.");
         
         prm.declare_entry("Output timestep 0",
                           "yes",
@@ -528,6 +544,9 @@ void Scenario::parse_parameters(ParameterHandler &prm)
         {
             m_extra_data_file = m_library_dir + m_extra_data_file;
         }
+        
+        m_output_coarse_ori = prm.get_bool("Output coarse original mesh");
+        m_output_refined_ori = prm.get_bool("Output original mesh");
         m_output_step_0 = prm.get_bool("Output timestep 0");
         
         m_scenario = (unsigned int) prm.get_integer("Scenario number");
@@ -3014,23 +3033,10 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid()
     << "\n\t\t\tNumber of used vertices: " << nVertices
     << std::endl;
     
-    if constexpr (is_mpi){
-        const std::string filename = "original_mesh";
-        DataOut<dim> data_out;
-        data_out.attach_dof_handler(m_dof_handler);
-        data_out.build_patches();
-        data_out.write_vtu_with_pvtu_record(m_parameters.oriDir,
-                                            filename,
-                                            0,
-                                            *m_mpiInfo.mpiCommPtr(),
-                                            1 /*n_digits*/,
-                                            0 /*n_groups*/);
-        
-    } else {
-        std::ofstream out(m_parameters.oriDir + "original_mesh.vtu");
-        GridOut       grid_out;
-        grid_out.write_vtu(m_triangulation, out);
-    }
+    if(m_parameters.m_output_refined_ori)
+        m_output.output(m_parameters.oriDir,
+                        "original_mesh",
+                        &m_triangulation);
     
     m_vol_reference = GridTools::volume(m_triangulation);
     m_logfile << "\t\tGrid:\n\t\t\tReference volume: " << m_vol_reference << std::endl;
@@ -3053,6 +3059,11 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_1()
     gridin.attach_triangulation(m_triangulation);
     std::ifstream f(m_parameters.m_mesh_file_name);
     gridin.read_msh(f);
+    
+    if(m_parameters.m_output_coarse_ori)
+        m_output.output(m_parameters.oriDir,
+                        "coarse_original_mesh",
+                        &m_triangulation);
     
     //    for (const auto &cell : m_triangulation.active_cell_iterators())
     //      for (const auto &face : cell->face_iterators())
@@ -3135,6 +3146,11 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_2()
     gridin.attach_triangulation(m_triangulation);
     std::ifstream f(m_parameters.m_mesh_file_name);
     gridin.read_msh(f);
+    
+    if(m_parameters.m_output_coarse_ori)
+        m_output.output(m_parameters.oriDir,
+                        "coarse_original_mesh",
+                        &m_triangulation);
     
     //    for (const auto &cell : m_triangulation.active_cell_iterators())
     //      for (const auto &face : cell->face_iterators())
@@ -3297,6 +3313,10 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_4()
     gridin.attach_triangulation(m_triangulation);
     std::ifstream f(m_parameters.m_mesh_file_name);
     gridin.read_msh(f);
+    if(m_parameters.m_output_coarse_ori)
+        m_output.output(m_parameters.oriDir,
+                        "coarse_original_mesh",
+                        &m_triangulation);
     
     //    for (const auto &cell : m_triangulation.active_cell_iterators())
     //      for (const auto &face : cell->face_iterators())
@@ -3379,6 +3399,10 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_5()
     gridin.attach_triangulation(m_triangulation);
     std::ifstream f(m_parameters.m_mesh_file_name);
     gridin.read_msh(f);
+    if(m_parameters.m_output_coarse_ori)
+        m_output.output(m_parameters.oriDir,
+                        "coarse_original_mesh",
+                        &m_triangulation);
     
     //    for (const auto &cell : m_triangulation.active_cell_iterators())
     //      for (const auto &face : cell->face_iterators())
@@ -3524,6 +3548,10 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_6()
     GridGenerator::create_triangulation_with_removed_cells(tmp_triangulation,
                                                            cells_to_remove,
                                                            m_triangulation);
+    if(m_parameters.m_output_coarse_ori)
+        m_output.output(m_parameters.oriDir,
+                        "coarse_original_mesh",
+                        &m_triangulation);
     
     //    for (const auto &cell : m_triangulation.active_cell_iterators())
     //      for (const auto &face : cell->face_iterators())
@@ -3795,7 +3823,10 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_8()
     GridGenerator::create_triangulation_with_removed_cells(tmp_triangulation,
                                                            cells_to_remove,
                                                            m_triangulation);
-    
+    if(m_parameters.m_output_coarse_ori)
+        m_output.output(m_parameters.oriDir,
+                        "coarse_original_mesh",
+                        &m_triangulation);
     //    for (const auto &cell : m_triangulation.active_cell_iterators())
     //      for (const auto &face : cell->face_iterators())
     //	{
@@ -3887,7 +3918,10 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_9()
     gridin.attach_triangulation(m_triangulation);
     std::ifstream f(m_parameters.m_mesh_file_name);
     gridin.read_msh(f);
-        
+    if(m_parameters.m_output_coarse_ori)
+        m_output.output(m_parameters.oriDir,
+                        "coarse_original_mesh",
+                        &m_triangulation);
 
     m_triangulation.refine_global(m_parameters.m_global_refine_times);
     
@@ -4060,6 +4094,12 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_11()
     GridGenerator::create_triangulation_with_removed_cells(tmp_triangulation,
                                                            cells_to_remove,
                                                            m_triangulation);
+    
+    if(m_parameters.m_output_coarse_ori)
+        m_output.output(m_parameters.oriDir,
+                        "coarse_original_mesh",
+                        &m_triangulation);
+    
     const double hlRatio = m_parameters.m_allowed_max_h_l_ratio;
     if (m_parameters.m_refinement_strategy == "adaptive-refine")
     {
@@ -4164,7 +4204,10 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_12()
                                               repetitions,
                                               Point<dim>( 0.0,      0.0 ),
                                               Point<dim>( length,   width ) );
-    
+    if(m_parameters.m_output_coarse_ori)
+        m_output.output(m_parameters.oriDir,
+                        "coarse_original_mesh",
+                        &m_triangulation);
     //    for (const auto &cell : m_triangulation.active_cell_iterators())
     //      for (const auto &face : cell->face_iterators())
     //	{
@@ -4215,6 +4258,10 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_13()
         gridin.attach_triangulation(m_triangulation);
         std::ifstream f(m_parameters.m_mesh_file_name);
         gridin.read_msh(f);
+        if(m_parameters.m_output_coarse_ori)
+            m_output.output(m_parameters.oriDir,
+                            "coarse_original_mesh",
+                            &m_triangulation);
         
         for (const auto &cell : m_triangulation.cell_iterators())
         {
@@ -4352,6 +4399,10 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_14()
     gridin.attach_triangulation(m_triangulation);
     std::ifstream f(m_parameters.m_mesh_file_name);
     gridin.read_msh(f);
+    if(m_parameters.m_output_coarse_ori)
+        m_output.output(m_parameters.oriDir,
+                        "coarse_original_mesh",
+                        &m_triangulation);
     
     for (const auto &cell : m_triangulation.cell_iterators())
     {
