@@ -3104,7 +3104,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_1()
                 if (   std::fabs(cell->center()[1] - 0.0) < 0.05
                     && std::fabs(cell->center()[0] - 0.5) < 0.05)
                 {
-                    initiation_point_refine_unfinished = setRefineFlagByCellSize(cell, hlRatio);
+                    initiation_point_refine_unfinished |= setRefineFlagByCellSize(cell, hlRatio);
                 }
             }
             executeRefinement(initiation_point_refine_unfinished);
@@ -3188,7 +3188,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_2()
                 if (    std::fabs(cell->center()[0] - 0.5) < 0.025
                     && cell->center()[1] < 0.0 && cell->center()[1] > -0.025)
                 {
-                    initiation_point_refine_unfinished = setRefineFlagByCellSize(cell, hlRatio);
+                    initiation_point_refine_unfinished |= setRefineFlagByCellSize(cell, hlRatio);
                 }
             }
             executeRefinement(initiation_point_refine_unfinished);
@@ -3267,7 +3267,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_3()
                 if (    std::fabs(cell->center()[0] - 0.5) < 0.025
                     && std::fabs(cell->center()[1] - 0.5) < 0.025 )
                 {
-                    initiation_point_refine_unfinished = setRefineFlagByCellSize(cell, hlRatio);
+                    initiation_point_refine_unfinished |= setRefineFlagByCellSize(cell, hlRatio);
                 }
             }
             executeRefinement(initiation_point_refine_unfinished);
@@ -3349,7 +3349,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_4()
                 if (    std::fabs(cell->center()[0] - 0.5) < 0.025
                     && cell->center()[1] < 0.5 && cell->center()[1] > 0.475 )
                 {
-                    initiation_point_refine_unfinished = setRefineFlagByCellSize(cell, hlRatio);
+                    initiation_point_refine_unfinished |= setRefineFlagByCellSize(cell, hlRatio);
                 }
             }
             executeRefinement(initiation_point_refine_unfinished);
@@ -3441,7 +3441,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_5()
                 if (    std::fabs(cell->center()[0] - 4.0) < 0.075
                     && std::fabs(cell->center()[1] - 0.4) < 0.075 )
                 {
-                    initiation_point_refine_unfinished = setRefineFlagByCellSize(cell, hlRatio);
+                    initiation_point_refine_unfinished |= setRefineFlagByCellSize(cell, hlRatio);
                 }
             }
             executeRefinement(initiation_point_refine_unfinished);
@@ -3559,7 +3559,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_6()
                     && cell->center()[0] < 0.05
                     && cell->center()[1] < 0.05 )
                 {
-                    initiation_point_refine_unfinished = setRefineFlagByCellSize(cell, hlRatio);
+                    initiation_point_refine_unfinished |= setRefineFlagByCellSize(cell, hlRatio);
                 }
             }
             executeRefinement(initiation_point_refine_unfinished);
@@ -3687,7 +3687,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_7()
                     && cell->center()[0] < 0.10
                     && cell->center()[1] < 0.10 )
                 {
-                    initiation_point_refine_unfinished = setRefineFlagByCellSize(cell, hlRatio);
+                    initiation_point_refine_unfinished |= setRefineFlagByCellSize(cell, hlRatio);
                 }
             }
             executeRefinement(initiation_point_refine_unfinished);
@@ -3830,7 +3830,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_8()
                     && cell->center()[0] < 0.10
                     && cell->center()[1] < 0.10 )
                 {
-                    initiation_point_refine_unfinished = setRefineFlagByCellSize(cell, hlRatio);
+                    initiation_point_refine_unfinished |= setRefineFlagByCellSize(cell, hlRatio);
                 }
             }
             executeRefinement(initiation_point_refine_unfinished);
@@ -3945,7 +3945,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_9()
                 if (   (std::fabs(x - X1) < bandwidth)
                     && (std::fabs(y - Y1) < bandwidth))
                 {
-                    initiation_point_refine_unfinished = setRefineFlagByCellSize(cell, hlRatio);
+                    initiation_point_refine_unfinished |= setRefineFlagByCellSize(cell, hlRatio);
                 }
             }
             executeRefinement(initiation_point_refine_unfinished);
@@ -4076,7 +4076,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_11()
                     && cell->center()[2] <= 0.5*height
                     && cell->center()[2] > 0.5*height - 5.0 )
                 {
-                    initiation_point_refine_unfinished = setRefineFlagByCellSize(cell, hlRatio);
+                    initiation_point_refine_unfinished |= setRefineFlagByCellSize(cell, hlRatio);
                 }
             }
             executeRefinement(initiation_point_refine_unfinished);
@@ -4111,7 +4111,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_11()
                         && cell->center()[2] < halfHeight + 6.0 )
                     )
                 {
-                    initiation_point_refine_unfinished = setRefineFlagByCellSize(cell, hlRatio);
+                    initiation_point_refine_unfinished |= setRefineFlagByCellSize(cell, hlRatio);
                 }
             }
             executeRefinement(initiation_point_refine_unfinished);
@@ -4279,7 +4279,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_13()
                                || ((std::fabs(y - y2) < bw_xy) && (x  < x1))  ))
                         )
                     {
-                        initiation_point_refine_unfinished = setRefineFlagByCellSize(cell, hlRatio);
+                        initiation_point_refine_unfinished |= setRefineFlagByCellSize(cell, hlRatio);
                     }
                 }
                 executeRefinement(initiation_point_refine_unfinished);
@@ -4316,7 +4316,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_13()
                         ||  (x >= x1_mod && x <= x2_mod)
                         ||  (x >= x2_mod && y >= y1_mod))
                     {
-                        initiation_point_refine_unfinished = setRefineFlagByCellSize(cell, hlRatio);
+                        initiation_point_refine_unfinished |= setRefineFlagByCellSize(cell, hlRatio);
                     }
                     
                 }
@@ -4445,7 +4445,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_14()
                         
                 if (willBeRefined)
                 {
-                    initiation_point_refine_unfinished = setRefineFlagByCellSize(cell, hlRatio);
+                    initiation_point_refine_unfinished |= setRefineFlagByCellSize(cell, hlRatio);
                 }
             }
             executeRefinement(initiation_point_refine_unfinished);
@@ -4484,7 +4484,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_14()
                     ||  (x >= x1_mod && x <= x2_mod)
                     ||  (x >= x2_mod && y >= y1_mod))
                 {
-                    initiation_point_refine_unfinished = setRefineFlagByCellSize(cell, hlRatio);
+                    initiation_point_refine_unfinished |= setRefineFlagByCellSize(cell, hlRatio);
                 }
                 
             }
@@ -4622,7 +4622,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_15()
                     (std::fabs(x  - halfLength - (y - halfThickness)*tan_theta) < bandWidth_x)
                     )
                 {
-                    initiation_point_refine_unfinished = setRefineFlagByCellSize(cell, hlRatio);
+                    initiation_point_refine_unfinished |= setRefineFlagByCellSize(cell, hlRatio);
                 }
             }
             
