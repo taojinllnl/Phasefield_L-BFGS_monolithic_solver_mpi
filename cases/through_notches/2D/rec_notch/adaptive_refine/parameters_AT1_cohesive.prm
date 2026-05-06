@@ -9,7 +9,7 @@ subsection Scenario
   set mpi type = PETSc
   
   # Output directory
-  set Output dir = ./output/Case_14/2D/
+  set Output dir = ./output/Case_16/2D/
   
   # Library directory
   set Library dir = ./library/
@@ -45,7 +45,7 @@ subsection Scenario
   #13 - 3D tensile notches (3D structured)
   #14 - 2D/3D Nooru-Mohamed test (2D/3D structured)
   #15 - 3D notched beam bending (3D structured)
-  set Scenario number = 14
+  set Scenario number = 16
   
   # Name of the log file
   set Log file name = 2D_Nooru_Mohamed_structured

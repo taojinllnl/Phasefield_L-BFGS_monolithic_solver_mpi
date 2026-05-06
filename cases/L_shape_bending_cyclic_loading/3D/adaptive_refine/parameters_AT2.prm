@@ -6,7 +6,7 @@ subsection Scenario
   set dimension = 3
   
   # underlying mpi type: (PETSc|Trilinos|Serial)
-  set mpi type = Trilinos
+  set mpi type = PETSc
   
   
   # Output directory
@@ -22,6 +22,12 @@ subsection Scenario
   # Extra data file (starting from `Library dir`. default: `N/A`)
   set Extra data file = mesh/prms/LShapeBending/250mmX250mmX250mmX250mm/50mmThickness30mmLoading.geo
   
+  # If it is yes, the .vtu file of the coarse original mesh will be created. (yes|no)
+  set Output coarse original mesh = yes
+  
+  # If it is yes, the .vtu file of the original mesh will be created. (yes|no)
+  set Output original mesh = no
+
   # If this is set to yes, the visualization file for the initial state will be written. (yes|no)
   set Output timestep 0 = yes
 

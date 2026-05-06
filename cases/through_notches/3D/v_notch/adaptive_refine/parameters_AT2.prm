@@ -20,7 +20,7 @@ subsection Scenario
   set Mesh file name = mesh/mshFiles/throughVNotchedCube/1mmX1mmX1mm/0.3X0.3mmCracks/0.0mmDistance.msh
   
   # Extra data file (starting from `Library dir`. default: `N/A`)
-  set Extra data file = throughVNotchedCube/1mmX1mmX1mm/0.3X0.3mmCracks/0.0mmDistance.geo
+  set Extra data file = mesh/prms/throughVNotchedCube/1mmX1mmX1mm/0.3mmCracks/0.0mmDistance.geo 
 
 
   # If it is yes, the .vtu file of the coarse original mesh will be created. (yes|no)

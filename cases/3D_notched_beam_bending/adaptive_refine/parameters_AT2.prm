@@ -24,6 +24,17 @@ subsection Scenario
   # Extra data file (starting from `Library dir`. default: `N/A`)
   set Extra data file = mesh/prms/3PntBendingVNotch/260mmX10mmX60mm/20mmX2mmCrack/45degree.geo
   
+
+  # If it is yes, the .vtu file of the coarse original mesh will be created. (yes|no)
+  set Output coarse original mesh = yes
+  
+  # If it is yes, the .vtu file of the original mesh will be created. (yes|no)
+  set Output original mesh = no
+
+  # If this is set to yes, the visualization file for the initial state will be written. (yes|no)
+  set Output timestep 0 = yes
+  
+  
   # Geometry, loading and boundary conditions scenario
   # 1 - square tension (2D unstructured mesh)
   # 2 - square shear   (2D unstructured mesh)

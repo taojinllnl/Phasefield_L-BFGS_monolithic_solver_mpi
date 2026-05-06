@@ -16,6 +16,12 @@ subsection Scenario
   set Library dir = ./library/
   
   
+  # If it is yes, the .vtu file of the coarse original mesh will be created. (yes|no)
+  set Output coarse original mesh = yes
+  
+  # If it is yes, the .vtu file of the original mesh will be created. (yes|no)
+  set Output original mesh = no
+
   # If this is set to yes, the visualization file for the initial state will be written. (yes|no)
   set Output timestep 0 = yes
 
