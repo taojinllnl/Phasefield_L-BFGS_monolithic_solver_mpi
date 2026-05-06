@@ -3236,6 +3236,11 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_3()
     std::ifstream f(m_parameters.m_mesh_file_name);
     gridin.read_msh(f);
     
+    if(m_parameters.m_output_coarse_ori)
+        m_output.output(m_parameters.oriDir,
+                        "coarse_original_mesh",
+                        &m_triangulation);
+    
     //    for (const auto &cell : m_triangulation.active_cell_iterators())
     //      for (const auto &face : cell->face_iterators())
     //	{
@@ -3682,6 +3687,10 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_7()
                                                            cells_to_remove,
                                                            m_triangulation);
     
+    if(m_parameters.m_output_coarse_ori)
+        m_output.output(m_parameters.oriDir,
+                        "coarse_original_mesh",
+                        &m_triangulation);
     //    for (const auto &cell : m_triangulation.active_cell_iterators())
     //      for (const auto &face : cell->face_iterators())
     //	{
