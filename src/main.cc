@@ -2819,26 +2819,17 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::set_bcs_id()
         AssertThrow(!m_extra_data.empty(),
                     ExcMessage("The geo data has not been read in Case 13."));
         
-        double const H = m_extra_data.at("H");
-        double const L = m_extra_data.at("L");
-//        double const W = m_extra_data.at("W");
-        
-        double const H1 = m_extra_data.at("H1");
-        double const H2 = m_extra_data.at("H2");
-        
-//        double const W1 = m_extra_data.at("W1");
-//        double const W2 = m_extra_data.at("W2");
-        
-//        double const L1 = m_extra_data.at("L1");
-//        double const L2 = m_extra_data.at("L2");
+        const double L = m_extra_data.at("L");
+        const double H = m_extra_data.at("H");
+        const double H1 = m_extra_data.at("H1");
+        const double H2 = m_extra_data.at("H2");
+
         
         if(m_bcs_id.empty())
         {
             m_bcs_id.emplace("H1",      101);
             m_bcs_id.emplace("H2",      201);
             
-            m_bcs_id.emplace("H1_op",   101);
-            m_bcs_id.emplace("H2_op",   201);
             
             m_bcs_id.emplace("top",     999);
             m_bcs_id.emplace("btm",     900);
@@ -2852,33 +2843,32 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::set_bcs_id()
                 {
                     const Point<dim> center = face->center();
                     const double x = center[0];
-                    double z = center[1];
+                    double h = center[1];
+                    
                     
                     if constexpr (dim == 3)
                     {
-                        z = center[2];
+                        h = center[2];
                     }
                     
-                    if( z > H1 && z < H )
+                    
+                    
+                    if( h > H1 && h < H )
                     {
                         if(std::fabs(x) < 1.0e-9)
                             face->set_boundary_id(m_bcs_id.at("H1"));
-                        else if (std::fabs(x - L) < 1.0e-9)
-                            face->set_boundary_id(m_bcs_id.at("H1_op"));
                     }
-                    else if (z > 0 && z < H2 )
+                    else if (h > 0 && h < H2 )
                     {
                         if(std::fabs(x - L) < 1.0e-9)
                             face->set_boundary_id(m_bcs_id.at("H2"));
-                        else if (std::fabs(x) < 1.0e-9)
-                            face->set_boundary_id(m_bcs_id.at("H2_op"));
                     }
                     
                     // top surface
-                    else if ( (std::fabs(z - H) < 1.0e-9) )
+                    else if ( (std::fabs(h - H) < 1.0e-9) )
                         face->set_boundary_id(m_bcs_id.at("top"));
                     // bottom sureface
-                    else if ( (std::fabs(z) < 1.0e-9) )
+                    else if ( (std::fabs(h) < 1.0e-9) )
                         face->set_boundary_id(m_bcs_id.at("btm"));
                     // other surfaces
                     else
@@ -4274,7 +4264,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_14()
             "L1", "L2", "W1", "W2",
             "H1", "H2",
             "C1", "C2",
-            "lc"
+            "lc",
         };
         common::DataListReader::read_keys_values(m_parameters.m_extra_data_file,
                                                  parameter_names,
@@ -4283,8 +4273,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_14()
     
     
     
-    const double bw_z  = 0.030;
-    const double bw_xy = 0.030;
+
     
     // global dimensions
     const double L  = m_extra_data.at("L");   // total length  (x direction)
@@ -4300,19 +4289,23 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_14()
     const double H1 = m_extra_data.at("H1");    // height of C1 crack
     const double H2 = m_extra_data.at("H2");    // height of C2 crack
     
+    const double lc = m_extra_data.at("lc");
     
+    
+    const double bw_z  = 0.60 * lc;
+    const double bw_xy = 0.60 * lc;
     
     // x partition: [0, L1] [middle] [L-L2, L]
-    const double x1 = L1;
-    const double x2 = L - L2;
+    double x1 = L1;
+    double x2 = L - L2;
     
     // y partition: [0, W2] [middle] [W-W1, W]
-    const double y1 = W2;
-    const double y2 = W - W1;
+    double y1 = W2;
+    double y2 = W - W1;
     
     // z partition: [0, H2] [H2, H1] [H1, H]
-    const double z1 = H2;
-    const double z2 = H1;
+    double z1 = H2;
+    double z2 = H1;
     
     const double hlRatio = m_parameters.m_allowed_max_h_l_ratio;
     
@@ -4332,6 +4325,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_14()
                 const double y = cell->center()[1];
                 
                 bool willBeRefined = false;
+                
                 if constexpr (dim == 2)
                 {
                     willBeRefined = (    std::fabs(y - H1) < bw_z
@@ -4339,7 +4333,8 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_14()
                     || ( std::fabs(y - H2) < bw_z
                         &&  std::fabs(x - x2) < bw_xy);
                 }
-                else if constexpr (dim == 3) {
+                else if constexpr (dim == 3)
+                {
                     const double z = cell->center()[2];
                     
                     willBeRefined = (std::fabs(z - z1) < bw_z
@@ -4362,8 +4357,11 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_14()
         bool initiation_point_refine_unfinished = true;
         
         
-        const double upper = H1 + 0.05;
-        const double lower = H2 - 0.05;
+        double offset1 = 0.5 * lc;
+        double offset2 = 0.5 * lc;
+        
+        const double upper = H1 + offset1;
+        const double lower = H2 - offset2;
         
         const double x1_mod = x1 - bw_xy;
         const double x2_mod = x2 + bw_xy;
