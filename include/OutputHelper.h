@@ -110,6 +110,11 @@ public:
                 const std::string& laSolver,
                 const BVector&     solution,
                 const CellDataStorage& qPntHistory) const;
+    
+    
+    void output(const std::string& dirName,
+                const std::string& filename,
+                const RTria<dim>* tria = nullptr);
 };
 
 
@@ -397,6 +402,37 @@ void OutputHelper<LATraits, Tria, PointHistory>
                                             0 /*n_groups*/);
     }
 
+}
+
+
+
+template <typename LATraits, typename Tria, typename PointHistory>
+void OutputHelper<LATraits, Tria, PointHistory>
+::output(const std::string& dirName,
+         const std::string& filename,
+         const RTria<dim>* tria)
+{
+    using namespace ::dealii;
+    if constexpr (is_mpi){
+        DataOut<dim> data_out;
+        data_out.attach_dof_handler(__dof_handler);
+        data_out.build_patches();
+        data_out.write_vtu_with_pvtu_record(dirName,
+                                            filename,
+                                            0,
+                                            *__mpiInfo.mpiCommPtr(),
+                                            1 /*n_digits*/,
+                                            0 /*n_groups*/);
+        
+    } else {
+        if(tria != nullptr)
+        {
+            
+            std::ofstream outStream(dirName + filename);
+            GridOut       grid_out;
+            grid_out.write_vtu(*tria, outStream);
+        }
+    }
 }
 
 
