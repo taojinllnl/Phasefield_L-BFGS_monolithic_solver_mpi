@@ -4627,6 +4627,10 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_15()
         gridin.attach_triangulation(m_triangulation);
         std::ifstream f(m_parameters.m_mesh_file_name);
         gridin.read_msh(f);
+        if(m_parameters.m_output_coarse_ori)
+            m_output.output(m_parameters.oriDir,
+                            "coarse_original_mesh",
+                            &m_triangulation);
 
         for (const auto &cell : m_triangulation.cell_iterators())
         {
@@ -8727,7 +8731,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::run()
 {
     print_parameter_information();
     
-    read_material_data(m_parameters.m_config_dir
+    read_material_data(m_parameters.m_library_dir
                        + m_parameters.m_material_file_name,
                        m_parameters.m_total_material_regions);
     
@@ -8870,7 +8874,7 @@ int main(int argc, char* argv[])
     
     using namespace dealii;
     using namespace PhaseField;
-    using namespace common;
+    using namespace ::common;
     
     if (argc < 2)
         AssertThrow(false,
@@ -8950,7 +8954,7 @@ int main(int argc, char* argv[])
         + ".log";
         
         std::cout << "\nOutput dir: \t" << parameters.m_output_dir << std::endl;
-        std::cout << "Input dir: \t" << parameters.m_config_dir << std::endl;
+        std::cout << "Input dir: \t" << parameters.m_library_dir << std::endl;
         std::cout << "Type: \t" << parameters.m_mpi_type << std::endl;
         std::cout << "Linear solver type: \t" << parameters.laSolverType << std::endl;
         std::cout << "Log: \t" << logFileName << std::endl << std::endl;
