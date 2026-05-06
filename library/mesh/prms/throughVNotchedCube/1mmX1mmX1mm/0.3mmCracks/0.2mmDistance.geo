@@ -71,8 +71,6 @@ H  = 1.0;   // total height  (z direction)
 // crack-plan sizes in top view
 L1 = 0.3;    // x-size of C1 patch from left boundary
 L2 = 0.3;    // x-size of C2 patch from right boundary
-W1 = 0.3;    // y-size of C1 patch from top boundary
-W2 = 0.3;    // y-size of C2 patch from bottom boundary
 
 // crack heights in front view
 // Note: the geometry code treats H1 as the upper crack height and H2 as the lower crack height.
@@ -105,3 +103,7 @@ lc = 0.05; // the size for elements
 //   - W1 and W2 are kept for compatibility with the original parameter list,
 //     but they are not used in the through-crack branch.
 through_crack = 1;
+
+
+W1 = 0.0;
+W2 = 0.0;

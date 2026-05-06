@@ -2,7 +2,6 @@
 // =====================================================
 //      Geometry setting:
 // =====================================================
-//
 //  through_crack = 1;
 //     ^ y
 //     |       Top View:
@@ -62,6 +61,7 @@
 // parameters config starts.
 // vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
+
 // global dimensions
 L  = 1.0;   // total length  (x direction)
 W  = 1.0;   // total width   (y direction)
@@ -70,16 +70,12 @@ H  = 1.0;   // total height  (z direction)
 // crack-plan sizes in top view
 L1 = 0.3;    // x-size of C1 patch from left boundary
 L2 = 0.3;    // x-size of C2 patch from right boundary
-W1 = 0.3;    // y-size of C1 patch from top boundary
-W2 = 0.3;    // y-size of C2 patch from bottom boundary
 
 // crack heights in front view
 // Note: the geometry code treats H1 as the upper crack height and H2 as the lower crack height.
 // If H1 < H2, the two values are swapped internally to preserve this ordering.
-// In order to be read by program propopally, these two variables should be explicitly prescribed.
-// That means the expression, H2 = H1;, will be illegal.
-H1 = 0.50;    // height of C1 crack
-H2 = 0.50;    // height of C2 crack
+H1 = 0.55;    // height of C1 crack
+H2 = 0.45;    // height of C2 crack
 
 // crack opening widths (vertical opening size)
 C1 = 0.010;   // total opening of crack C1
@@ -106,3 +102,6 @@ lc = 0.05; // the size for elements
 //     but they are not used in the through-crack branch.
 through_crack = 1;
 
+
+W1 = 0.0;
+W2 = 0.0;
