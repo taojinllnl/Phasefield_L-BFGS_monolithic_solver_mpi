@@ -906,14 +906,15 @@ public:
             }
         }
 
-        if (!found_slot)
+
+        m_time_current += m_delta_t;
+        
+        if (m_time_current < m_time_end && !found_slot)
         {
             AssertThrow(false,
                         ExcMessage(
                 "Time::increment: current time is not inside any time slot."));
         }
-
-        m_time_current += m_delta_t;
 
         const unsigned int step_in_slot =
             static_cast<unsigned int>(
