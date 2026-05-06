@@ -2895,6 +2895,66 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::set_bcs_id()
             AssertThrow(false,
                         ExcMessage("Dimension Error: it should be 3!"));
     }
+    else if (m_parameters.m_scenario == 16)
+    {
+        
+        AssertThrow(!m_extra_data.empty(),
+                    ExcMessage("The geo data has not been read in Case 13."));
+        
+        const double L = m_extra_data.at("L");
+        const double H  = m_extra_data.at("H");
+        const double H1 = m_extra_data.at("H1") + m_extra_data.at("C1");
+        const double H2 = m_extra_data.at("H2");
+    
+        
+        if(m_bcs_id.empty())
+        {
+            m_bcs_id.emplace("H1",      101);
+            m_bcs_id.emplace("H2",      201);
+            
+            
+            m_bcs_id.emplace("top",     999);
+            m_bcs_id.emplace("btm",     900);
+        }
+        
+        
+        
+        for(const auto& face : m_triangulation.active_face_iterators())
+        {
+            if (face->at_boundary())
+            {
+                const Point<dim> center = face->center();
+                const double x = center[0];
+                const double h = center[1];
+                
+                
+                if( h > H1 && h < H )
+                {
+                    if(std::fabs(x) < 1.0e-9)
+                        face->set_boundary_id(m_bcs_id.at("H1"));
+                }
+                else if (h > 0 && h < H2 )
+                {
+                    if(std::fabs(x - L) < 1.0e-9)
+                        face->set_boundary_id(m_bcs_id.at("H2"));
+                }
+                
+                // top surface
+                else if ( (std::fabs(h - H) < 1.0e-9) )
+                {
+                    face->set_boundary_id(m_bcs_id.at("top"));
+                }
+                // bottom sureface
+                else if ( (std::fabs(h) < 1.0e-9) )
+                {
+                    face->set_boundary_id(m_bcs_id.at("btm"));
+                }
+                // other surfaces
+                else
+                    face->set_boundary_id(4);
+            }
+        }
+    }
     else
     {
         Assert(false, ExcMessage("The scenario has not been implemented!"));
@@ -4577,6 +4637,171 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_15()
 }
 
 
+
+template <typename LATraits, typename Tria>
+void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_16()
+{
+    for (unsigned int i = 0; i < 80; ++i)
+        m_logfile << "*";
+    m_logfile << std::endl;
+    m_logfile << "\t\t\tNooru-Mohamed test " << dim << "d (structured)" << std::endl;
+    for (unsigned int i = 0; i < 80; ++i)
+        m_logfile << "*";
+    m_logfile << std::endl;
+    
+    
+    GridIn<dim> gridin;
+    gridin.attach_triangulation(m_triangulation);
+    std::ifstream f(m_parameters.m_mesh_file_name);
+    gridin.read_msh(f);
+    if(m_parameters.m_output_coarse_ori)
+        m_output.output(m_parameters.oriDir,
+                        "coarse_original_mesh",
+                        &m_triangulation);
+    
+    for (const auto &cell : m_triangulation.cell_iterators())
+    {
+        cell->set_material_id(0);
+    }
+    
+    m_triangulation.refine_global(m_parameters.m_global_refine_times);
+    
+    
+    if(m_extra_data.empty())
+    {
+        const std::vector<std::string> parameter_names = {
+            "L", "W", "H",
+            "L1", "L2", "W1", "W2",
+            "H1", "H2",
+            "C1", "C2",
+            "lc",
+        };
+        ::common::DataListReader::read_keys_values(m_parameters.m_extra_data_file,
+                                                 parameter_names,
+                                                 m_extra_data);
+    }
+    
+    
+    
+    // global dimensions
+    const double L  = m_extra_data.at("L");   // total length  (x direction)
+    const double W  = m_extra_data.at("W");   // total width   (y direction)
+    
+    // crack-plan sizes in top view
+    const double L1 = m_extra_data.at("L1");    // x-size of C1 patch from left boundary
+    const double L2 = m_extra_data.at("L2");    // x-size of C2 patch from right boundary
+    const double W1 = m_extra_data.at("W1");    // y-size of C1 patch from top boundary
+    const double W2 = m_extra_data.at("W2");    // y-size of C2 patch from bottom boundary
+    
+    
+    const double C1 = m_extra_data.at("C1");    // height of C1 crack
+    const double C2 = m_extra_data.at("C2");    // height of C2 crack
+    
+    
+    // crack heights in front view
+    const double H1 = m_extra_data.at("H1")+ C1*0.5;    // height of C1 crack
+    const double H2 = m_extra_data.at("H2")+ C2*0.5;    // height of C2 crack
+    
+    
+    const double lc = m_extra_data.at("lc");
+    
+    
+    const double bw_z1  = 0.60 * lc + C1*0.5;
+    const double bw_z2  = 0.60 * lc + C2*0.5;
+    const double bw_xy = 0.60 * lc;
+    
+    // x partition: [0, L1] [middle] [L-L2, L]
+    double x1 = L1;
+    double x2 = L - L2;
+    
+
+    
+    
+    const double hlRatio = m_parameters.m_allowed_max_h_l_ratio;
+    
+    if (m_parameters.m_refinement_strategy == "adaptive-refine")
+    {
+        bool initiation_point_refine_unfinished = true;
+        while (initiation_point_refine_unfinished)
+        {
+            initiation_point_refine_unfinished = false;
+            for (const auto &cell : m_triangulation.active_cell_iterators())
+            {
+                if constexpr (is_mpi) {
+                    if (!cell->is_locally_owned()) continue;
+                }
+                
+                const double x = cell->center()[0];
+                const double y = cell->center()[1];
+                
+                bool willBeRefined = (    std::fabs(y - H1) < bw_z1
+                                     &&   std::fabs(x - x1) < bw_xy)
+                    || (    std::fabs(y - H2) < bw_z2
+                        &&  std::fabs(x - x2) < bw_xy);
+                        
+                if (willBeRefined)
+                {
+                    initiation_point_refine_unfinished |= setRefineFlagByCellSize(cell, hlRatio);
+                }
+            }
+            executeRefinement(initiation_point_refine_unfinished);
+        }
+    }
+    else if (m_parameters.m_refinement_strategy == "pre-refine")
+    {
+        bool initiation_point_refine_unfinished = true;
+        
+        // y partition: [0, W2] [middle] [W-W1, W]
+        double y1 = W2;
+        double y2 = W - W1;
+        
+        double offset1 = 0.5 * lc;
+        double offset2 = 0.5 * lc;
+        
+        const double upper = H1 + offset1;
+        const double lower = H2 - offset2;
+        
+        const double x1_mod = x1 - bw_xy;
+        const double x2_mod = x2 + bw_xy;
+        const double y1_mod = y1 - bw_xy;
+        const double y2_mod = y2 + bw_xy;
+        
+        while (initiation_point_refine_unfinished)
+        {
+            initiation_point_refine_unfinished = false;
+            for (const auto &cell : m_triangulation.active_cell_iterators())
+            {
+                if constexpr (is_mpi) {
+                    if (!cell->is_locally_owned()) continue;
+                }
+                if constexpr (dim == 3) {
+                    const double z = cell->center()[2];
+                    
+                    if (! (z <= upper && z >= lower)) continue;;
+                }
+                
+                const double x = cell->center()[0];
+                const double y = cell->center()[1];
+                if (    (x <= x1_mod && y <= y2_mod)
+                    ||  (x >= x1_mod && x <= x2_mod)
+                    ||  (x >= x2_mod && y >= y1_mod))
+                {
+                    initiation_point_refine_unfinished |= setRefineFlagByCellSize(cell, hlRatio);
+                }
+                
+            }
+            executeRefinement(initiation_point_refine_unfinished);
+        }
+    }
+    else
+    {
+        AssertThrow(false,
+                    ExcMessage("Selected mesh refinement strategy not implemented!"));
+    }
+    
+}
+
+
 template <typename LATraits, typename Tria>
 void PhaseFieldMonolithicSolve<LATraits, Tria>::setup_system()
 {
@@ -5233,6 +5458,60 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>
                                           {fixedXYZ, fixedYZ, loadingPnt});
                 }
             }
+        }
+        else if (m_parameters.m_scenario == 16)
+        {
+            // Dirichlet B.C. bottom surface (z = 0)
+                    
+            const double time_inc = m_time.get_delta_t();
+            const double disp_magnitude_x = m_time.get_magnitude(0);
+            const double disp_magnitude_y = m_time.get_magnitude(1);
+            const double displacement_x = disp_magnitude_x*time_inc;
+            const double displacement_y = disp_magnitude_y*time_inc;
+            
+            
+            const auto dx = Functions::ConstantFunction<dim>(displacement_x,
+                                                             m_n_components);
+            const auto dx_ = Functions::ConstantFunction<dim>(-displacement_x,
+                                                              m_n_components);
+            
+            const auto dy = Functions::ConstantFunction<dim>(displacement_y,
+                                                             m_n_components);
+            const auto dy_ = Functions::ConstantFunction<dim>(-displacement_y,
+                                                              m_n_components);
+            
+            
+            const auto shear    = m_fe.component_mask(x_displacement);
+            const auto tensile  = m_fe.component_mask(y_displacement);
+
+            
+            VectorTools::interpolate_boundary_values(m_dof_handler,
+                                                     m_bcs_id.at("btm"),
+                                                     dy_,
+                                                     m_constraints,
+                                                     tensile);
+            
+            VectorTools::interpolate_boundary_values(m_dof_handler,
+                                                     m_bcs_id.at("top"),
+                                                     dy,
+                                                     m_constraints,
+                                                     tensile);
+            
+            
+            VectorTools::interpolate_boundary_values(m_dof_handler,
+                                                     m_bcs_id.at("H1"),
+                                                     dx_,
+                                                     m_constraints,
+                                                     shear);
+            
+            
+            VectorTools::interpolate_boundary_values(m_dof_handler,
+                                                     m_bcs_id.at("H2"),
+                                                     dx,
+                                                     m_constraints,
+                                                     shear);
+     
+            
         }
         else
             Assert(false, ExcMessage("The scenario has not been implemented!"));
