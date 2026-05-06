@@ -62,3 +62,7 @@ lc = 0.05; // the size for elements
 W  = 0.0;
 W1 = 0.0;
 W2 = 0.0;
+
+
+
+is_v_notched = 1;

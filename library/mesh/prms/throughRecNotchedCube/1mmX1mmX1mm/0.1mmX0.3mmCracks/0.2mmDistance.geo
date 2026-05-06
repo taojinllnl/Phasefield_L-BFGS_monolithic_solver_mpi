@@ -12,7 +12,7 @@
 //    |   +-------------+ -----                        |              |
 //    |                 |   ^                          |              |
 //    |                 |   |                          |              |
-//    |                 |   C1                        |              |
+//    |                 |   C1                         |              |
 //    |                 |   |                          |              |
 //    |                 |   v                          |              |
 //    |   +-------------+ -----                        |              |
@@ -80,10 +80,11 @@ lc = 0.1;
 
 // If W = 0, generate 2D mesh.
 // If W > 0, generate 3D mesh.
-W = 0.0;
+W = 1.0;
 
 // Unused variables retained for compatibility
 W1 = 0.0;
 W2 = 0.0;
+
 
 is_v_notched = 0;

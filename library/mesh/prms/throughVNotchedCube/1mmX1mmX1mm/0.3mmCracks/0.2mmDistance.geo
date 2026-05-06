@@ -107,3 +107,7 @@ through_crack = 1;
 
 W1 = 0.0;
 W2 = 0.0;
+
+
+
+is_v_notched = 1;

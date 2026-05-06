@@ -1,27 +1,4 @@
 // ============================================================
-// Two side cracks with exactly 5 regions
-// Strictly following the user's reference sketch
-// ============================================================
-//
-// Coordinate system:
-//   x from left to right
-//   y from bottom to top
-//
-// Outer domain:
-//   0 <= x <= L
-//   0 <= y <= H
-//
-// Left crack:
-//   starts from left boundary x = 0
-//   length = L1
-//   bottom height = H2
-//   crack height = Hc2
-//
-// Right crack:
-//   starts from right boundary x = L
-//   length = L2
-//   bottom height = H1
-//   crack height = Hc2
 //
 //      y ^
 //        |
@@ -35,7 +12,7 @@
 //    |   +-------------+ -----                        |              |
 //    |                 |   ^                          |              |
 //    |                 |   |                          |              |
-//    |                 |   Hc2                        |              |
+//    |                 |   C1                        |              |
 //    |                 |   |                          |              |
 //    |                 |   v                          |              |
 //    |   +-------------+ -----                        |              |
@@ -47,13 +24,13 @@
 //    |   |             |   |                          +--------------+ -----
 //    |   |             |   |                          |                  ^
 //    |   |             |   |                          |                  |
-//    |   |             |   H2                         |                  Hc2
+//    |   |             |   H1                         |                  C2
 //    |   |             |   |                          |                  |
 //    |   |             |   |                          |                  v
 //    |   |             |   |                          +--------------+ -----
 //    |   |             |   |                          |      L2      |   ^
 //    |   |             |   |                          |<------------>|   |
-//    |   |             |   |                          |              |   H1
+//    |   |             |   |                          |              |   H2
 //    |   |             |   |                          |              |   |
 //    v   |             |   v                          |              |   v
 // -----  +-------------+------------------------------+--------------+ ----- -->
@@ -69,18 +46,29 @@
 // parameters config starts.
 // vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
-L   = 10.0;
-H   = 5.0;
+L = 1.0;
+H = 1.0;
 
-L1  = 2.0;
-L2  = 2.0;
+// Right crack length
+L2 = 0.2;
 
-H1  = 1.0;
-H2  = 3.0;
+// Left crack length
+L1 = 0.2;
 
-Hc2 = 0.5;
+// Right crack bottom height
+H2 = 0.3;
 
-lc  = 0.1;
+// Left crack bottom height
+H1 = 0.6;
+
+// Right crack height
+C2 = 0.1;
+
+// Left crack height
+C1 = 0.1;
+
+// Characteristic mesh size
+lc = 0.1;
 
 
 
@@ -90,6 +78,14 @@ lc  = 0.1;
 // Do not modify the following content after this point.
 // =====================================================
 
-// If thickness = 0, generate 2D mesh.
-// If thickness > 0, generate 3D extruded mesh.
-thickness = 1.0;
+// If W = 0, generate 2D mesh.
+// If W > 0, generate 3D mesh.
+W = 0.0;
+
+
+// Unused variables retained for compatibility
+W1 = 0.0;
+W2 = 0.0;
+
+
+is_v_notched = 0;

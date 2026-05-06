@@ -50,10 +50,10 @@ L = 1.0;
 H = 1.0;
 
 // Right crack length
-L2 = 0.3;
+L2 = 0.2;
 
 // Left crack length
-L1 = 0.3;
+L1 = 0.2;
 
 // Right crack bottom height
 H2 = 0.3;
@@ -80,10 +80,13 @@ lc = 0.1;
 
 // If W = 0, generate 2D mesh.
 // If W > 0, generate 3D mesh.
-W = 0.0;
+W = 1.0;
+
+
 
 // Unused variables retained for compatibility
 W1 = 0.0;
 W2 = 0.0;
+
 
 is_v_notched = 0;

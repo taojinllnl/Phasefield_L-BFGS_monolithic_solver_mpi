@@ -12,25 +12,25 @@
 //    |   +-------------+ -----                        |              |
 //    |                 |   ^                          |              |
 //    |                 |   |                          |              |
-//    |                 |   Hc2                        |              |
+//    |                 |   C1                         |              |
 //    |                 |   |                          |              |
 //    |                 |   v                          |              |
 //    |   +-------------+ -----                        |              |
 //    |   |             |   ^                          |              |
-//    |   |      L2     |   |                          |              |
+//    |   |      L1     |   |                          |              |
 //    H   |<----------->|   |                          |              |
 //    |   |             |   |                          |              |
 //    |   |             |   |                          |              |
 //    |   |             |   |                          +--------------+ -----
 //    |   |             |   |                          |                  ^
 //    |   |             |   |                          |                  |
-//    |   |             |   H2                         |                  Hc1
+//    |   |             |   H1                         |                  C2
 //    |   |             |   |                          |                  |
 //    |   |             |   |                          |                  v
 //    |   |             |   |                          +--------------+ -----
-//    |   |             |   |                          |      L1      |   ^
+//    |   |             |   |                          |      L2      |   ^
 //    |   |             |   |                          |<------------>|   |
-//    |   |             |   |                          |              |   H1
+//    |   |             |   |                          |              |   H2
 //    |   |             |   |                          |              |   |
 //    v   |             |   v                          |              |   v
 // -----  +-------------+------------------------------+--------------+ ----- -->
@@ -50,22 +50,22 @@ L = 1.0;
 H = 1.0;
 
 // Right crack length
-L1 = 0.3;
+L2 = 0.2;
 
 // Left crack length
-L2 = 0.3;
+L1 = 0.2;
 
 // Right crack bottom height
-H1 = 0.45;
-
-// Left crack bottom height
 H2 = 0.45;
 
+// Left crack bottom height
+H1 = 0.45;
+
 // Right crack height
-Hc1 = 0.1;
+C2 = 0.1;
 
 // Left crack height
-Hc2 = 0.1;
+C1 = 0.1;
 
 // Characteristic mesh size
 lc = 0.1;
@@ -78,6 +78,13 @@ lc = 0.1;
 // Do not modify the following content after this point.
 // =====================================================
 
-// If thickness = 0, generate 2D mesh.
-// If thickness > 0, generate 3D mesh.
-thickness = .0;
+// If W = 0, generate 2D mesh.
+// If W > 0, generate 3D mesh.
+W = 1.0;
+
+
+// Unused variables retained for compatibility
+W1 = 0.0;
+W2 = 0.0;
+
+is_v_notched = 0;
