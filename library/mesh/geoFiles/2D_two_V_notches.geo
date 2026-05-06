@@ -1,4 +1,4 @@
-Include "../prms/throughNotchedCube/1mmX1mm/0.4mmCracks/0.0mmDistance.geo";
+Include "../prms/throughVNotchedCube/1mmX1mm/0.4mmCracks/0.1mmDistance.geo";
 
 SetFactory("Built-in");
 
