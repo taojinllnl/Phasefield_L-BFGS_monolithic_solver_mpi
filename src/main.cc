@@ -1518,6 +1518,7 @@ private:
     void make_grid_case_13();
     void make_grid_case_14();
     void make_grid_case_15();
+    void make_grid_case_16();
     
     void setup_system();
     
@@ -3014,6 +3015,8 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid()
         make_grid_case_14();
     else if (m_parameters.m_scenario == 15)
         make_grid_case_15();
+    else if (m_parameters.m_scenario == 16)
+        make_grid_case_16();
     else
     {
         Assert(false, ExcMessage("The scenario has not been implemented!"));
@@ -3079,6 +3082,8 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_1()
     //	        face->set_boundary_id(2);
     //	    }
     //	}
+    
+
     
     m_triangulation.refine_global(m_parameters.m_global_refine_times);
     
