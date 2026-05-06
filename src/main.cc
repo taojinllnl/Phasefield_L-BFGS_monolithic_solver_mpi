@@ -3069,20 +3069,6 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_1()
                         "coarse_original_mesh",
                         &m_triangulation);
     
-    //    for (const auto &cell : m_triangulation.active_cell_iterators())
-    //      for (const auto &face : cell->face_iterators())
-    //	{
-    //	  if (face->at_boundary() == true)
-    //	    {
-    //	      if (std::fabs(face->center()[1] + 0.5 ) < 1.0e-9 )
-    //		face->set_boundary_id(0);
-    //	      else if (std::fabs(face->center()[1] - 0.5 ) < 1.0e-9)
-    //	        face->set_boundary_id(1);
-    //	      else
-    //	        face->set_boundary_id(2);
-    //	    }
-    //	}
-    
 
     
     m_triangulation.refine_global(m_parameters.m_global_refine_times);
@@ -3158,22 +3144,6 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_2()
                         "coarse_original_mesh",
                         &m_triangulation);
     
-    //    for (const auto &cell : m_triangulation.active_cell_iterators())
-    //      for (const auto &face : cell->face_iterators())
-    //	{
-    //	  if (face->at_boundary() == true)
-    //	    {
-    //	      if (std::fabs(face->center()[1] + 0.5 ) < 1.0e-9 )
-    //		face->set_boundary_id(0);
-    //	      else if (std::fabs(face->center()[1] - 0.5 ) < 1.0e-9)
-    //	        face->set_boundary_id(1);
-    //	      else if (   (std::fabs(face->center()[0] - 0.0 ) < 1.0e-9)
-    //		       || (std::fabs(face->center()[0] - 1.0 ) < 1.0e-9))
-    //	        face->set_boundary_id(2);
-    //	      else
-    //	        face->set_boundary_id(3);
-    //	    }
-    //	}
     
     m_triangulation.refine_global(m_parameters.m_global_refine_times);
     const double hlRatio = m_parameters.m_allowed_max_h_l_ratio;
@@ -3246,20 +3216,6 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_3()
                         "coarse_original_mesh",
                         &m_triangulation);
     
-    //    for (const auto &cell : m_triangulation.active_cell_iterators())
-    //      for (const auto &face : cell->face_iterators())
-    //	{
-    //	  if (face->at_boundary() == true)
-    //	    {
-    //	      if (std::fabs(face->center()[1] - 0.0 ) < 1.0e-9 )
-    //		face->set_boundary_id(0);
-    //	      else if (std::fabs(face->center()[1] - 1.0 ) < 1.0e-9)
-    //	        face->set_boundary_id(1);
-    //	      else
-    //	        face->set_boundary_id(2);
-    //	    }
-    //	}
-    
     m_triangulation.refine_global(m_parameters.m_global_refine_times);
     const double hlRatio = m_parameters.m_allowed_max_h_l_ratio;
     if (m_parameters.m_refinement_strategy == "pre-refine")
@@ -3328,23 +3284,6 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_4()
         m_output.output(m_parameters.oriDir,
                         "coarse_original_mesh",
                         &m_triangulation);
-    
-    //    for (const auto &cell : m_triangulation.active_cell_iterators())
-    //      for (const auto &face : cell->face_iterators())
-    //	{
-    //	  if (face->at_boundary() == true)
-    //	    {
-    //	      if (std::fabs(face->center()[1] - 0.0 ) < 1.0e-9 )
-    //		face->set_boundary_id(0);
-    //	      else if (std::fabs(face->center()[1] - 1.0 ) < 1.0e-9)
-    //	        face->set_boundary_id(1);
-    //	      else if (   (std::fabs(face->center()[0] - 0.0 ) < 1.0e-9)
-    //		       || (std::fabs(face->center()[0] - 1.0 ) < 1.0e-9))
-    //	        face->set_boundary_id(2);
-    //	      else
-    //	        face->set_boundary_id(3);
-    //	    }
-    //	}
     
     m_triangulation.refine_global(m_parameters.m_global_refine_times);
     const double hlRatio = m_parameters.m_allowed_max_h_l_ratio;
@@ -3415,19 +3354,6 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_5()
                         "coarse_original_mesh",
                         &m_triangulation);
     
-    //    for (const auto &cell : m_triangulation.active_cell_iterators())
-    //      for (const auto &face : cell->face_iterators())
-    //	{
-    //	  if (face->at_boundary() == true)
-    //	    {
-    //	      if (std::fabs(face->center()[1] - 0.0 ) < 1.0e-9 )
-    //		face->set_boundary_id(0);
-    //	      else if (std::fabs(face->center()[1] - 2.0 ) < 1.0e-9)
-    //	        face->set_boundary_id(1);
-    //	      else
-    //	        face->set_boundary_id(2);
-    //	    }
-    //	}
     
     m_triangulation.refine_global(m_parameters.m_global_refine_times);
     const double hlRatio = m_parameters.m_allowed_max_h_l_ratio;
@@ -3564,23 +3490,6 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_6()
                         "coarse_original_mesh",
                         &m_triangulation);
     
-    //    for (const auto &cell : m_triangulation.active_cell_iterators())
-    //      for (const auto &face : cell->face_iterators())
-    //	{
-    //	  if (face->at_boundary() == true)
-    //	    {
-    //	      if (std::fabs(face->center()[0] - 0.0 ) < 1.0e-9 )
-    //		face->set_boundary_id(0);
-    //	      else if (std::fabs(face->center()[1] - 0.0 ) < 1.0e-9)
-    //		face->set_boundary_id(1);
-    //	      else if (std::fabs(face->center()[2] - 0.0 ) < 1.0e-9)
-    //		face->set_boundary_id(2);
-    //	      else if (std::fabs(face->center()[2] - 1.0 ) < 1.0e-9)
-    //		face->set_boundary_id(3);
-    //	      else
-    //		face->set_boundary_id(4);
-    //	    }
-    //	}
     const double hlRatio = m_parameters.m_allowed_max_h_l_ratio;
     if (m_parameters.m_refinement_strategy == "adaptive-refine")
     {
@@ -3696,23 +3605,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_7()
         m_output.output(m_parameters.oriDir,
                         "coarse_original_mesh",
                         &m_triangulation);
-    //    for (const auto &cell : m_triangulation.active_cell_iterators())
-    //      for (const auto &face : cell->face_iterators())
-    //	{
-    //	  if (face->at_boundary() == true)
-    //	    {
-    //	      if (std::fabs(face->center()[0] - 0.0 ) < 1.0e-9 )
-    //		face->set_boundary_id(0);
-    //	      else if (std::fabs(face->center()[1] - 0.0 ) < 1.0e-9)
-    //		face->set_boundary_id(1);
-    //	      else if (std::fabs(face->center()[2] - 0.0 ) < 1.0e-9)
-    //		face->set_boundary_id(2);
-    //	      else if (std::fabs(face->center()[2] - 1.0 ) < 1.0e-9)
-    //		face->set_boundary_id(3);
-    //	      else
-    //		face->set_boundary_id(4);
-    //	    }
-    //	}
+
     const double hlRatio = m_parameters.m_allowed_max_h_l_ratio;
     if (m_parameters.m_refinement_strategy == "adaptive-refine")
     {
@@ -3842,23 +3735,7 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_8()
         m_output.output(m_parameters.oriDir,
                         "coarse_original_mesh",
                         &m_triangulation);
-    //    for (const auto &cell : m_triangulation.active_cell_iterators())
-    //      for (const auto &face : cell->face_iterators())
-    //	{
-    //	  if (face->at_boundary() == true)
-    //	    {
-    //	      if (std::fabs(face->center()[0] - 0.0 ) < 1.0e-9 )
-    //		face->set_boundary_id(0);
-    //	      else if (std::fabs(face->center()[1] - 0.0 ) < 1.0e-9)
-    //		face->set_boundary_id(1);
-    //	      else if (std::fabs(face->center()[2] - 0.0 ) < 1.0e-9)
-    //		face->set_boundary_id(2);
-    //	      else if (std::fabs(face->center()[2] - 1.0 ) < 1.0e-9)
-    //		face->set_boundary_id(3);
-    //	      else
-    //		face->set_boundary_id(4);
-    //	    }
-    //	}
+    
     const double hlRatio = m_parameters.m_allowed_max_h_l_ratio;
     if (m_parameters.m_refinement_strategy == "adaptive-refine")
     {
@@ -4030,11 +3907,6 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_11()
         m_extra_data.emplace("width",  50.0);
         m_extra_data.emplace("height", 50.0);
         m_extra_data.emplace("delta_L", 25.0);
-        
-//        m_extra_data["length"]  = 200;
-//        m_extra_data["width"]   = 50.0;
-//        m_extra_data["height"]  = 50.0;
-//        m_extra_data["delta_L"] = 25.0;
     }
     
     double const length  = m_extra_data.at("length");
@@ -4177,21 +4049,6 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_11()
         AssertThrow(false,
                     ExcMessage("Selected mesh refinement strategy not implemented!"));
     }
-    
-    
-    //    for (const auto &cell : m_triangulation.active_cell_iterators())
-    //      for (const auto &face : cell->face_iterators())
-    //	{
-    //	  if (face->at_boundary() == true)
-    //	    {
-    //	      if (std::fabs(face->center()[0] - length) < 1.0e-6 )
-    //		face->set_boundary_id(0);
-    //	      else if (std::fabs(face->center()[0] - 0.0) < 1.0e-6 )
-    //		face->set_boundary_id(1);
-    //	      else
-    //		face->set_boundary_id(2);
-    //	    }
-    //	}
 }
 
 template <typename LATraits, typename Tria>
@@ -4223,23 +4080,6 @@ void PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid_case_12()
         m_output.output(m_parameters.oriDir,
                         "coarse_original_mesh",
                         &m_triangulation);
-    //    for (const auto &cell : m_triangulation.active_cell_iterators())
-    //      for (const auto &face : cell->face_iterators())
-    //	{
-    //	  if (face->at_boundary() == true)
-    //	    {
-    //	      if ( (std::fabs(face->center()[0] - 0.0 ) < 1.0e-9) )
-    //		face->set_boundary_id(0);
-    //	      else if ( (std::fabs(face->center()[0] - length ) < 1.0e-9) )
-    //		face->set_boundary_id(1);
-    //	      else if ( (std::fabs(face->center()[1] - 0.0 ) < 1.0e-9) )
-    //		face->set_boundary_id(2);
-    //	      else if ( (std::fabs(face->center()[1] - width ) < 1.0e-9) )
-    //		face->set_boundary_id(3);
-    //	      else
-    //		face->set_boundary_id(4);
-    //	    }
-    //	}
 }
 
 template <typename LATraits, typename Tria>
