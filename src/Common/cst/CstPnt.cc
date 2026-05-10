@@ -6,80 +6,75 @@
 
 #include "../../../include/Common/cst/CstPnt.h"
 
+
 using namespace ::dealii;
 using namespace ::bcs;
 
 
 template <typename Tria>
-CstPnt<Tria>
-::CstPnt(const std::array<double, 3>& pntCoorinates,
-         const std::vector<CstEntry<Tria>> & csts,
-         const double tol)
-: CstSelectorBase<Tria>(csts)
-, pntCoorinates(std::array<double, 3>(pntCoorinates))
-, tol(tol)
+CstPnt<Tria>::CstPnt(const std::array<double, 3>       &pntCoorinates,
+                     const std::vector<CstEntry<Tria>> &csts,
+                     const double                       tol)
+  : CstSelectorBase<Tria>(csts)
+  , pntCoorinates(std::array<double, 3>(pntCoorinates))
+  , tol(tol)
 {}
 
 
 template <typename Tria>
-CstPnt<Tria>
-::CstPnt(const CstPnt& cstPnt)
-: CstSelectorBase<Tria>(cstPnt)
-, pntCoorinates(cstPnt.pntCoorinates)
-, tol(cstPnt.tol)
+CstPnt<Tria>::CstPnt(const CstPnt &cstPnt)
+  : CstSelectorBase<Tria>(cstPnt)
+  , pntCoorinates(cstPnt.pntCoorinates)
+  , tol(cstPnt.tol)
 {}
 
 template <typename Tria>
 std::size_t
-CstPnt<Tria>
-::expectedNumberOfCstPoints() const
+CstPnt<Tria>::expectedNumberOfCstPoints() const
 {
-    return 1;
+  return 1;
 }
 
 
 template <typename Tria>
 std::size_t
-CstPnt<Tria>
-::expectedNumberOfCstEntries() const
+CstPnt<Tria>::expectedNumberOfCstEntries() const
 {
-    return CstSelectorBase<Tria>::cstInput().size();
+  return CstSelectorBase<Tria>::cstInput().size();
 }
 
 
 
 template <typename Tria>
 bool
-CstPnt<Tria>
-::isSelectedPnt(const ::dealii::Point<spacedim>& point)
+CstPnt<Tria>::isSelectedPnt(const ::dealii::Point<spacedim> &point)
 {
-    bool isCurrentPoint = false;
-    
-    if constexpr (spacedim == 1)
+  bool isCurrentPoint = false;
+
+  if constexpr (spacedim == 1)
     {
-        isCurrentPoint = std::fabs(point[0] - pntCoorinates[0]) < tol;
+      isCurrentPoint = std::fabs(point[0] - pntCoorinates[0]) < tol;
     }
-    else if constexpr (spacedim == 2)
+  else if constexpr (spacedim == 2)
     {
-        isCurrentPoint = std::fabs(point[0] - pntCoorinates[0]) < tol
-                     &&  std::fabs(point[1] - pntCoorinates[1]) < tol;
+      isCurrentPoint = std::fabs(point[0] - pntCoorinates[0]) < tol &&
+                       std::fabs(point[1] - pntCoorinates[1]) < tol;
     }
-    else if constexpr (spacedim == 3)
+  else if constexpr (spacedim == 3)
     {
-        isCurrentPoint = std::fabs(point[0] - pntCoorinates[0]) < tol
-                     &&  std::fabs(point[1] - pntCoorinates[1]) < tol
-                     &&  std::fabs(point[2] - pntCoorinates[2]) < tol;
+      isCurrentPoint = std::fabs(point[0] - pntCoorinates[0]) < tol &&
+                       std::fabs(point[1] - pntCoorinates[1]) < tol &&
+                       std::fabs(point[2] - pntCoorinates[2]) < tol;
     }
-    return isCurrentPoint;
+  return isCurrentPoint;
 }
 
 
 template <typename Tria>
 std::unique_ptr<CstSelectorBase<Tria>>
-CstPnt<Tria>
-::clone() const
+CstPnt<Tria>::clone() const
 {
-    return std::make_unique<CstPnt<Tria>>(*this);
+  return std::make_unique<CstPnt<Tria>>(*this);
 }
 
 

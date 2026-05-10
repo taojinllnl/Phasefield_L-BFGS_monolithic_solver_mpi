@@ -660,7 +660,6 @@ namespace bcs
   }
 
 
-
   template <typename CstType>
   void
   CstHelper ::__verifyInput(const std::vector<CstType> &cstPnts,
