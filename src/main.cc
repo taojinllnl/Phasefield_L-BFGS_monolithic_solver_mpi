@@ -154,7 +154,6 @@
 #include "../include/Common/BlockVectorWrapper.h"
 #include "../include/Common/DataListReader.h"
 #include "../include/Common/FileSystem.h"
-#include "../include/Common/GridMaker.h"
 #include "../include/Common/MPIInfo.h"
 #include "../include/Common/TimerOutputWrapper.h"
 #include "../include/Common/Traits.h"
