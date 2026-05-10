@@ -4,7 +4,7 @@
 //
 //
 
-#include "../../include/Common/CstHelper.h"
+#include "../../include/Common/cst/CstHelper.h"
 
 
 using namespace ::dealii;
@@ -12,7 +12,7 @@ using namespace ::bcs;
 
 
 
-CstEntry::CstEntry(const unsigned int  dofAtPnt,
+ConstraintEntry::ConstraintEntry(const unsigned int  dofAtPnt,
                    const double        value )
 : value(value)
 , dofAtPnt(dofAtPnt)
@@ -20,7 +20,7 @@ CstEntry::CstEntry(const unsigned int  dofAtPnt,
 {}
 
 
-CstEntry::CstEntry(const CstEntry& view)
+ConstraintEntry::ConstraintEntry(const ConstraintEntry& view)
 : value(view.value)
 , dofAtPnt(view.dofAtPnt)
 , dof(view.dof)
@@ -29,25 +29,25 @@ CstEntry::CstEntry(const CstEntry& view)
 
 
 ::dealii::types::global_dof_index
-CstEntry::getGlobalDoF() const
+ConstraintEntry::getGlobalDoF() const
 {
     return dof;
 }
 
-double CstEntry::getValue() const
+double ConstraintEntry::getValue() const
 {
     return value;
 }
 
 bool 
-CstEntry::hasValidDoF() const
+ConstraintEntry::hasValidDoF() const
 {
     return dof != ::dealii::numbers::invalid_dof_index;
 }
 
 
 
-void CstEntry::setDof(const ::dealii::types::global_dof_index new_dof)
+void ConstraintEntry::setDof(const ::dealii::types::global_dof_index new_dof)
 {
     AssertThrow(new_dof != ::dealii::numbers::invalid_dof_index,
                     ExcMessage("CstView::setDof() received invalid_dof_index."));
@@ -56,16 +56,16 @@ void CstEntry::setDof(const ::dealii::types::global_dof_index new_dof)
 
 
 
-void CstEntry::reset()
+void ConstraintEntry::reset()
 {
     dof = ::dealii::numbers::invalid_dof_index;
 }
 
 
 
-CstPnt
-::CstPnt(const std::array<double, 3>& pntCoorinates,
-         const std::vector<CstEntry> & csts,
+ConstrainedPnt
+::ConstrainedPnt(const std::array<double, 3>& pntCoorinates,
+         const std::vector<ConstraintEntry> & csts,
          const double tol)
 : pntCoorinates(std::make_shared<std::array<double, 3>>(pntCoorinates))
 , csts(csts)
@@ -74,16 +74,16 @@ CstPnt
 {}
 
 
-CstPnt
-::CstPnt(const CstPnt& cstPnt)
+ConstrainedPnt
+::ConstrainedPnt(const ConstrainedPnt& cstPnt)
 : pntCoorinates(cstPnt.pntCoorinates)
 , csts(cstPnt.csts)
 , nCsts(cstPnt.nCsts)
 , tol(cstPnt.tol)
 {}
 
-const std::vector<CstEntry>& 
-CstPnt
+const std::vector<ConstraintEntry>& 
+ConstrainedPnt
 ::cstEntrys() const
 {
     return csts;
@@ -92,9 +92,9 @@ CstPnt
 
 
 
-CstFunc
-::CstFunc(const SelFunc& selectorFunc,
-          const std::vector<CstEntry>& csts)
+ConstrainedFunc
+::ConstrainedFunc(const SelFunc& selectorFunc,
+          const std::vector<ConstraintEntry>& csts)
 : nCsts(0)
 , nPnts(0)
 , selectorFunc(std::make_shared<SelFunc>(selectorFunc))
@@ -106,9 +106,9 @@ CstFunc
 {}
 
 
-CstFunc
-::CstFunc(const SelFunc&               selectorFunc,
-          const std::vector<CstEntry>& csts,
+ConstrainedFunc
+::ConstrainedFunc(const SelFunc&               selectorFunc,
+          const std::vector<ConstraintEntry>& csts,
           const ValuesAtPntFunc&       valuesFunc)
 : nCsts(0)
 , nPnts(0)
@@ -120,8 +120,8 @@ CstFunc
 , pointsFound()
 {}
 
-CstFunc
-::CstFunc(const CstFunc& cstFunc)
+ConstrainedFunc
+::ConstrainedFunc(const ConstrainedFunc& cstFunc)
 : nCsts(0)
 , nPnts(0)
 , selectorFunc(cstFunc.selectorFunc)
@@ -133,8 +133,8 @@ CstFunc
 {}
 
 
-const std::vector<CstEntry>& 
-CstFunc
+const std::vector<ConstraintEntry>& 
+ConstrainedFunc
 ::cstEntrys() const
 {
     return cstsFound;
