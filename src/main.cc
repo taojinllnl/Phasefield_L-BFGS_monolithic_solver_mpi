@@ -7211,7 +7211,7 @@ namespace PhaseField
 
         // AssertThrow(alpha < alpha_max,
         //	    ExcMessage("alpha is bigger than alpha_max, line search
-        //failed!"));
+        // failed!"));
       }
 
     // AssertThrow(i < max_iter,
@@ -7991,28 +7991,30 @@ namespace PhaseField
         if (m_parameters.m_relative_residual)
           m_error_residual_norm.normalize(m_error_residual_0);
 
-        const double sqrtNu = (*m_blocks_desc.sqrtDoFsPerBlockPtr())[m_u_dof];
-        const double sqrtNd = (*m_blocks_desc.sqrtDoFsPerBlockPtr())[m_u_dof];
+        //        const double sqrtNu =
+        //        (*m_blocks_desc.sqrtDoFsPerBlockPtr())[m_u_dof]; const double
+        //        sqrtNd = (*m_blocks_desc.sqrtDoFsPerBlockPtr())[m_u_dof];
 
         if (LBFGS_iteration > 1 &&
             m_error_residual_norm.m_u <= m_parameters.m_tol_u_residual &&
             m_error_residual_norm.m_d <= m_parameters.m_tol_d_residual &&
-            (m_error_update_norm.m_u / sqrtNu) <= m_parameters.m_tol_u_incr &&
-            (m_error_update_norm.m_d / sqrtNd) <= m_parameters.m_tol_d_incr)
+            (m_error_update_norm.m_u /*/ sqrtNu*/) <=
+              m_parameters.m_tol_u_incr &&
+            (m_error_update_norm.m_d /*/ sqrtNd*/) <= m_parameters.m_tol_d_incr)
           {
             if (m_parameters.m_output_iteration_history)
               {
                 m_logfile << " | ";
-                m_logfile << " CONVERGED! " << std::fixed
-                          << std::setprecision(3) << std::setw(7)
-                          << std::scientific << "        ----       "
-                          << "  " << m_error_residual_norm.m_norm << "  "
-                          << m_error_residual_norm.m_u << "  "
-                          << m_error_residual_norm.m_d << "  "
-                          << (m_error_update_norm.m_norm / (sqrtNu + sqrtNd))
-                          << "  " << (m_error_update_norm.m_u / sqrtNu) << "  "
-                          << (m_error_update_norm.m_d / sqrtNd) << "  "
-                          << std::endl;
+                m_logfile
+                  << " CONVERGED! " << std::fixed << std::setprecision(3)
+                  << std::setw(7) << std::scientific << "        ----       "
+                  << "  " << m_error_residual_norm.m_norm << "  "
+                  << m_error_residual_norm.m_u << "  "
+                  << m_error_residual_norm.m_d << "  "
+                  << (m_error_update_norm.m_norm /*/ (sqrtNu + sqrtNd)*/)
+                  << "  " << (m_error_update_norm.m_u /*/ sqrtNu*/) << "  "
+                  << (m_error_update_norm.m_d /*/ sqrtNd*/) << "  "
+                  << std::endl;
 
                 m_logfile << '\t' << '\t';
                 for (unsigned int i = 0; i < 128; ++i)
@@ -8337,9 +8339,9 @@ namespace PhaseField
                       << "  " << m_error_residual_norm.m_norm << "  "
                       << m_error_residual_norm.m_u << "  "
                       << m_error_residual_norm.m_d << "  "
-                      << (m_error_update_norm.m_norm / (sqrtNu + sqrtNd))
-                      << "  " << (m_error_update_norm.m_u / sqrtNu) << "  "
-                      << (m_error_update_norm.m_d / sqrtNd) << "  "
+                      << (m_error_update_norm.m_norm /*/ (sqrtNu + sqrtNd)*/)
+                      << "  " << (m_error_update_norm.m_u /*/ sqrtNu*/) << "  "
+                      << (m_error_update_norm.m_d /*/ sqrtNd*/) << "  "
                       << std::endl;
           }
 
