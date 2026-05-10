@@ -1613,22 +1613,13 @@ namespace PhaseField
 
     std::unordered_map<unsigned int, std::vector<double>> m_material_data;
 
-    std::vector<std::pair<double, std::vector<double>>>
-      m_history_reaction_force;
+    std::vector<std::pair<double, std::vector<double>>> m_history_reaction_force;
     std::vector<std::pair<double, std::array<double, 3>>> m_history_energy;
-
+      
     bool                m_update_dofs_for_cst;
     bcs::CstMaker<Tria> m_cst_maker;
-
+      
     OutputHelper<LATraits, Tria, PointHistory<dim>> m_output;
-
-
-    grid::GridRefiner<Tria,
-                      supportRepartioning,
-                      std::map<unsigned int, std::vector<double>>,
-                      double>
-      m_gridRefiner;
-
 
     struct Errors
     {
@@ -2916,7 +2907,6 @@ namespace PhaseField
                m_qf_cell,
                m_parameters.m_scenario,
                m_parameters.m_mpi_type)
-    , m_gridRefiner(m_mpiInfo)
   {}
 
 
@@ -3317,34 +3307,6 @@ namespace PhaseField
   void
   PhaseFieldMonolithicSolve<LATraits, Tria>::make_grid()
   {
-    if (!m_gridRefiner.isBoundTriaStrategy())
-      {
-        using CellIter = typename Tria::active_cell_iterator;
-        const auto hlStrategy =
-          [](const CellIter                                    &cell,
-             const std::map<unsigned int, std::vector<double>> &materialTable,
-             const double &rlRatio) -> bool {
-          double length_scale = materialTable.at(cell->material_id())[2];
-          if constexpr (dim == 2)
-            {
-              if (std::sqrt(cell->measure()) > length_scale * rlRatio)
-                {
-                  return true;
-                }
-            }
-          else
-            {
-              if (std::cbrt(cell->measure()) > length_scale * rlRatio)
-                {
-                  return true;
-                }
-            }
-          return false;
-        };
-        m_gridRefiner.bindTriaStrategy(hlStrategy);
-      }
-
-
     if (m_parameters.m_scenario == 1)
       make_grid_case_1();
     else if (m_parameters.m_scenario == 2)
@@ -7839,14 +7801,6 @@ namespace PhaseField
     BVector &solution_delta,
     BVector &LBFGS_update_refine)
   {
-    if (DEBUG_FLAG)
-      {
-        std::string content = std::to_string(m_mpiInfo.rank());
-        content += "--> solve_nonlinear_timestep_LBFGS()";
-        content += "Timestep:" + std::to_string(m_time.get_timestep());
-        content += "\n";
-        std::cout << content << std::endl;
-      }
     // Define an index to track how many times the line search parameter
     // is smaller than a threshold (1.0e-3) CONSECUTIVELY. If the line
     // search parameter is too small several times in a row, we set it to
@@ -7890,18 +7844,10 @@ namespace PhaseField
 
     for (; LBFGS_iteration < m_parameters.m_max_iterations_BFGS;
          ++LBFGS_iteration)
-      {
-        if (DEBUG_FLAG)
-          {
-            std::string content = std::to_string(m_mpiInfo.rank());
-            content += "--> LBFGS_iteration:" + std::to_string(LBFGS_iteration);
-            content += "\n";
-            std::cout << content << std::endl;
-          }
-
+    {
         if (m_parameters.m_output_iteration_history)
-          m_logfile << '\t' << '\t' << std::setw(4) << LBFGS_iteration << ' '
-                    << std::flush;
+            m_logfile << '\t' << '\t' << std::setw(4) << LBFGS_iteration << ' '
+            << std::flush;
 
         make_constraints(LBFGS_iteration);
 
@@ -7965,25 +7911,11 @@ namespace PhaseField
             m_logfile << " --- " << std::flush;
           }
 
-        if (DEBUG_FLAG)
-          {
-            std::string content = std::to_string(m_mpiInfo.rank());
-            content +=
-              "--> get_error_residual:" + std::to_string(LBFGS_iteration);
-            content += "\n";
-            std::cout << content << std::endl;
-          }
+        
         get_error_residual(m_error_residual);
         if (LBFGS_iteration == 1)
           m_error_residual_0 = m_error_residual;
-        if (DEBUG_FLAG)
-          {
-            std::string content = std::to_string(m_mpiInfo.rank());
-            content +=
-              "-->|| get_error_residual:" + std::to_string(LBFGS_iteration);
-            content += "\n";
-            std::cout << content << std::endl;
-          }
+        
 
         m_error_residual_norm = m_error_residual;
         // For three-point bending problem and 3D problem, we use absolute
@@ -8075,13 +8007,7 @@ namespace PhaseField
 
             break;
           }
-        if (DEBUG_FLAG)
-          {
-            std::string content = std::to_string(m_mpiInfo.rank());
-            content += "--> LBFGS algorithm:" + std::to_string(LBFGS_iteration);
-            content += "\n";
-            std::cout << content << std::endl;
-          }
+        
         // LBFGS algorithm
         LBFGS_q_vector = m_system_rhs;
 
@@ -8116,21 +8042,9 @@ namespace PhaseField
          LBFGS_q_vector *= scale_gamma;
          LBFGS_r_vector = LBFGS_q_vector;
          */
-        if (DEBUG_FLAG)
-          {
-            std::string content = std::to_string(m_mpiInfo.rank());
-            content += "--> LBFGS_B0" + std::to_string(LBFGS_iteration);
-            content += "\n";
-            std::cout << content << std::endl;
-          }
+        
         LBFGS_B0(LBFGS_r_vector, LBFGS_q_vector);
-        if (DEBUG_FLAG)
-          {
-            std::string content = std::to_string(m_mpiInfo.rank());
-            content += "-->|| LBFGS_B0" + std::to_string(LBFGS_iteration);
-            content += "\n";
-            std::cout << content << std::endl;
-          }
+        
         for (auto itr = LBFGS_vector_list.rbegin();
              itr != LBFGS_vector_list.rend();
              ++itr)
@@ -8147,34 +8061,14 @@ namespace PhaseField
             LBFGS_r_vector.add(alpha - LBFGS_beta, LBFGS_s_vector);
           }
 
-        if (DEBUG_FLAG)
-          {
-            std::string content = std::to_string(m_mpiInfo.rank());
-            content += "--> LBFGS_r_vector.distributeCst" +
-                       std::to_string(LBFGS_iteration);
-            content += "\n";
-            std::cout << content << std::endl;
-          }
+        
         LBFGS_r_vector *= -1.0; // this is the p_vector (search direction)
 
         //        m_constraints.distribute(LBFGS_r_vector);
         LBFGS_r_vector.distributeCst(m_constraints);
-        if (DEBUG_FLAG)
-          {
-            std::string content = std::to_string(m_mpiInfo.rank());
-            content += "-->|| LBFGS_r_vector.distributeCst" +
-                       std::to_string(LBFGS_iteration);
-            content += "\n";
-            std::cout << content << std::endl;
-          }
+        
 
-        if (DEBUG_FLAG)
-          {
-            std::string content = std::to_string(m_mpiInfo.rank());
-            content += "--> line search" + std::to_string(LBFGS_iteration);
-            content += "\n";
-            std::cout << content << std::endl;
-          }
+        
         // We need a line search algorithm to decide line_search_parameter
         unsigned int num_line_search = 0;
         if (m_parameters.m_type_line_search == "StrongWolfe")
@@ -8227,79 +8121,32 @@ namespace PhaseField
                                         line_search_parameter,
                                         /*root=*/0);
           }
-        if (DEBUG_FLAG)
-          {
-            std::string content = std::to_string(m_mpiInfo.rank());
-            content += "-->|| line search" + std::to_string(LBFGS_iteration);
-            content += "\n";
-            std::cout << content << std::endl;
-          }
+        
         LBFGS_r_vector *= line_search_parameter;
         LBFGS_r_vector.updateRelevance();
         LBFGS_update = LBFGS_r_vector;
         LBFGS_update.updateRelevance();
-        if (DEBUG_FLAG)
-          {
-            std::string content = std::to_string(m_mpiInfo.rank());
-            content += "--> get_error_update" + std::to_string(LBFGS_iteration);
-            content += "\n";
-            std::cout << content << std::endl;
-          }
+        
         get_error_update(LBFGS_update, m_error_update);
         if (LBFGS_iteration == 1)
           m_error_update_0 = m_error_update;
-        if (DEBUG_FLAG)
-          {
-            std::string content = std::to_string(m_mpiInfo.rank());
-            content +=
-              "-->|| get_error_update" + std::to_string(LBFGS_iteration);
-            content += "\n";
-            std::cout << content << std::endl;
-          }
+        
         m_error_update_norm = m_error_update;
         // For three-point bending problem and the sphere inclusion problem,
         // we use absolute residual for convergence test
         if (m_parameters.m_relative_residual)
           m_error_update_norm.normalize(m_error_update_0);
 
-        if (DEBUG_FLAG)
-          {
-            std::string content = std::to_string(m_mpiInfo.rank());
-            content +=
-              "--> update_qph_incremental" + std::to_string(LBFGS_iteration);
-            content += "\n";
-            std::cout << content << std::endl;
-          }
+        
         solution_delta += LBFGS_update;
         solution_delta.updateRelevance();
         update_qph_incremental(solution_delta, m_solution, false);
-        if (DEBUG_FLAG)
-          {
-            std::string content = std::to_string(m_mpiInfo.rank());
-            content +=
-              "-->|| update_qph_incremental" + std::to_string(LBFGS_iteration);
-            content += "\n";
-            std::cout << content << std::endl;
-          }
+        
         LBFGS_y_vector = m_system_rhs;
         LBFGS_y_vector *= -1.0;
-        if (DEBUG_FLAG)
-          {
-            std::string content = std::to_string(m_mpiInfo.rank());
-            content += "--> assemble_system_rhs_BFGS_parallel" +
-                       std::to_string(LBFGS_iteration);
-            content += "\n";
-            std::cout << content << std::endl;
-          }
+        
         assemble_system_rhs_BFGS_parallel(m_solution, m_system_rhs);
-        if (DEBUG_FLAG)
-          {
-            std::string content = std::to_string(m_mpiInfo.rank());
-            content += "-->|| assemble_system_rhs_BFGS_parallel" +
-                       std::to_string(LBFGS_iteration);
-            content += "\n";
-            std::cout << content << std::endl;
-          }
+        
         // if we use assemble_system_rhs_BFGS_parallel, then condense() is not
         // necessary
         // m_constraints.condense(m_system_rhs);
@@ -8345,24 +8192,10 @@ namespace PhaseField
                       << std::endl;
           }
 
-        if (DEBUG_FLAG)
-          {
-            std::string content = std::to_string(m_mpiInfo.rank());
-            content +=
-              "-->|| LBFGS_iteration:" + std::to_string(LBFGS_iteration);
-            content += "\n";
-            std::cout << content << std::endl;
-          }
+        
       }
 
-    if (DEBUG_FLAG)
-      {
-        std::string content = std::to_string(m_mpiInfo.rank());
-        content += "-->|| solve_nonlinear_timestep_LBFGS()";
-        content += "Timestep:" + std::to_string(m_time.get_timestep());
-        content += "\n";
-        std::cout << content << std::endl;
-      }
+    
 
     AssertThrow(LBFGS_iteration < m_parameters.m_max_iterations_BFGS,
                 ExcMessage("No convergence in L-BFGS nonlinear solver!"));
