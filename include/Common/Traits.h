@@ -8,38 +8,44 @@
 #define Traits_h
 
 
-#include <deal.II/lac/generic_linear_algebra.h>
 #include <deal.II/grid/tria.h>
-#include <deal.II/numerics/solution_transfer.h>
+
+#include <deal.II/lac/generic_linear_algebra.h>
 #include <deal.II/lac/precondition_selector.h>
 
-namespace common {
+#include <deal.II/numerics/solution_transfer.h>
 
-struct TagSerial    {};
-struct TagPETSc     {};
-struct TagTrilinos  {};
-
-
-
-// templated class for different scenarios for class types
-template <typename BackendTag>
-struct Traits;
-
-// serial mode
-template <>
-struct Traits<TagSerial>
+namespace common
 {
+
+  struct TagSerial
+  {};
+  struct TagPETSc
+  {};
+  struct TagTrilinos
+  {};
+
+
+
+  // templated class for different scenarios for class types
+  template <typename BackendTag>
+  struct Traits;
+
+  // serial mode
+  template <>
+  struct Traits<TagSerial>
+  {
     using TMTag    = TagSerial;
     using Vector   = ::dealii::LinearAlgebraDealII::BlockVector;
     using Matrix   = ::dealii::LinearAlgebraDealII::BlockSparseMatrix;
     using IndexSet = ::dealii::IndexSet;
-    
-    using MatrixBlock   = ::dealii::LinearAlgebraDealII::SparseMatrix;
-    using VectorBlock   = ::dealii::LinearAlgebraDealII::Vector;
-    
+
+    using MatrixBlock = ::dealii::LinearAlgebraDealII::SparseMatrix;
+    using VectorBlock = ::dealii::LinearAlgebraDealII::Vector;
+
     static constexpr bool IS_MPI = false;
-};
-}
+  };
+} // namespace common
 
 // alias for serial Triangulation
 template <int dim, int spacedim = dim>
@@ -47,27 +53,28 @@ using RTria = ::dealii::Triangulation<dim, spacedim>;
 
 
 
-
 // MPI mode with PETSc
 #ifdef DEAL_II_WITH_PETSC
 #  define HAVE_PETSC 1
-#include <deal.II/lac/petsc_solver.h>
-#include <deal.II/lac/petsc_precondition.h>
-#include <deal.II/distributed/tria.h>
-namespace common {
-template <>
-struct Traits<TagPETSc>
+#  include <deal.II/distributed/tria.h>
+
+#  include <deal.II/lac/petsc_precondition.h>
+#  include <deal.II/lac/petsc_solver.h>
+namespace common
 {
+  template <>
+  struct Traits<TagPETSc>
+  {
     using TMTag    = TagPETSc;
     using Vector   = ::dealii::LinearAlgebraPETSc::MPI::BlockVector;
     using Matrix   = ::dealii::LinearAlgebraPETSc::MPI::BlockSparseMatrix;
     using IndexSet = ::dealii::IndexSet;
-    
-    using MatrixBlock   = ::dealii::LinearAlgebraPETSc::MPI::SparseMatrix;
-    using VectorBlock   = ::dealii::LinearAlgebraPETSc::MPI::Vector;
-    
+
+    using MatrixBlock = ::dealii::LinearAlgebraPETSc::MPI::SparseMatrix;
+    using VectorBlock = ::dealii::LinearAlgebraPETSc::MPI::Vector;
+
     static constexpr bool IS_MPI = true;
-    
+
     // https://dealii.org/current/doxygen/deal.II/classPETScWrappers_1_1PreconditionBase.html
     using PrecJacobi = ::dealii::PETScWrappers::PreconditionJacobi;
     using PrecILU    = ::dealii::PETScWrappers::PreconditionILU;
@@ -78,8 +85,8 @@ struct Traits<TagPETSc>
     using PrecShell  = ::dealii::PETScWrappers::PreconditionShell;
     using PrecAMG    = ::dealii::PETScWrappers::PreconditionBoomerAMG;
     using PrecNone   = ::dealii::PETScWrappers::PreconditionNone;
-};
-}
+  };
+} // namespace common
 
 
 #endif
@@ -89,23 +96,25 @@ struct Traits<TagPETSc>
 // MPI mode with Trilinos
 #ifdef DEAL_II_WITH_TRILINOS
 #  define HAVE_TRILINOS 1
-#include <deal.II/lac/trilinos_solver.h>
-#include <deal.II/lac/trilinos_precondition.h>
-#include <deal.II/distributed/tria.h>
-namespace common {
-template <>
-struct Traits<TagTrilinos>
+#  include <deal.II/distributed/tria.h>
+
+#  include <deal.II/lac/trilinos_precondition.h>
+#  include <deal.II/lac/trilinos_solver.h>
+namespace common
 {
+  template <>
+  struct Traits<TagTrilinos>
+  {
     using TMTag    = TagTrilinos;
     using Vector   = ::dealii::LinearAlgebraTrilinos::MPI::BlockVector;
     using Matrix   = ::dealii::LinearAlgebraTrilinos::MPI::BlockSparseMatrix;
     using IndexSet = ::dealii::IndexSet;
-    
-    using MatrixBlock   = ::dealii::LinearAlgebraTrilinos::MPI::SparseMatrix;
-    using VectorBlock   = ::dealii::LinearAlgebraTrilinos::MPI::Vector;
-    
+
+    using MatrixBlock = ::dealii::LinearAlgebraTrilinos::MPI::SparseMatrix;
+    using VectorBlock = ::dealii::LinearAlgebraTrilinos::MPI::Vector;
+
     static constexpr bool IS_MPI = true;
-    
+
     // https://dealii.org/current/doxygen/deal.II/classTrilinosWrappers_1_1PreconditionBase.html
     using PrecJacobi = ::dealii::TrilinosWrappers::PreconditionJacobi;
     using PrecILU    = ::dealii::TrilinosWrappers::PreconditionILU;
@@ -116,11 +125,10 @@ struct Traits<TagTrilinos>
     using PrecChebs  = ::dealii::TrilinosWrappers::PreconditionChebyshev;
     using PrecAMG    = ::dealii::TrilinosWrappers::PreconditionAMG;
     using PrecI      = ::dealii::TrilinosWrappers::PreconditionIdentity;
-};
-}
+  };
+} // namespace common
 
 #endif
-
 
 
 
@@ -130,19 +138,17 @@ struct Traits<TagTrilinos>
 #    ifndef DISTRIBUTED_TRIA
 #      define DISTRIBUTED_TRIA 1
 template <int dim, int spacedim = dim>
-using DTria =
-    ::dealii::parallel::distributed::Triangulation<dim, spacedim>;
+using DTria = ::dealii::parallel::distributed::Triangulation<dim, spacedim>;
 #    endif
 #  else
-#    warning "Distributed triangulation is not supported because the current deal.II library was built without P4EST."
+#    warning \
+      "Distributed triangulation is not supported because the current deal.II library was built without P4EST."
 #  endif
-#else
-#warning "the distributed mesh is not supported, because P4EST is not installed with current deal.II library!"
 #endif
 
 
 // templated SolutionTransferSelector
-template <int dim, typename VectorType, bool is_mpi, int spacedim=dim>
+template <int dim, typename VectorType, bool is_mpi, int spacedim = dim>
 struct SolutionTransferSelector;
 
 
@@ -150,27 +156,25 @@ struct SolutionTransferSelector;
 template <int dim, typename VectorType, int spacedim>
 struct SolutionTransferSelector<dim, VectorType, /*is_mpi=*/false, spacedim>
 {
-    using type = dealii::SolutionTransfer<dim, VectorType, spacedim>;
+  using type = dealii::SolutionTransfer<dim, VectorType, spacedim>;
 };
 
 
 
 // specification for SolutionTransferSelector in mpi mode
-# if defined(HAVE_TRILINOS) || defined(HAVE_PETSC)
-#include <deal.II/distributed/solution_transfer.h>
-#   if !DEAL_II_VERSION_GTE(9, 7, 0)
+#if defined(HAVE_TRILINOS) || defined(HAVE_PETSC)
+#  include <deal.II/distributed/solution_transfer.h>
 template <int dim, typename VectorType, int spacedim>
 struct SolutionTransferSelector<dim, VectorType, /*is_mpi=*/true, spacedim>
 {
-    using type = dealii::parallel::distributed::SolutionTransfer<
-    dim, VectorType, spacedim>;
+#  if DEAL_II_VERSION_GTE(9, 7, 0)
+  using type = dealii::SolutionTransfer<dim, VectorType, spacedim>;
+#  else
+  using type =
+    dealii::parallel::distributed::SolutionTransfer<dim, VectorType, spacedim>;
+#  endif
 };
-
-#   endif
-# endif // #if defined(HAVE_TRILINOS) || defined(HAVE_PETSC)
-
-
-
+#endif // #if defined(HAVE_TRILINOS) || defined(HAVE_PETSC)
 
 
 
