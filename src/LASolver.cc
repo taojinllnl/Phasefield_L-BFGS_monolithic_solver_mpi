@@ -223,5 +223,11 @@ LASolver<LATraits>::__directSolve(BVector & LBFGS_r_vector,
 
 
 template class PhaseField::LASolver<common::Traits<common::TagSerial>>;
+
+#if defined(HAVE_PETSC) && HAVE_PETSC
 template class PhaseField::LASolver<common::Traits<common::TagPETSc>>;
+#endif
+
+#if defined(HAVE_TRILINOS) && HAVE_TRILINOS
 template class PhaseField::LASolver<common::Traits<common::TagTrilinos>>;
+#endif

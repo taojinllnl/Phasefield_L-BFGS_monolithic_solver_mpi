@@ -274,5 +274,12 @@ std::string BlockVectorWrapper<TraitsType>
 
 
 template class common::BlockVectorWrapper<common::Traits<TagSerial>>;
+
+
+#if defined(HAVE_PETSC) && HAVE_PETSC
 template class common::BlockVectorWrapper<common::Traits<TagPETSc>>;
+#endif
+
+#if defined(HAVE_TRILINOS) && HAVE_TRILINOS
 template class common::BlockVectorWrapper<common::Traits<TagTrilinos>>;
+#endif

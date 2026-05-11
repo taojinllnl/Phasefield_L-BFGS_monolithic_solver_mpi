@@ -102,5 +102,12 @@ std::string BlockSparseMatrixWrapper<TraitsType>
 
 
 template class common::BlockSparseMatrixWrapper<common::Traits<TagSerial>>;
+
+
+#if defined(HAVE_PETSC) && HAVE_PETSC
 template class common::BlockSparseMatrixWrapper<common::Traits<TagPETSc>>;
+#endif
+
+#if defined(HAVE_TRILINOS) && HAVE_TRILINOS
 template class common::BlockSparseMatrixWrapper<common::Traits<TagTrilinos>>;
+#endif

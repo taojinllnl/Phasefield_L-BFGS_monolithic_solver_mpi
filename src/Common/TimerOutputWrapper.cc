@@ -144,5 +144,12 @@ TimerOutputWrapper<LATraits>
 
 
 template class common::TimerOutputWrapper<common::Traits<common::TagSerial>>;
+
+
+#if defined(HAVE_PETSC) && HAVE_PETSC
 template class common::TimerOutputWrapper<common::Traits<common::TagPETSc>>;
+#endif
+
+#if defined(HAVE_TRILINOS) && HAVE_TRILINOS
 template class common::TimerOutputWrapper<common::Traits<common::TagTrilinos>>;
+#endif
