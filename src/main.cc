@@ -5996,6 +5996,7 @@ namespace PhaseField
           }
       }
     m_constraints.close();
+    m_update_dofs_for_cst = false;
   }
 
   template <typename LATraits, typename Tria>
