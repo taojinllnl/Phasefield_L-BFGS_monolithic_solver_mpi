@@ -78,6 +78,22 @@ CstPnt<Tria>::expectedNumberOfCstEntries() const
 }
 
 
+template <typename Tria>
+void
+CstPnt<Tria>::assignValues(const double         x,
+                           const double         y,
+                           const double         z,
+                           std::vector<double> &values)
+{
+  if (valuesFunc)
+    {
+      (*valuesFunc)(x, y, z, values);
+    }
+  else
+    {
+      CstSelectorBase<Tria>::assignValues(x, y, z, values);
+    }
+}
 
 template <typename Tria>
 bool
