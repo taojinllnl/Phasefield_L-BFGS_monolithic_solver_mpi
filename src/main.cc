@@ -946,9 +946,19 @@ namespace PhaseField
       return m_time_end;
     }
     double
+    timeRamp() const
+    {
+      return m_time_ramp;
+    }
+    double
     get_delta_t() const
     {
       return m_delta_t;
+    }
+    double
+    get_inv_delta_t() const
+    {
+      return m_inv_delta_t;
     }
     double
     get_magnitude(const unsigned int ith = 0) const
@@ -990,9 +1000,10 @@ namespace PhaseField
         {
           const auto &time_group = time_table[i];
 
-          t_0       = time_group[0];
-          t_1       = time_group[1];
-          m_delta_t = time_group[2];
+          t_0           = time_group[0];
+          t_1           = time_group[1];
+          m_delta_t     = time_group[2];
+          m_inv_delta_t = 1.0 / m_delta_t;
 
           if (m_delta_t <= 0.0)
             {
@@ -1014,6 +1025,7 @@ namespace PhaseField
 
 
       m_time_current += m_delta_t;
+      m_time_ramp = m_time_current / m_time_end;
 
       if (m_time_current < m_time_end && !found_slot)
         {
@@ -1048,6 +1060,8 @@ namespace PhaseField
     double              m_time_current;
     const double        m_time_end;
     double              m_delta_t;
+    double              m_inv_delta_t;
+    double              m_time_ramp;
     std::vector<double> m_magnitude_list;
     bool                m_need_output;
   };
