@@ -1603,6 +1603,9 @@ namespace PhaseField
     BVector  m_system_rhs;
     BVector  m_solution;
 
+    BlockVectorPool<LATraits, true>  m_vec_pool_ghosted;
+    BlockVectorPool<LATraits, false> m_vec_pool;
+
     LASolver<LATraits> m_diag_la_solver;
 
     SparseDirectUMFPACK m_A_direct;
@@ -1934,8 +1937,8 @@ namespace PhaseField
   PhaseFieldMonolithicSolve<LATraits, Tria>::get_error_residual(
     Errors &error_residual)
   {
-    BVector error_res(m_mpiInfo, m_blocks_desc, /*relevance=*/false);
-    error_res.initialize();
+    auto     vecHandle = m_vec_pool.getHandle(false);
+    BVector &error_res = vecHandle.get();
 
     error_res.base() = m_system_rhs.base();
     m_constraints.set_zero(error_res.base());
@@ -1953,8 +1956,8 @@ namespace PhaseField
     const BVector &newton_update,
     Errors        &error_update)
   {
-    BVector error_ud(m_mpiInfo, m_blocks_desc, /*relevance=*/false);
-    error_ud.initialize();
+    auto     vecHandle = m_vec_pool.getHandle(false);
+    BVector &error_ud  = vecHandle.get();
 
     error_ud.base() = newton_update.base();
     m_constraints.set_zero(error_ud.base());
@@ -2447,7 +2450,10 @@ namespace PhaseField
   PhaseFieldMonolithicSolve<LATraits, Tria>::get_total_solution(
     const BVector &solution_delta) const
   {
-    BVector solution_total(m_solution);
+    auto     vecHandle      = m_vec_pool_ghosted.getHandle(false);
+    BVector &solution_total = vecHandle.get();
+
+    solution_total.base() = m_solution.base();
     solution_total += solution_delta;
     solution_total.updateRelevance();
     return solution_total;
@@ -2465,9 +2471,11 @@ namespace PhaseField
     if (is_print && m_parameters.m_output_iteration_history)
       m_logfile << " UQPH " << std::flush;
 
-    BVector solution_total(m_mpiInfo, m_blocks_desc, /*relevance=*/true);
-    solution_total.initialize();
-    solution_total.base() = m_solution.base() + solution_delta.base();
+    auto solution_total_handle = m_vec_pool_ghosted.getHandle(false);
+
+    BVector &solution_total = solution_total_handle.get();
+    solution_total.base()   = solution_old.base();
+    solution_total.base() += solution_delta.base();
     solution_total.updateRelevance();
 
     const UpdateFlags uf_UQPH(update_values | update_gradients);
@@ -2895,6 +2903,8 @@ namespace PhaseField
                        })
     , m_system_rhs(m_mpiInfo, m_blocks_desc, /*relevance=*/false)
     , m_solution(m_mpiInfo, m_blocks_desc, /*relevance=*/true)
+    , m_vec_pool_ghosted(m_mpiInfo, m_blocks_desc)
+    , m_vec_pool(m_mpiInfo, m_blocks_desc)
     , m_diag_la_solver(m_parameters.m_type_linear_solver,
                        m_parameters.m_prec_type_linear_solver,
                        m_blocks_desc,
@@ -5249,6 +5259,9 @@ namespace PhaseField
     m_system_rhs.initialize();
     m_solution.initialize();
 
+    m_vec_pool.initialize();
+    m_vec_pool_ghosted.initialize();
+
     setup_qph();
 
     m_update_dofs_for_cst = true;
@@ -7014,27 +7027,27 @@ namespace PhaseField
                                         const BVector &solution_delta,
                                         unsigned int  &num_ls)
   {
-    BVector g_old(m_mpiInfo, m_blocks_desc, /*relevance=*/false);
-    g_old.initialize();
-    g_old.base() = m_system_rhs.base();
+    auto     g_old_handle = m_vec_pool.getHandle(false);
+    BVector &g_old        = g_old_handle.get();
+    g_old.base()          = m_system_rhs.base();
 
     // BFGS_p_vector is the search direction
-    BVector solution_delta_trial(m_mpiInfo, m_blocks_desc, /*relevance=*/true);
-    solution_delta_trial.initialize();
-    solution_delta_trial.base() = solution_delta.base();
+    auto     solution_delta_trial_handle = m_vec_pool_ghosted.getHandle(false);
+    BVector &solution_delta_trial        = solution_delta_trial_handle.get();
+    solution_delta_trial.base()          = solution_delta.base();        
     // take a full step size 1.0
     solution_delta_trial.add(1.0, BFGS_p_vector);
     solution_delta_trial.updateRelevance();
 
 
-    update_qph_incremental(solution_delta_trial, m_solution, false);
+ 
+    auto     g_new_handle = m_vec_pool.getHandle(false);
+    BVector &g_new        = g_new_handle.get();
 
-    BVector g_new(m_mpiInfo, m_blocks_desc, /*relevance=*/false);
-    g_new.initialize();
-    assemble_system_rhs_BFGS_parallel(m_solution, g_new);
+    
 
-    BVector y_old(m_mpiInfo, m_blocks_desc, /*relevance=*/false);
-    y_old.initialize();
+    auto     y_old_handle = m_vec_pool.getHandle(false);
+    BVector &y_old        = y_old_handle.get();
 
     y_old.base() = g_new.base() - g_old.base();
 
@@ -7308,20 +7321,18 @@ namespace PhaseField
     // phi_prime(alpha),
     std::pair<double, double> phi_values;
 
-    BVector solution_delta_trial(m_mpiInfo, m_blocks_desc, /*relevance=*/true);
-    solution_delta_trial.initialize();
-    solution_delta_trial.base() = solution_delta.base();
+    auto     solution_delta_trial_handle = m_vec_pool_ghosted.getHandle(false);
+    BVector &solution_delta_trial        = solution_delta_trial_handle.get();
+    solution_delta_trial.base()          = solution_delta.base();
     solution_delta_trial.add(alpha, BFGS_p_vector);
 
     solution_delta_trial.updateRelevance();
 
-    update_qph_incremental(solution_delta_trial, m_solution, false);
 
-    BVector system_rhs(m_mpiInfo, m_blocks_desc, /*relevance=*/false);
-    system_rhs.initialize();
-    assemble_system_rhs_BFGS_parallel(m_solution, system_rhs);
-    // m_constraints.condense(system_rhs);
+    auto     system_rhs_handle = m_vec_pool.getHandle(false);
+    BVector &system_rhs        = system_rhs_handle.get();
 
+   
     phi_values.first  = calculate_energy_functional();
     phi_values.second = system_rhs * BFGS_p_vector;
     return phi_values;
@@ -7810,8 +7821,8 @@ namespace PhaseField
     const double       line_search_parameter_lower_limit  = 1.0e-3;
     const unsigned int small_line_search_max_allowed_time = 5;
 
-    BVector LBFGS_update(m_mpiInfo, m_blocks_desc, /*relevance=*/true);
-    LBFGS_update.initialize();
+    auto     LBFGS_update_handle = m_vec_pool_ghosted.getHandle(false);
+    BVector &LBFGS_update        = LBFGS_update_handle.get();
 
     m_error_residual.reset();
     m_error_residual_0.reset();
@@ -7825,15 +7836,16 @@ namespace PhaseField
 
     unsigned int LBFGS_iteration = 0;
 
-    BVector LBFGS_r_vector(m_mpiInfo, m_blocks_desc, /*relevance=*/true);
-    LBFGS_r_vector.initialize();
-    BVector LBFGS_y_vector(m_mpiInfo, m_blocks_desc, /*relevance=*/false);
-    LBFGS_y_vector.initialize();
-    BVector LBFGS_q_vector(m_mpiInfo, m_blocks_desc, /*relevance=*/false);
-    LBFGS_q_vector.initialize();
-    BVector LBFGS_s_vector(m_mpiInfo, m_blocks_desc, /*relevance=*/false);
-    LBFGS_s_vector.initialize();
+    auto     LBFGS_r_vector_handle = m_vec_pool_ghosted.getHandle(false);
+    BVector &LBFGS_r_vector        = LBFGS_r_vector_handle.get();
 
+    auto     LBFGS_y_vector_handle = m_vec_pool.getHandle(false);
+    BVector &LBFGS_y_vector        = LBFGS_y_vector_handle.get();
+
+    auto     LBFGS_q_vector_handle = m_vec_pool.getHandle(false);
+    BVector &LBFGS_q_vector        = LBFGS_q_vector_handle.get();
+    
+      
     std::list<std::pair<std::pair<BVector, BVector>, double>> LBFGS_vector_list;
 
     const unsigned int LBFGS_m = m_parameters.m_LBFGS_m;
@@ -8228,8 +8240,10 @@ namespace PhaseField
     const std::string sectionName = "Calculate reaction force";
     m_timer.enter_subsection(sectionName);
 
-    BVector system_rhs(m_mpiInfo, m_blocks_desc, /*relevance=*/false);
-    system_rhs.initialize();
+    auto     system_rhs_handle = m_vec_pool.getHandle(false);
+    BVector &system_rhs        = system_rhs_handle.get();
+    //    BVector system_rhs(m_mpiInfo, m_blocks_desc, /*relevance=*/false);
+    //    system_rhs.initialize();
 
     Vector<double>                       cell_rhs(m_dofs_per_cell);
     std::vector<types::global_dof_index> local_dof_indices(m_dofs_per_cell);
@@ -8927,8 +8941,10 @@ namespace PhaseField
     BVector &LBFGS_update_refine)
   {
     // This is the solution at (n+1) obtained from the old (coarse) mesh
-    BVector solution_next_step(m_mpiInfo, m_blocks_desc, /*relevance=*/true);
-    solution_next_step.initialize();
+    auto     solution_next_step_handle = m_vec_pool_ghosted.getHandle(false);
+    BVector &solution_next_step        = solution_next_step_handle.get();
+
+    
     solution_next_step.base() = m_solution.base() + solution_delta.base();
     solution_next_step.updateRelevance();
 
@@ -9301,13 +9317,10 @@ namespace PhaseField
                     new_history_variable_field_L2,
                     new_history_variable_field_L2_rele);
 
-        BVector temp_solution_delta(m_mpiInfo,
-                                    m_blocks_desc,
-                                    /*relevance=*/true);
-        temp_solution_delta.initialize();
+        auto temp_solution_delta_handle = m_vec_pool_ghosted.getHandle(false);
+        BVector &temp_solution_delta    = temp_solution_delta_handle.get();
 
 
-        update_qph_incremental(temp_solution_delta, m_solution, false);
         // Since we want to map the history variable in the previous time step
         // from the coarse mesh to the refined mesh, we should not update them
         // here. update_history_field_step();
@@ -9486,10 +9499,9 @@ namespace PhaseField
         bool mesh_is_same = false;
 
         // initial guess for the resolve on the refined mesh
-        BVector LBFGS_update_refine(m_mpiInfo,
-                                    m_blocks_desc,
-                                    /*relevance=*/true);
-        LBFGS_update_refine.initialize();
+        auto LBFGS_update_refine_handle = m_vec_pool_ghosted.getHandle(false);
+        BVector &LBFGS_update_refine    = LBFGS_update_refine_handle.get();
+
 
         // local adaptive mesh refinement loop
         unsigned int adp_refine_iteration = 0;
@@ -9501,10 +9513,8 @@ namespace PhaseField
               m_logfile << "\tAdaptive refinement-" << adp_refine_iteration
                         << ": " << std::endl;
 
-            BVector solution_delta(m_mpiInfo,
-                                   m_blocks_desc,
-                                   /*relevance=*/true);
-            solution_delta.initialize();
+            auto solution_delta_handle = m_vec_pool_ghosted.getHandle(false);
+            BVector &solution_delta    = solution_delta_handle.get();
 
             if (m_parameters.m_type_nonlinear_solver == "Newton")
               {
