@@ -6390,63 +6390,45 @@ namespace PhaseField
     PerTaskData_ASM                                      &data) const
   {
     data.reset();
-    scratch.reset();
     scratch.m_fe_values.reinit(cell);
     cell->get_dof_indices(data.m_local_dof_indices);
 
-    scratch.m_fe_values[m_d_fe].get_function_values(
-      scratch.m_solution_previous_step.relevance(),
-      scratch.m_phasefield_previous_step_cell);
-
-    const std::vector<std::shared_ptr<const PointHistory<dim>>> lqph =
-      m_quadrature_point_history.get_data(cell);
+    const auto &lqph = m_quadrature_point_history.get_data(cell);
     Assert(lqph.size() == m_n_q_points, ExcInternalError());
 
-    const double delta_time = m_time.get_delta_t();
+
+    const double inv_delta_time = m_time.get_inv_delta_t();
 
     for (const unsigned int q_point :
          scratch.m_fe_values.quadrature_point_indices())
       {
-        for (const unsigned int k : scratch.m_fe_values.dof_indices())
+        for (const unsigned int k : m_u_local_dofs)
           {
-            const unsigned int k_group =
-              m_fe.system_to_base_index(k).first.first;
+            scratch.m_symm_grad_Nx_disp[q_point][k] =
+              symmetrize(scratch.m_fe_values[m_u_fe].gradient(k, q_point));
+          }
 
-            if (k_group == m_u_dof)
-              {
-                scratch.m_Nx_disp[q_point][k] =
-                  scratch.m_fe_values[m_u_fe].value(k, q_point);
-                scratch.m_grad_Nx_disp[q_point][k] =
-                  scratch.m_fe_values[m_u_fe].gradient(k, q_point);
-                scratch.m_symm_grad_Nx_disp[q_point][k] =
-                  symmetrize(scratch.m_grad_Nx_disp[q_point][k]);
-              }
-            else if (k_group == m_d_dof)
-              {
-                scratch.m_Nx_phasefield[q_point][k] =
-                  scratch.m_fe_values[m_d_fe].value(k, q_point);
-                scratch.m_grad_Nx_phasefield[q_point][k] =
-                  scratch.m_fe_values[m_d_fe].gradient(k, q_point);
-              }
-            else
-              Assert(k_group <= m_d_dof, ExcInternalError());
+        for (const unsigned int k : m_d_local_dofs)
+          {
+            scratch.m_Nx_phasefield[q_point][k] =
+              scratch.m_fe_values[m_d_fe].value(k, q_point);
+
+            scratch.m_grad_Nx_phasefield[q_point][k] =
+              scratch.m_fe_values[m_d_fe].gradient(k, q_point);
           }
       }
 
     for (const unsigned int q_point :
          scratch.m_fe_values.quadrature_point_indices())
       {
-        const double length_scale = lqph[q_point]->get_length_scale();
-        const double gc  = lqph[q_point]->get_critical_energy_release_rate();
-        const double eta = lqph[q_point]->get_viscosity();
+        const MaterialConstants<dim> &matConst =
+          lqph[q_point]->get_material_constents();
+        
         const double history_strain_energy =
           lqph[q_point]->get_history_max_positive_strain_energy();
         const double current_positive_strain_energy =
           lqph[q_point]->get_current_positive_strain_energy();
-        const double p  = lqph[q_point]->get_p();
-        const double a1 = lqph[q_point]->get_a1();
-        const double a2 = lqph[q_point]->get_a2();
-        const double a3 = lqph[q_point]->get_a3();
+
 
         double history_value = history_strain_energy;
         if (current_positive_strain_energy > history_strain_energy)
@@ -6470,62 +6452,71 @@ namespace PhaseField
 
         SymmetricTensor<2, dim> symm_grad_Nx_i_x_C;
 
+
+        scratch.m_dd_pf_values.init(matConst, phasefield_value);
+
+
         const double phasefield_geo_2nd_order_derivative =
-          phasefield_geometry_function_2nd_order_derivative(
-            phasefield_value, m_parameters.m_phasefield_name);
+          scratch.m_dd_pf_values.geometric();
+     
 
-        const double phasefield_coeff_const =
-          phasefield_coefficient_constant(m_parameters.m_phasefield_name);
+        const double ddiff_degradation = scratch.m_dd_pf_values.degradation();
+     
+        const double viscosity_term = (matConst.has_viscosity) ?
+                                        (matConst.viscosity * inv_delta_time) :
+                                        0.0;
+        const double coefN =
+          matConst.gc_over_c_alpha_l0 * phasefield_geo_2nd_order_derivative +
+          viscosity_term + ddiff_degradation * history_value;
 
-        for (const unsigned int i : scratch.m_fe_values.dof_indices())
+
+        const double coefGradN = matConst.two_gc_l0_over_c_alpha;
+        
+
+        const std::size_t n_u = m_u_local_dofs.size();
+        for (unsigned int ii = 0; ii < n_u; ++ii)
           {
-            const unsigned int i_group =
-              m_fe.system_to_base_index(i).first.first;
+            const unsigned int i = m_u_local_dofs[ii];
+            symm_grad_Nx_i_x_C   = symm_grad_N_disp[i] * mechanical_C;
 
-            if (i_group == m_u_dof)
+            for (unsigned int jj = ii; jj < n_u; ++jj)
               {
-                symm_grad_Nx_i_x_C = symm_grad_N_disp[i] * mechanical_C;
+                const unsigned int j = m_u_local_dofs[jj];
+
+                const double value =
+                  symm_grad_Nx_i_x_C * symm_grad_N_disp[j] * JxW;
+                ;
+
+                data.m_cell_matrix(i, j) += value;
+
+                if (j != i)
+                  data.m_cell_matrix(j, i) += value;
               }
+          }
 
-            for (const unsigned int j : scratch.m_fe_values.dof_indices())
+        const std::size_t n_d = m_d_local_dofs.size();
+
+        for (unsigned int ii = 0; ii < n_d; ++ii)
+          {
+            const unsigned int i = m_d_local_dofs[ii];
+
+            for (unsigned int jj = ii; jj < n_d; ++jj)
               {
-                const unsigned int j_group =
-                  m_fe.system_to_base_index(j).first.first;
+                const unsigned int j = m_d_local_dofs[jj];
 
-                if ((i_group == j_group) && (i_group == m_u_dof))
-                  {
-                    data.m_cell_matrix(i, j) +=
-                      symm_grad_Nx_i_x_C * symm_grad_N_disp[j] * JxW;
-                  }
-                else if ((i_group == j_group) && (i_group == m_d_dof))
-                  {
-                    data.m_cell_matrix(i, j) +=
-                      ((gc / length_scale / phasefield_coeff_const *
-                          phasefield_geo_2nd_order_derivative +
-                        eta / delta_time +
-                        degradation_function_2nd_order_derivative(
-                          phasefield_value,
-                          p,
-                          a1,
-                          a2,
-                          a3,
-                          m_parameters.m_phasefield_name) *
-                          history_value) *
-                         N_phasefield[i] * N_phasefield[j] +
-                       2.0 / phasefield_coeff_const * gc * length_scale *
-                         grad_N_phasefield[i] * grad_N_phasefield[j]) *
-                      JxW;
-                  }
-                else
-                  Assert((i_group <= m_d_dof) && (j_group <= m_d_dof),
-                         ExcInternalError());
-              } // j
-          }     // i
-      }         // q_point
+                const double value =
+                  (coefN * N_phasefield[i] * N_phasefield[j] +
+                   coefGradN * grad_N_phasefield[i] * grad_N_phasefield[j]) *
+                  JxW;
 
-        const MaterialConstants<dim> &matConst =
-          lqph[q_point]->get_material_constents();
+                data.m_cell_matrix(i, j) += value;
 
+                if (j != i)
+                  data.m_cell_matrix(j, i) += value;
+              }
+          }
+      } // q_point
+  }
 
   template <typename LATraits, typename Tria>
   void
