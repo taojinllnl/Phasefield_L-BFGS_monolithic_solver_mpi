@@ -378,6 +378,8 @@ namespace PhaseField
       bool m_output_refined_ori;
       bool m_output_step_0;
 
+      PFModel m_pf_model;
+
 
       unsigned int m_scenario;
       std::string  m_logfile_name;
@@ -588,10 +590,10 @@ namespace PhaseField
     {
       prm.enter_subsection("Scenario");
       {
-        m_dim            = (unsigned int)prm.get_integer("dimension");
-        m_mpi_type       = prm.get("mpi type");
-        m_library_dir    = prm.get("Library dir");
-        m_output_dir     = prm.get("Output dir");
+        m_dim         = static_cast<unsigned int>(prm.get_integer("dimension"));
+        m_mpi_type    = prm.get("mpi type");
+        m_library_dir = prm.get("Library dir");
+        m_output_dir  = prm.get("Output dir");
         m_mesh_file_name = prm.get("Mesh file name");
 
         m_extra_data_file = prm.get("Extra data file");
@@ -606,8 +608,9 @@ namespace PhaseField
         m_output_refined_ori = prm.get_bool("Output original mesh");
         m_output_step_0      = prm.get_bool("Output timestep 0");
 
-        m_scenario     = (unsigned int)prm.get_integer("Scenario number");
-        m_logfile_name = prm.get("Log file name");
+        m_scenario =
+          static_cast<unsigned int>(prm.get_integer("Scenario number"));
+        m_logfile_name             = prm.get("Log file name");
         m_output_iteration_history = prm.get_bool("Output iteration history");
         m_phasefield_name          = prm.get("Phase-field model type");
         m_plane_stress             = prm.get_bool("Plane stress");
@@ -617,25 +620,47 @@ namespace PhaseField
         m_prec_type_linear_solver =
           prm.get("Preconditioner type for iterative linear solver");
 
+
+        if (m_phasefield_name == "AT1")
+          {
+            m_pf_model = PFModel::AT1;
+          }
+        else if (m_phasefield_name == "AT1-Cohesive")
+          {
+            m_pf_model = PFModel::AT1_Cohesive;
+          }
+        else if (m_phasefield_name == "AT2")
+          {
+            m_pf_model = PFModel::AT2;
+          }
+        else if (m_phasefield_name == "PFCZM")
+          {
+            m_pf_model = PFModel::PFCZM;
+          }
+        else
+          AssertThrow(false,
+                      ExcMessage("Unknown phase-field model type: " +
+                                 m_phasefield_name));
+
         m_refinement_strategy = prm.get("Mesh refinement strategy");
         m_repartition_ratio   = prm.get_double("Repartitioning ratio");
         m_LBFGS_m             = (unsigned int)prm.get_integer("LBFGS m");
         m_global_refine_times =
-          (unsigned int)prm.get_integer("Global refinement times");
-        m_local_prerefine_times =
-          (unsigned int)prm.get_integer("Local prerefinement times");
-        m_max_adaptive_refine_times =
-          (unsigned int)prm.get_integer("Max adaptive refinement times");
-        m_max_allowed_refinement_level =
-          (unsigned int)prm.get_integer("Max allowed refinement level");
+          static_cast<unsigned int>(prm.get_integer("Global refinement times"));
+        m_local_prerefine_times = static_cast<unsigned int>(
+          prm.get_integer("Local prerefinement times"));
+        m_max_adaptive_refine_times = static_cast<unsigned int>(
+          prm.get_integer("Max adaptive refinement times"));
+        m_max_allowed_refinement_level = static_cast<unsigned int>(
+          prm.get_integer("Max allowed refinement level"));
         m_phasefield_refine_threshold =
           prm.get_double("Phasefield refine threshold");
         m_allowed_max_h_l_ratio = prm.get_double("Allowed max hl ratio");
         m_total_material_regions =
-          (unsigned int)prm.get_integer("Material regions");
+          static_cast<unsigned int>(prm.get_integer("Material regions"));
         m_material_file_name = prm.get("Material data file");
         m_reaction_force_face_id =
-          (unsigned int)prm.get_integer("Reaction force face ID");
+          static_cast<unsigned int>(prm.get_integer("Reaction force face ID"));
 
 
 
@@ -693,6 +718,8 @@ namespace PhaseField
       double m_y_component;
       double m_z_component;
 
+      bool has_body_force;
+
       static void
       declare_parameters(ParameterHandler &prm);
 
@@ -731,6 +758,55 @@ namespace PhaseField
         m_x_component = prm.get_double("Body force x component");
         m_y_component = prm.get_double("Body force y component");
         m_z_component = prm.get_double("Body force z component");
+
+        has_body_force = (m_x_component != 0.0 || m_y_component != 0.0 ||
+                          m_z_component != 0.0);
+      }
+      prm.leave_subsection();
+    }
+
+    // body force (N/m^2)
+    struct SurfacePressure
+    {
+      double       m_pressure;
+      unsigned int m_face_id;
+
+      bool has_surface_pressure;
+
+      static void
+      declare_parameters(ParameterHandler &prm);
+
+      void
+      parse_parameters(ParameterHandler &prm);
+    };
+
+    void
+    SurfacePressure::declare_parameters(ParameterHandler &prm)
+    {
+      prm.enter_subsection("Surface pressure");
+      {
+        prm.declare_entry("Surface pressure",
+                          "0.0",
+                          Patterns::Double(),
+                          "Surface pressure normal to the surface");
+
+        prm.declare_entry("Surface ID",
+                          std::to_string(std::numeric_limits<int>::max()),
+                          Patterns::Integer(),
+                          "Surface ID");
+      }
+      prm.leave_subsection();
+    }
+
+    void
+    SurfacePressure::parse_parameters(ParameterHandler &prm)
+    {
+      prm.enter_subsection("Surface pressure");
+      {
+        m_pressure = prm.get_double("Surface pressure");
+        m_face_id  = static_cast<unsigned int>(prm.get_double("Surface ID"));
+
+        has_surface_pressure = (m_pressure != 0.0);
       }
       prm.leave_subsection();
     }
@@ -801,10 +877,10 @@ namespace PhaseField
     {
       prm.enter_subsection("Nonlinear solver");
       {
-        m_max_iterations_NR =
-          (unsigned int)prm.get_integer("Max iterations Newton-Raphson");
+        m_max_iterations_NR = static_cast<unsigned int>(
+          prm.get_integer("Max iterations Newton-Raphson"));
         m_max_iterations_BFGS =
-          (unsigned int)prm.get_integer("Max iterations BFGS");
+          static_cast<unsigned int>(prm.get_integer("Max iterations BFGS"));
         m_relative_residual = prm.get_bool("Relative residual");
 
         m_tol_u_residual = prm.get_double("Tolerance displacement residual");
@@ -863,6 +939,7 @@ namespace PhaseField
     struct AllParameters : public Scenario,
                            public FESystem,
                            public BodyForce,
+                           public SurfacePressure,
                            public NonlinearSolver,
                            public TimeInfo
     {
@@ -896,6 +973,7 @@ namespace PhaseField
       Scenario::declare_parameters(prm);
       FESystem::declare_parameters(prm);
       BodyForce::declare_parameters(prm);
+      SurfacePressure::declare_parameters(prm);
       NonlinearSolver::declare_parameters(prm);
       TimeInfo::declare_parameters(prm);
     }
@@ -906,6 +984,7 @@ namespace PhaseField
       Scenario::parse_parameters(prm);
       FESystem::parse_parameters(prm);
       BodyForce::parse_parameters(prm);
+      SurfacePressure::parse_parameters(prm);
       NonlinearSolver::parse_parameters(prm);
       TimeInfo::parse_parameters(prm);
     }
