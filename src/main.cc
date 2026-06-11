@@ -1717,6 +1717,7 @@ namespace PhaseField
     void
     assemble_system_rhs_BFGS(const BVector &solution_old, BVector &system_rhs);
 
+    template <bool has_body_force, bool has_surface_pressure>
     void
     assemble_system_rhs_BFGS_parallel(const BVector &solution_old,
                                       BVector       &system_rhs);
@@ -5893,6 +5894,7 @@ namespace PhaseField
   }
 
   template <typename LATraits, typename Tria>
+  template <bool has_body_force, bool has_surface_pressure>
   void
   PhaseFieldMonolithicSolve<LATraits, Tria>::assemble_system_rhs_BFGS_parallel(
     const BVector &solution_old,
@@ -6786,7 +6788,16 @@ namespace PhaseField
     auto     g_new_handle = m_vec_pool.getHandle(false);
     BVector &g_new        = g_new_handle.get();
 
-    
+    if (m_parameters.has_body_force && m_parameters.has_surface_pressure)
+      assemble_system_rhs_BFGS_parallel<true, true>(m_solution, g_new);
+    else if (m_parameters.has_body_force)
+      assemble_system_rhs_BFGS_parallel<true, false>(m_solution, g_new);
+    else if (m_parameters.has_surface_pressure)
+      assemble_system_rhs_BFGS_parallel<false, true>(m_solution, g_new);
+    else
+      assemble_system_rhs_BFGS_parallel<false, false>(m_solution, g_new);
+
+
 
     auto     y_old_handle = m_vec_pool.getHandle(false);
     BVector &y_old        = y_old_handle.get();
@@ -6827,8 +6838,16 @@ namespace PhaseField
         solution_delta_trial.add(alpha, BFGS_p_vector);
         solution_delta_trial.updateRelevance();
 
-        update_qph_incremental(solution_delta_trial, m_solution, false);
-        assemble_system_rhs_BFGS_parallel(m_solution, g_new);
+
+        if (m_parameters.has_body_force && m_parameters.has_surface_pressure)
+          assemble_system_rhs_BFGS_parallel<true, true>(m_solution, g_new);
+        else if (m_parameters.has_body_force)
+          assemble_system_rhs_BFGS_parallel<true, false>(m_solution, g_new);
+        else if (m_parameters.has_surface_pressure)
+          assemble_system_rhs_BFGS_parallel<false, true>(m_solution, g_new);
+        else
+          assemble_system_rhs_BFGS_parallel<false, false>(m_solution, g_new);
+
 
         y_old.base() = g_new.base() - g_old.base();
 
@@ -7074,7 +7093,17 @@ namespace PhaseField
     auto     system_rhs_handle = m_vec_pool.getHandle(false);
     BVector &system_rhs        = system_rhs_handle.get();
 
-   
+
+    if (m_parameters.has_body_force && m_parameters.has_surface_pressure)
+      assemble_system_rhs_BFGS_parallel<true, true>(m_solution, system_rhs);
+    else if (m_parameters.has_body_force)
+      assemble_system_rhs_BFGS_parallel<true, false>(m_solution, system_rhs);
+    else if (m_parameters.has_surface_pressure)
+      assemble_system_rhs_BFGS_parallel<false, true>(m_solution, system_rhs);
+    else
+      assemble_system_rhs_BFGS_parallel<false, false>(m_solution, system_rhs);
+
+
     phi_values.first  = calculate_energy_functional();
     phi_values.second = system_rhs * BFGS_p_vector;
     return phi_values;
@@ -7640,7 +7669,20 @@ namespace PhaseField
             // Calculate the residual vector r. NOTICE that in the context of
             // BFGS, this r is the gradient of the energy functional (objective
             // function), NOT the negative gradient of the energy functional
-            assemble_system_rhs_BFGS_parallel(m_solution, m_system_rhs);
+            if (m_parameters.has_body_force &&
+                m_parameters.has_surface_pressure)
+              assemble_system_rhs_BFGS_parallel<true, true>(m_solution,
+                                                            m_system_rhs);
+            else if (m_parameters.has_body_force)
+              assemble_system_rhs_BFGS_parallel<true, false>(m_solution,
+                                                             m_system_rhs);
+            else if (m_parameters.has_surface_pressure)
+              assemble_system_rhs_BFGS_parallel<false, true>(m_solution,
+                                                             m_system_rhs);
+            else
+              assemble_system_rhs_BFGS_parallel<false, false>(m_solution,
+                                                              m_system_rhs);
+ 
 
             // We cannot simply zero out the dofs that are constrained, since we
             // might have hanging node constraints. In this case, we need to
@@ -7900,7 +7942,18 @@ namespace PhaseField
         LBFGS_y_vector = m_system_rhs;
         LBFGS_y_vector *= -1.0;
 
-        assemble_system_rhs_BFGS_parallel(m_solution, m_system_rhs);
+        if (m_parameters.has_body_force && m_parameters.has_surface_pressure)
+          assemble_system_rhs_BFGS_parallel<true, true>(m_solution,
+                                                        m_system_rhs);
+        else if (m_parameters.has_body_force)
+          assemble_system_rhs_BFGS_parallel<true, false>(m_solution,
+                                                         m_system_rhs);
+        else if (m_parameters.has_surface_pressure)
+          assemble_system_rhs_BFGS_parallel<false, true>(m_solution,
+                                                         m_system_rhs);
+        else
+          assemble_system_rhs_BFGS_parallel<false, false>(m_solution,
+                                                          m_system_rhs);
 
         // if we use assemble_system_rhs_BFGS_parallel, then condense() is not
         // necessary
