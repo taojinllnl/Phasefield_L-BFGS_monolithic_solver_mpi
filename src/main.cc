@@ -5923,7 +5923,9 @@ namespace PhaseField
           [this](const typename DoFHandler<dim>::active_cell_iterator &cell,
                  ScratchData_ASM_RHS_BFGS                             &scratch,
                  PerTaskData_ASM_RHS_BFGS                             &data) {
-            this->assemble_system_rhs_BFGS_one_cell(cell, scratch, data);
+            this->template assemble_system_rhs_BFGS_one_cell<
+              has_body_force,
+              has_surface_pressure>(cell, scratch, data);
           };
 
         auto copier = [this,
@@ -5945,9 +5947,9 @@ namespace PhaseField
         for (const auto &cell : m_dof_handler.active_cell_iterators())
           if (cell->is_locally_owned())
             {
-              assemble_system_rhs_BFGS_one_cell(cell,
-                                                scratch_data,
-                                                per_task_data);
+              assemble_system_rhs_BFGS_one_cell<has_body_force,
+                                                has_surface_pressure>(
+                cell, scratch_data, per_task_data);
 
               m_constraints.distribute_local_to_global(
                 per_task_data.m_cell_rhs,
