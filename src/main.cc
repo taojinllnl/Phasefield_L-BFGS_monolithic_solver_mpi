@@ -1155,93 +1155,180 @@ namespace PhaseField
     const double                   phase_field_value_previous_step,
     const double                   delta_time)
   {
-    m_strain            = strain;
-    m_phase_field_value = phase_field_value;
-    m_grad_phasefield   = grad_phasefield;
-    Vector<double>              eigenvalues(dim);
-    std::vector<Tensor<1, dim>> eigenvectors(dim);
-    usr_spectrum_decomposition::spectrum_decomposition<dim>(m_strain,
-                                                            eigenvalues,
-                                                            eigenvectors);
+    using namespace usr_spectrum_decomposition;
+    constexpr QPHNeedFlag needFlags = generate_need(flags);
 
-    SymmetricTensor<2, dim> strain_positive, strain_negative;
-    strain_positive =
-      usr_spectrum_decomposition::positive_tensor(eigenvalues, eigenvectors);
-    strain_negative =
-      usr_spectrum_decomposition::negative_tensor(eigenvalues, eigenvectors);
+    if constexpr (has_flag(needFlags, QPHNeedFlag::u_gradient))
+      m_strain = strain;
 
-    SymmetricTensor<4, dim> projector_positive, projector_negative;
-    usr_spectrum_decomposition::positive_negative_projectors(
-      eigenvalues, eigenvectors, projector_positive, projector_negative);
+    if constexpr (has_flag(needFlags, QPHNeedFlag::phasefield_value))
+      m_phase_field_value = phase_field_value;
 
-    SymmetricTensor<2, dim> stress_positive, stress_negative;
-    const double            degradation =
-      degradation_function(
-        m_phase_field_value, m_p, m_a1, m_a2, m_a3, m_phasefield_name) +
-      m_residual_k;
+    if constexpr (has_flag(needFlags, QPHNeedFlag::phasefield_gradient))
+      m_grad_phasefield = grad_phasefield;
 
-    const double I_1 = trace(m_strain);
+    std::array<double, dim>         eigenvalues;
+    std::array<Tensor<1, dim>, dim> eigenvectors;
+
+    const double I_1 =
+      has_flag(needFlags, QPHNeedFlag::u_gradient) ? trace(m_strain) : 0.0;
+
+    const double positive_I1 = has_flag(needFlags, QPHNeedFlag::positive_ramp) ?
+                                 positive_ramp_function(I_1) :
+                                 0.0;
+
+    const double negative_I1 = has_flag(needFlags, QPHNeedFlag::negative_ramp) ?
+                                 negative_ramp_function(I_1) :
+                                 0.0;
+
+    SymmetricTensor<2, dim>                  strain_positive, strain_negative;
+    std::array<SymmetricTensor<2, dim>, dim> projectors_2nd;
+
+    if constexpr (has_flag(flags, QPHUpdateFlag::strain_decomp) ||
+                  has_flag(flags, QPHUpdateFlag::stress_positive) ||
+                  has_flag(flags, QPHUpdateFlag::stress) ||
+                  has_flag(flags, QPHUpdateFlag::CCCC) ||
+                  has_flag(flags, QPHUpdateFlag::strain_energy_pos) ||
+                  has_flag(flags, QPHUpdateFlag::strain_energy_neg) ||
+                  has_flag(flags, QPHUpdateFlag::strain_energy_tot))
+      {
+        spectrum_decomposition<dim>(m_strain, eigenvalues, eigenvectors);
+
+        if constexpr (has_flag(flags, QPHUpdateFlag::stress_positive) ||
+                      has_flag(flags, QPHUpdateFlag::CCCC) ||
+                      has_flag(flags, QPHUpdateFlag::stress) ||
+                      has_flag(flags, QPHUpdateFlag::strain_energy_pos) ||
+                      has_flag(flags, QPHUpdateFlag::strain_energy_neg) ||
+                      has_flag(flags, QPHUpdateFlag::strain_energy_tot))
+          {
+            for (int i = 0; i < dim; i++)
+              projectors_2nd[i] =
+                symmetrize(outer_product(eigenvectors[i], eigenvectors[i]));
+          }
+
+        if constexpr (has_flag(flags, QPHUpdateFlag::stress_positive) ||
+                      has_flag(flags, QPHUpdateFlag::stress) ||
+                      has_flag(flags, QPHUpdateFlag::strain_energy_pos) ||
+                      has_flag(flags, QPHUpdateFlag::strain_energy_tot))
+          {
+            strain_positive = positive_tensor<dim>(eigenvalues, projectors_2nd);
+          }
+
+        if constexpr (has_flag(flags, QPHUpdateFlag::stress) ||
+                      has_flag(flags, QPHUpdateFlag::strain_energy_neg) ||
+                      has_flag(flags, QPHUpdateFlag::strain_energy_tot))
+          strain_negative = negative_tensor<dim>(eigenvalues, projectors_2nd);
+      }
 
     // 2D plane strain and 3D cases
-    double my_lambda = m_lame_lambda;
+    double my_lambda       = matConst.effective_lambda;
+    double my_lambda_x_0_5 = matConst.effective_lambda_x_0_5;
 
-    // 2D plane stress case
-    if (dim == 2 && m_plane_stress)
-      my_lambda =
-        2 * m_lame_mu * m_lame_lambda / (m_lame_lambda + 2 * m_lame_mu);
+    double degradation = 0.0;
+    if constexpr (has_flag(flags, QPHUpdateFlag::stress) ||
+                  has_flag(flags, QPHUpdateFlag::CCCC) ||
+                  has_flag(flags, QPHUpdateFlag::strain_energy_tot))
+      {
+        if constexpr (has_flag(flags, QPHUpdateFlag::energy_dissipation))
+          {
+            pf_values.init(matConst, m_phase_field_value);
+          }
+        else
+          pf_values.init(matConst, m_phase_field_value, true, false);
 
-    stress_positive =
-      my_lambda * usr_spectrum_decomposition::positive_ramp_function(I_1) *
-        Physics::Elasticity::StandardTensors<dim>::I +
-      2 * m_lame_mu * strain_positive;
-    stress_negative =
-      my_lambda * usr_spectrum_decomposition::negative_ramp_function(I_1) *
-        Physics::Elasticity::StandardTensors<dim>::I +
-      2 * m_lame_mu * strain_negative;
+        degradation = pf_values.degradation() + matConst.residual_k;
+      }
 
-    m_stress          = degradation * stress_positive + stress_negative;
-    m_stress_positive = stress_positive;
+    if constexpr (has_flag(flags, QPHUpdateFlag::stress_positive) ||
+                  has_flag(flags, QPHUpdateFlag::stress))
+      {
+        m_stress_positive = my_lambda * positive_I1 *
+                              Physics::Elasticity::StandardTensors<dim>::I +
+                            matConst.mu_x_2 * strain_positive;
+      }
 
-    SymmetricTensor<4, dim> C_positive, C_negative;
-    C_positive = my_lambda *
-                   usr_spectrum_decomposition::heaviside_function(I_1) *
-                   Physics::Elasticity::StandardTensors<dim>::IxI +
-                 2 * m_lame_mu * projector_positive;
-    C_negative = my_lambda *
-                   usr_spectrum_decomposition::heaviside_function(-I_1) *
-                   Physics::Elasticity::StandardTensors<dim>::IxI +
-                 2 * m_lame_mu * projector_negative;
-    m_mechanical_C = degradation * C_positive + C_negative;
+    if constexpr (has_flag(flags, QPHUpdateFlag::stress))
+      {
+        SymmetricTensor<2, dim> stress_negative =
+          my_lambda * negative_I1 *
+            Physics::Elasticity::StandardTensors<dim>::I +
+          matConst.mu_x_2 * strain_negative;
 
-    m_strain_energy_positive =
-      0.5 * my_lambda *
-        usr_spectrum_decomposition::positive_ramp_function(I_1) *
-        usr_spectrum_decomposition::positive_ramp_function(I_1) +
-      m_lame_mu * strain_positive * strain_positive;
+        m_stress = degradation * m_stress_positive + stress_negative;
+      }
 
-    m_strain_energy_negative =
-      0.5 * my_lambda *
-        usr_spectrum_decomposition::negative_ramp_function(I_1) *
-        usr_spectrum_decomposition::negative_ramp_function(I_1) +
-      m_lame_mu * strain_negative * strain_negative;
 
-    m_strain_energy_total =
-      degradation * m_strain_energy_positive + m_strain_energy_negative;
+    if constexpr (has_flag(flags, QPHUpdateFlag::CCCC))
+      {
+        SymmetricTensor<4, dim> projector_positive, projector_negative;
+        positive_negative_projectors<dim>(projectors_2nd,
+                                          eigenvalues,
+                                          projector_positive,
+                                          projector_negative);
 
-    const double phase_field_geo_value =
-      phasefield_geometry_function(m_phase_field_value, m_phasefield_name);
-    const double phase_field_coeff_constant =
-      phasefield_coefficient_constant(m_phasefield_name);
+        SymmetricTensor<4, dim> C_positive, C_negative;
+        C_positive = my_lambda * heaviside_function(I_1) *
+                       Physics::Elasticity::StandardTensors<dim>::IxI +
+                     matConst.mu_x_2 * projector_positive;
 
-    m_crack_energy_dissipation =
-      m_gc * (1.0 / phase_field_coeff_constant / m_length_scale *
-                phase_field_geo_value +
-              m_length_scale / phase_field_coeff_constant * m_grad_phasefield *
-                m_grad_phasefield)
-      // the term due to viscosity regularization
-      + (m_phase_field_value - phase_field_value_previous_step) *
-          (m_phase_field_value - phase_field_value_previous_step) * 0.5 *
-          m_eta / delta_time;
+        C_negative = my_lambda * heaviside_function(-I_1) *
+                       Physics::Elasticity::StandardTensors<dim>::IxI +
+                     matConst.mu_x_2 * projector_negative;
+
+        m_mechanical_C = degradation * C_positive + C_negative;
+      }
+
+    if constexpr (has_flag(flags, QPHUpdateFlag::strain_energy_pos) ||
+                  has_flag(flags, QPHUpdateFlag::strain_energy_tot))
+      {
+        m_strain_energy_positive =
+          my_lambda_x_0_5 * positive_I1 * positive_I1 +
+          matConst.mu * strain_positive * strain_positive;
+      }
+
+    if constexpr (has_flag(flags, QPHUpdateFlag::strain_energy_neg) ||
+                  has_flag(flags, QPHUpdateFlag::strain_energy_tot))
+      {
+        m_strain_energy_negative =
+          my_lambda_x_0_5 * negative_I1 * negative_I1 +
+          matConst.mu * strain_negative * strain_negative;
+      }
+
+    if constexpr (has_flag(flags, QPHUpdateFlag::strain_energy_tot))
+      {
+        m_strain_energy_total =
+          degradation * m_strain_energy_positive + m_strain_energy_negative;
+      }
+
+    if constexpr (has_flag(flags, QPHUpdateFlag::energy_dissipation))
+      {
+        const double phase_field_geo_value = pf_values.geometric();
+
+        if (matConst.has_viscosity)
+          {
+            const double delta_pf =
+              phase_field_value - phase_field_value_previous_step;
+
+            const double viscosity_term =
+              (matConst.has_viscosity) ?
+                (delta_pf) * (delta_pf)*0.5 * matConst.viscosity / delta_time :
+                0.0;
+
+            m_crack_energy_dissipation =
+              matConst.gc *
+                ( matConst .I_over_c_alpha_l0 * phase_field_geo_value 
+                 + matConst.l0_over_c_alpha * grad_phasefield * grad_phasefield)
+              // the term due to viscosity regularization
+              + viscosity_term;
+          }
+        else
+          {
+            m_crack_energy_dissipation =
+              matConst.gc *
+              ( matConst.I_over_c_alpha_l0 * phase_field_geo_value
+               + matConst.l0_over_c_alpha * grad_phasefield * grad_phasefield);
+          }
+      }
     //(void)delta_time;
     //(void)phase_field_value_previous_step;
   }
