@@ -174,17 +174,18 @@ namespace PhaseField
   // body force
   template <int dim>
   void
-  right_hand_side(const std::vector<Point<dim>> &points,
-                  std::vector<Tensor<1, dim>>   &values,
-                  const double                   fx,
-                  const double                   fy,
-                  const double                   fz)
+  right_hand_side( // const std::vector<Point<dim>> &points,
+    const std::size_t            n_q_points,
+    std::vector<Tensor<1, dim>> &values,
+    const double                 fx,
+    const double                 fy,
+    const double                 fz)
   {
-    Assert(values.size() == points.size(),
-           ExcDimensionMismatch(values.size(), points.size()));
+    Assert(values.size() == n_q_points,
+           ExcDimensionMismatch(values.size(), n_q_points));
     Assert(dim >= 2, ExcNotImplemented());
 
-    for (unsigned int point_n = 0; point_n < points.size(); ++point_n)
+    for (unsigned int point_n = 0; point_n < n_q_points; ++point_n)
       {
         if (dim == 2)
           {
@@ -202,20 +203,22 @@ namespace PhaseField
 
   // various phase-field models (AT1, AT2, PFCZM)
   double
-  degradation_function(const double       d,
-                       const double       p,
-                       const double       a1,
-                       const double       a2,
-                       const double       a3,
-                       const std::string &model_name)
+  degradation_function(const double  d,
+                       const double  p,
+                       const double  a1,
+                       const double  a2,
+                       const double  a3,
+                       const PFModel model_name)
   {
-    double value = 0.0;
+    double       value = 0.0;
+    const double base  = (1.0 - d);
 
-    if (model_name == "AT2" || model_name == "AT1")
-      value = (1.0 - d) * (1.0 - d);
-    else if (model_name == "PFCZM" || model_name == "AT1-Cohesive")
+    if (model_name == PFModel::AT2 || model_name == PFModel::AT1)
+      value = base * base;
+    else if (model_name == PFModel::PFCZM ||
+             model_name == PFModel::AT1_Cohesive)
       {
-        const double f1 = std::pow(std::fabs(1.0 - d), p);
+        const double f1 = std::pow(std::fabs(base), p);
         const double f2 = f1 + a1 * d + a1 * a2 * d * d + a1 * a3 * d * d * d;
         value           = f1 / f2;
       }
@@ -229,23 +232,26 @@ namespace PhaseField
   }
 
   double
-  degradation_function_derivative(const double       d,
-                                  const double       p,
-                                  const double       a1,
-                                  const double       a2,
-                                  const double       a3,
-                                  const std::string &model_name)
+  degradation_function_derivative(const double  d,
+                                  const double  p,
+                                  const double  a1,
+                                  const double  a2,
+                                  const double  a3,
+                                  const PFModel model_name)
   {
     double value = 0.0;
 
-    if (model_name == "AT2" || model_name == "AT1")
+    if (model_name == PFModel::AT2 || model_name == PFModel::AT1)
       value = 2.0 * (d - 1.0);
-    else if (model_name == "PFCZM" || model_name == "AT1-Cohesive")
+    else if (model_name == PFModel::PFCZM ||
+             model_name == PFModel::AT1_Cohesive)
       {
+        const double b = std::fabs(1.0 - d);
+
         const short  sign = (d > 1) ? -1 : 1;
-        const double f1   = std::pow(std::fabs(1.0 - d), p);
+        const double f1   = std::pow(b, p);
         const double f2   = f1 + a1 * d + a1 * a2 * d * d + a1 * a3 * d * d * d;
-        const double f1_1 = sign * (-p) * std::pow(std::fabs(1.0 - d), p - 1.0);
+        const double f1_1 = sign * (-p) * std::pow(b, p - 1.0);
         const double f2_1 =
           f1_1 + a1 + 2.0 * a1 * a2 * d + 3.0 * a1 * a3 * d * d;
         value = (f1_1 * f2 - f1 * f2_1) / (f2 * f2);
@@ -260,27 +266,29 @@ namespace PhaseField
   }
 
   double
-  degradation_function_2nd_order_derivative(const double       d,
-                                            const double       p,
-                                            const double       a1,
-                                            const double       a2,
-                                            const double       a3,
-                                            const std::string &model_name)
+  degradation_function_2nd_order_derivative(const double  d,
+                                            const double  p,
+                                            const double  a1,
+                                            const double  a2,
+                                            const double  a3,
+                                            const PFModel model_name)
   {
     double value = 0.0;
 
-    if (model_name == "AT2" || model_name == "AT1")
+    if (model_name == PFModel::AT2 || model_name == PFModel::AT1)
       value = 2.0;
-    else if (model_name == "PFCZM" || model_name == "AT1-Cohesive")
+    else if (model_name == PFModel::PFCZM ||
+             model_name == PFModel::AT1_Cohesive)
       {
+        const double b = std::fabs(1.0 - d);
+
         const short  sign = (d > 1) ? -1 : 1;
-        const double f1   = std::pow(std::fabs(1.0 - d), p);
+        const double f1   = std::pow(b, p);
         const double f2   = f1 + a1 * d + a1 * a2 * d * d + a1 * a3 * d * d * d;
-        const double f1_1 = sign * (-p) * std::pow(std::fabs(1.0 - d), p - 1.0);
+        const double f1_1 = sign * (-p) * std::pow(b, p - 1.0);
         const double f2_1 =
           f1_1 + a1 + 2.0 * a1 * a2 * d + 3.0 * a1 * a3 * d * d;
-        const double f1_2 =
-          p * (p - 1.0) * std::pow(std::fabs(1.0 - d), p - 2.0);
+        const double f1_2 = p * (p - 1.0) * std::pow(b, p - 2.0);
         const double f2_2 = f1_2 + 2.0 * a1 * a2 + 6.0 * a1 * a3 * d;
         const double f3   = f1_1 * f2 - f1 * f2_1;
         const double f4   = f2 * f2;
@@ -298,14 +306,14 @@ namespace PhaseField
   }
 
   inline double
-  phasefield_geometry_function(const double d, const std::string &model_name)
+  phasefield_geometry_function(const double d, const PFModel model_name)
   {
     double value = 0.0;
-    if (model_name == "AT2")
+    if (model_name == PFModel::AT2)
       value = d * d;
-    else if (model_name == "AT1" || model_name == "AT1-Cohesive")
+    else if (model_name == PFModel::AT1 || model_name == PFModel::AT1_Cohesive)
       value = d;
-    else if (model_name == "PFCZM")
+    else if (model_name == PFModel::PFCZM)
       value = 2.0 * d - d * d;
     else
       Assert(false,
@@ -316,15 +324,15 @@ namespace PhaseField
   }
 
   inline double
-  phasefield_geometry_function_derivative(const double       d,
-                                          const std::string &model_name)
+  phasefield_geometry_function_derivative(const double  d,
+                                          const PFModel model_name)
   {
     double value = 0.0;
-    if (model_name == "AT2")
+    if (model_name == PFModel::AT2)
       value = 2.0 * d;
-    else if (model_name == "AT1" || model_name == "AT1-Cohesive")
+    else if (model_name == PFModel::AT1 || model_name == PFModel::AT1_Cohesive)
       value = 1.0;
-    else if (model_name == "PFCZM")
+    else if (model_name == PFModel::PFCZM)
       value = 2.0 * (1.0 - d);
     else
       Assert(false,
@@ -335,17 +343,16 @@ namespace PhaseField
   }
 
   inline double
-  phasefield_geometry_function_2nd_order_derivative(
-    const double       d,
-    const std::string &model_name)
+  phasefield_geometry_function_2nd_order_derivative(const double  d,
+                                                    const PFModel model_name)
   {
     (void)d;
     double value = 0.0;
-    if (model_name == "AT2")
+    if (model_name == PFModel::AT2)
       value = 2.0;
-    else if (model_name == "AT1" || model_name == "AT1-Cohesive")
+    else if (model_name == PFModel::AT1 || model_name == PFModel::AT1_Cohesive)
       value = 0.0;
-    else if (model_name == "PFCZM")
+    else if (model_name == PFModel::PFCZM)
       value = -2.0;
     else
       Assert(false,
@@ -355,23 +362,6 @@ namespace PhaseField
     return value;
   }
 
-  inline double
-  phasefield_coefficient_constant(const std::string &model_name)
-  {
-    double value = 0.0;
-    if (model_name == "AT2")
-      value = 2.0;
-    else if (model_name == "AT1" || model_name == "AT1-Cohesive")
-      value = 8.0 / 3.0;
-    else if (model_name == "PFCZM")
-      value = 4.0 * std::atan(1);
-    else
-      Assert(false,
-             ExcMessage(
-               "The phase-field geometric function has not been implemented!"));
-
-    return value;
-  }
 
   namespace Parameters
   {
