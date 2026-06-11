@@ -5908,7 +5908,7 @@ namespace PhaseField
     system_rhs = 0.0;
 
     const UpdateFlags uf_cell(update_values | update_gradients |
-                              update_quadrature_points | update_JxW_values);
+                              /*update_quadrature_points |*/ update_JxW_values);
     const UpdateFlags uf_face(update_values | update_normal_vectors |
                               update_JxW_values);
 
@@ -5916,6 +5916,7 @@ namespace PhaseField
     ScratchData_ASM_RHS_BFGS scratch_data(
       m_fe, m_qf_cell, uf_cell, m_qf_face, uf_face, solution_old);
 
+    scratch_data.reset();
     if constexpr (!is_mpi)
       {
         // non-mpi mode
