@@ -159,6 +159,7 @@
 #include "../include/Common/Traits.h"
 #include "../include/Common/cst/CstMaker.h"
 #include "../include/LASolver.h"
+#include "../include/MaterialConstants.h"
 #include "../include/OutputHelper.h"
 #include "../include/SpectrumDecomposition.h"
 #include "../include/Utilities.h"
@@ -1055,32 +1056,9 @@ namespace PhaseField
   class LinearIsotropicElasticityAdditiveSplit
   {
   public:
-    LinearIsotropicElasticityAdditiveSplit(const double       lame_lambda,
-                                           const double       lame_mu,
-                                           const double       residual_k,
-                                           const double       length_scale,
-                                           const double       viscosity,
-                                           const double       gc,
-                                           const double       tensile_strength,
-                                           const double       p,
-                                           const double       a1,
-                                           const double       a2,
-                                           const double       a3,
-                                           const std::string &phasefield_name,
-                                           const bool         plane_stress_flag)
-      : m_lame_lambda(lame_lambda)
-      , m_lame_mu(lame_mu)
-      , m_residual_k(residual_k)
-      , m_length_scale(length_scale)
-      , m_eta(viscosity)
-      , m_gc(gc)
-      , m_tensile_strength(tensile_strength)
-      , m_p(p)
-      , m_a1(a1)
-      , m_a2(a2)
-      , m_a3(a3)
-      , m_phasefield_name(phasefield_name)
-      , m_plane_stress(plane_stress_flag)
+    LinearIsotropicElasticityAdditiveSplit(
+      const MaterialConstants<dim> &matConst)
+      : matConst(matConst)
       , m_phase_field_value(0.0)
       , m_grad_phasefield(Tensor<1, dim>())
       , m_strain(SymmetricTensor<2, dim>())
@@ -1091,11 +1069,7 @@ namespace PhaseField
       , m_strain_energy_negative(0.0)
       , m_strain_energy_total(0.0)
       , m_crack_energy_dissipation(0.0)
-    {
-      Assert((lame_lambda / (2 * (lame_lambda + lame_mu)) <= 0.5) &
-               (lame_lambda / (2 * (lame_lambda + lame_mu)) >= -1.0),
-             ExcInternalError());
-    }
+    {}
 
     const SymmetricTensor<4, dim> &
     get_mechanical_C() const
@@ -1159,29 +1133,17 @@ namespace PhaseField
                          const double delta_time);
 
   private:
-    const double            m_lame_lambda;
-    const double            m_lame_mu;
-    const double            m_residual_k;
-    const double            m_length_scale;
-    const double            m_eta;
-    const double            m_gc;
-    const double            m_tensile_strength;
-    const double            m_p;
-    const double            m_a1;
-    const double            m_a2;
-    const double            m_a3;
-    const std::string       m_phasefield_name;
-    const bool              m_plane_stress;
-    double                  m_phase_field_value;
-    Tensor<1, dim>          m_grad_phasefield;
-    SymmetricTensor<2, dim> m_strain;
-    SymmetricTensor<2, dim> m_stress;
-    SymmetricTensor<2, dim> m_stress_positive;
-    SymmetricTensor<4, dim> m_mechanical_C;
-    double                  m_strain_energy_positive;
-    double                  m_strain_energy_negative;
-    double                  m_strain_energy_total;
-    double                  m_crack_energy_dissipation;
+    const MaterialConstants<dim> &matConst;
+    double                        m_phase_field_value;
+    Tensor<1, dim>                m_grad_phasefield;
+    SymmetricTensor<2, dim>       m_strain;
+    SymmetricTensor<2, dim>       m_stress;
+    SymmetricTensor<2, dim>       m_stress_positive;
+    SymmetricTensor<4, dim>       m_mechanical_C;
+    double                        m_strain_energy_positive;
+    double                        m_strain_energy_negative;
+    double                        m_strain_energy_total;
+    double                        m_crack_energy_dissipation;
   };
 
   template <int dim>
@@ -1302,83 +1264,19 @@ namespace PhaseField
     virtual ~PointHistory() = default;
 
     void
-    setup_lqp(const double       lame_lambda,
-              const double       lame_mu,
-              const double       length_scale,
-              const double       gc,
-              const double       viscosity,
-              const double       residual_k,
-              const double       tensile_strength,
-              const double       p,
-              const double       a2,
-              const double       a3,
-              const std::string &phasefield_name,
-              const bool         plane_stress_flag)
+    setup_lqp(const MaterialConstants<dim> &matConst)
     {
-      double E0 =
-        lame_mu * (3 * lame_lambda + 2 * lame_mu) / (lame_lambda + lame_mu);
-      const double phasefield_geo_constant =
-        phasefield_coefficient_constant(phasefield_name);
+      matConstsPtr = &matConst;
 
+      m_history_max_positive_strain_energy = matConst.max_strain_energy;
+     
+      m_material.emplace(matConst);
 
-      // 2D plane stress case
-      if (dim == 2 && plane_stress_flag)
-        {
-          double my_lambda =
-            2 * lame_mu * lame_lambda / (lame_lambda + 2 * lame_mu);
-          E0 = lame_mu * (3 * my_lambda + 2 * lame_mu) / (my_lambda + lame_mu);
-        }
+      PFValues<0, dim> pf_values;
 
-      double a1 = 0.0;
-      if (phasefield_name == "PFCZM")
-        a1 = 4.0 / (phasefield_geo_constant * length_scale) * gc * E0 /
-             (tensile_strength * tensile_strength);
-      else if (phasefield_name == "AT1-Cohesive")
-        a1 = 2.0 / (phasefield_geo_constant * length_scale) * gc * E0 /
-             (tensile_strength * tensile_strength);
-      else
-        a1 = 0.0;
-
-      m_material =
-        std::make_shared<LinearIsotropicElasticityAdditiveSplit<dim>>(
-          lame_lambda,
-          lame_mu,
-          residual_k,
-          length_scale,
-          viscosity,
-          gc,
-          tensile_strength,
-          p,
-          a1,
-          a2,
-          a3,
-          phasefield_name,
-          plane_stress_flag);
-
-      if (phasefield_name == "AT2")
-        m_history_max_positive_strain_energy = 0.0;
-      else if (phasefield_name == "AT1")
-        m_history_max_positive_strain_energy =
-          gc / (2 * length_scale * phasefield_geo_constant);
-      else if (phasefield_name == "PFCZM" || phasefield_name == "AT1-Cohesive")
-        m_history_max_positive_strain_energy =
-          tensile_strength * tensile_strength / (2 * E0);
-      else
-        AssertThrow(
-          false,
-          ExcMessage(
-            "The phase-field geometric function has not been implemented!"));
-
-      m_length_scale = length_scale;
-      m_gc           = gc;
-      m_viscosity    = viscosity;
-      m_p            = p;
-      m_a1           = a1;
-      m_a2           = a2;
-      m_a3           = a3;
-
-      update_field_values(
-        SymmetricTensor<2, dim>(), 0.0, Tensor<1, dim>(), 0.0, 1.0);
+      constexpr QPHUpdateFlag flags = residualFlag | tangentFlag | energyFlag;
+      update_field_values<flags>(
+        SymmetricTensor<2, dim>(), 0.0, Tensor<1, dim>(), 0.0, 1.0, pf_values);
     }
 
     void
@@ -1502,22 +1400,13 @@ namespace PhaseField
       return m_a2;
     }
 
-    double
-    get_a3() const
+    const MaterialConstants<dim> &
+    get_material_constents() const
     {
-      return m_a3;
+      return *matConstsPtr;
     }
 
-  private:
-    std::shared_ptr<LinearIsotropicElasticityAdditiveSplit<dim>> m_material;
-    double                                                       m_length_scale;
-    double                                                       m_gc;
-    double                                                       m_viscosity;
-    double                                                       m_p;
-    double                                                       m_a1;
-    double                                                       m_a2;
-    double                                                       m_a3;
-    double m_history_max_positive_strain_energy;
+    const MaterialConstants<dim> *matConstsPtr = nullptr;
   };
 
   template <typename LATraits, typename Tria>
@@ -1613,7 +1502,8 @@ namespace PhaseField
     std::map<std::string, const double>       m_extra_data;
     std::map<std::string, const unsigned int> m_bcs_id;
 
-    std::unordered_map<unsigned int, std::vector<double>> m_material_data;
+
+    std::unordered_map<unsigned int, MaterialConstants<dim>> m_material_const;
 
     std::vector<std::pair<double, std::vector<double>>>
       m_history_reaction_force;
@@ -1993,224 +1883,33 @@ namespace PhaseField
                length_scale >> gc >> viscosity >> residual_k >>
                tensile_strength >> p >> a2 >> a3)
           {
-            m_material_data[material_region] = {lame_lambda,
-                                                lame_mu,
-                                                length_scale,
-                                                gc,
-                                                viscosity,
-                                                residual_k,
-                                                tensile_strength,
-                                                p,
-                                                a2,
-                                                a3};
-            poisson_ratio = lame_lambda / (2 * (lame_lambda + lame_mu));
-            Assert((poisson_ratio <= 0.5) & (poisson_ratio >= -1.0),
-                   ExcInternalError());
-
-            const double c_alpha =
-              phasefield_coefficient_constant(m_parameters.m_phasefield_name);
-            double E0 = lame_mu * (3 * lame_lambda + 2 * lame_mu) /
-                        (lame_lambda + lame_mu);
+            m_material_const.emplace(
+              material_region,
+              MaterialConstants<dim>(m_parameters.m_pf_model,
+                                     lame_lambda,
+                                     lame_mu,
+                                     length_scale,
+                                     gc,
+                                     tensile_strength,
+                                     viscosity,
+                                     residual_k,
+                                     p,
+                                     a2,
+                                     a3,
+                                     m_parameters.m_plane_stress));
 
             m_logfile << "\tRegion " << material_region << " : " << std::endl;
-            m_logfile << "\t\tLame lambda = " << lame_lambda << std::endl;
-            m_logfile << "\t\tLame mu = " << lame_mu << std::endl;
-            m_logfile << "\t\tYoung's modulus (E0) = " << E0 << std::endl;
-            m_logfile << "\t\tPoisson ratio = " << poisson_ratio << std::endl;
-            m_logfile << "\t\tPhase field length scale (l) = " << length_scale
-                      << std::endl;
-            m_logfile << "\t\tCritical energy release rate (gc) = " << gc
-                      << std::endl;
-            m_logfile << "\t\tViscosity for regularization (eta) = "
-                      << viscosity << std::endl;
-            m_logfile << "\t\tResidual_k (k) = " << residual_k << std::endl;
-            m_logfile << "\t\tTensile strength (ft) = " << tensile_strength
-                      << std::endl;
-
-
-            if (m_parameters.m_phasefield_name == "AT1-Cohesive" ||
-                m_parameters.m_phasefield_name == "PFCZM")
-              {
-                m_logfile << "\t\tp (the polynomial order of the term (1-d)^p\n"
-                             "\t\t\tin the degradation function) = "
-                          << p << std::endl;
-                m_logfile
-                  << "\t\ta2 (the coefficient of the a1*a2*d^2 term\n"
-                     "\t\t\tin the denominator of the degradation function) = "
-                  << a2 << std::endl;
-                m_logfile
-                  << "\t\ta3 (the coefficient of the a1*a3*d^3 term\n"
-                     "\t\t\tin the denominator of the degradation function) = "
-                  << a3 << std::endl;
-              }
-
-            // 2D plane stress case
-            if (dim == 2 && m_parameters.m_plane_stress)
-              {
-                double my_lambda =
-                  2 * lame_mu * lame_lambda / (lame_lambda + 2 * lame_mu);
-                E0 = lame_mu * (3 * my_lambda + 2 * lame_mu) /
-                     (my_lambda + lame_mu);
-              }
-
-            if (m_parameters.m_phasefield_name == "AT2")
-              m_logfile
-                << "\t\tFor AT-2 model, tensile-strength (ft), p, a2, and a3 are irrelevant."
-                << std::endl;
-
-            else if (m_parameters.m_phasefield_name == "AT1")
-              {
-                const double proper_l =
-                  gc * E0 / (c_alpha * tensile_strength * tensile_strength);
-                const double proper_ft =
-                  std::sqrt(gc * E0 / (c_alpha * length_scale));
-
-                m_logfile
-                  << "\t\tFor AT-1 (Griffith) model, the provided tensile strength (ft) = "
-                  << tensile_strength << std::endl;
-                m_logfile
-                  << "\t\tHowever, based on the formular ft = sqrt[gc*E0/(c_alpha*l)],"
-                  << std::endl;
-                m_logfile
-                  << "\t\tthe actual material tensile strength should be "
-                  << proper_ft << std::endl;
-                m_logfile << "\t\tOr in order to use the provided strength ("
-                          << tensile_strength << ")," << std::endl;
-                m_logfile << "\t\tthe actual length-scale l should be "
-                          << proper_l << std::endl;
-                m_logfile
-                  << "\t\tFor AT-1 (Griffith) model, since the standard quadratic\n"
-                     "\t\tdegradation funciton is used, p, a2, and a3 are irrelevant."
-                  << std::endl;
-              }
-            else if (m_parameters.m_phasefield_name == "AT1-Cohesive")
-              {
-                if (std::fabs(p - 1) < 1.0e-9)
-                  {
-                    m_logfile
-                      << "\t\tFor AT-1 (cohesive) model, quasi-linear degradation is adopted:\n"
-                         "\t\t\t g(d) = (1-d)/(1-d + a1*d)"
-                      << std::endl;
-                    AssertThrow((a2 == 0) && (a3 == 0),
-                                ExcMessage(
-                                  "For AT-1 quasi-linear cohesive model, "
-                                  "a2 = a3 = 0"));
-                    double upper_l =
-                      3.0 * gc * E0 /
-                      (4.0 * tensile_strength * tensile_strength);
-                    m_logfile
-                      << "\t\tThe provided length-scale l (" << length_scale
-                      << ") should be smaller than the upper limit " << upper_l
-                      << std::endl;
-                    AssertThrow(length_scale < upper_l,
-                                ExcMessage(
-                                  "The provided length-scale is over the "
-                                  "upper limit!"));
-                  }
-                else if (std::fabs(p - 2) < 1.0e-9)
-                  {
-                    m_logfile
-                      << "\t\tFor AT-1 (cohesive) model, quasi-quadratic degradation is adopted:\n"
-                         "\t\t\t g(d) = (1-d)^2/[(1-d)^2 + a1*d + a1*a2*d^2]"
-                      << std::endl;
-                    AssertThrow((a2 >= 1) && (a3 == 0),
-                                ExcMessage(
-                                  "For AT-1 quasi-quadratic cohesive model, "
-                                  "a2 >=1 and a3 = 0"));
-                    double upper_l =
-                      3.0 * gc * E0 /
-                      (4.0 * (a2 + 2) * tensile_strength * tensile_strength);
-                    m_logfile
-                      << "\t\tThe provided length-scale l (" << length_scale
-                      << ") should be smaller than the upper limit " << upper_l
-                      << std::endl;
-                    AssertThrow(length_scale < upper_l,
-                                ExcMessage(
-                                  "The provided length-scale is over the "
-                                  "upper limit!"));
-                  }
-                else
-                  {
-                    AssertThrow(
-                      false,
-                      ExcMessage(
-                        "For AT-1 cohesive model, "
-                        "p = 1 (quasi-linear) or 2 (quasi-quadratic)"));
-                  }
-
-
-                m_logfile << "\n\t\tAT1-Cohesive degradation function type: ";
-                if (std::fabs(p - 1) < 1.0e-9 && a2 == 0.0 && a3 == 0.0)
-                  {
-                    m_logfile << "Quasi-linear degradation function."
-                              << std::endl;
-                  }
-                else if (std::fabs(p - 2) < 1.0e-9 && a2 >= 1.0 && a3 == 0.0)
-                  {
-                    m_logfile << "Quasi-quadratic degradation function."
-                              << std::endl;
-                  }
-                else
-                  {
-                    m_logfile << "Customized degradation function."
-                              << std::endl;
-                  }
-                m_logfile << std::endl;
-              }
-            else if (m_parameters.m_phasefield_name == "PFCZM")
-              {
-                double lch   = gc * E0 / (tensile_strength * tensile_strength);
-                double coeff = 4.0 / (c_alpha * (a2 + p + 0.5));
-                double upper_l = lch * coeff;
-
-                m_logfile << "\t\tThe provided length-scale l (" << length_scale
-                          << ") should be smaller than the upper limit "
-                          << upper_l << std::endl;
-
-                m_logfile << "\t\tIf the first step has negative total energy, "
-                          << "the length-scale should be reduced further"
-                          << std::endl;
-
-                AssertThrow(length_scale < upper_l,
-                            ExcMessage("The provided length-scale is over the "
-                                       "upper limit!"));
-
-                m_logfile << "\n\t\tPFCZM softening curve type: ";
-                if (p == 2.0 && a2 == -0.5 && a3 == 0)
-                  {
-                    m_logfile << "Linear softening curve." << std::endl;
-                  }
-                else if (p == 2.5 && a2 == 0.1748 && a3 == 0)
-                  {
-                    m_logfile << "Exponential softening curve." << std::endl;
-                  }
-                else if (p == 2.0 && a2 == 1.3868 &&
-                         (a3 == 0.9106 || a3 == 0.6566))
-                  {
-                    m_logfile << "Cornelissen softening curve." << std::endl;
-                  }
-                else
-                  {
-                    m_logfile << "Customized softening curve." << std::endl;
-                  }
-                m_logfile << std::endl;
-              }
-            else
-              {
-                AssertThrow(false,
-                            ExcMessage(
-                              "Chosen phase-field model not implemented!"));
-              }
+            m_material_const.at(material_region).print(m_logfile);
           }
 
-        if (m_material_data.size() != total_material_regions)
+        if (m_material_const.size() != total_material_regions)
           {
-            m_logfile << "Material data file has " << m_material_data.size()
+            m_logfile << "Material data file has " << m_material_const.size()
                       << " rows. However, "
                       << "the mesh has " << total_material_regions
                       << " material regions." << std::endl;
-            Assert(m_material_data.size() == total_material_regions,
-                   ExcDimensionMismatch(m_material_data.size(),
+            Assert(m_material_const.size() == total_material_regions,
+                   ExcDimensionMismatch(m_material_const.size(),
                                         total_material_regions));
           }
         myfile.close();
@@ -2403,27 +2102,8 @@ namespace PhaseField
           if (!cell->is_locally_owned())
             continue;
         material_id = cell->material_id();
-        if (m_material_data.find(material_id) != m_material_data.end())
-          {
-            lame_lambda      = m_material_data[material_id][0];
-            lame_mu          = m_material_data[material_id][1];
-            length_scale     = m_material_data[material_id][2];
-            gc               = m_material_data[material_id][3];
-            viscosity        = m_material_data[material_id][4];
-            residual_k       = m_material_data[material_id][5];
-            tensile_strength = m_material_data[material_id][6];
-            p                = m_material_data[material_id][7];
-            a2               = m_material_data[material_id][8];
-            a3               = m_material_data[material_id][9];
-          }
-        else
-          {
-            m_logfile << "Could not find material data for material id: "
-                      << material_id << std::endl;
-            AssertThrow(false,
-                        ExcMessage(
-                          "Could not find material data for material id."));
-          }
+        const MaterialConstants<dim> &matConst =
+          m_material_const.at(material_id);
 
         const std::vector<std::shared_ptr<PointHistory<dim>>> lqph =
           m_quadrature_point_history.get_data(cell);
@@ -6258,9 +5938,9 @@ namespace PhaseField
     for (const unsigned int q_point :
          scratch.m_fe_values.quadrature_point_indices())
       {
-        const double length_scale = lqph[q_point]->get_length_scale();
-        const double gc  = lqph[q_point]->get_critical_energy_release_rate();
-        const double eta = lqph[q_point]->get_viscosity();
+        const MaterialConstants<dim> &matConst =
+          lqph[q_point]->get_material_constents();
+
         const double history_strain_energy =
           lqph[q_point]->get_history_max_positive_strain_energy();
         const double current_positive_strain_energy =
@@ -6777,7 +6457,10 @@ namespace PhaseField
               } // j
           }     // i
       }         // q_point
-  }
+
+        const MaterialConstants<dim> &matConst =
+          lqph[q_point]->get_material_constents();
+
 
   template <typename LATraits, typename Tria>
   void
@@ -6873,6 +6556,9 @@ namespace PhaseField
 
         for (const unsigned int q_point : fe_values.quadrature_point_indices())
           {
+            const MaterialConstants<dim> &matConst =
+              lqph[q_point]->get_material_constents();
+
             const double length_scale = lqph[q_point]->get_length_scale();
             const double gc = lqph[q_point]->get_critical_energy_release_rate();
             const double eta = lqph[q_point]->get_viscosity();
