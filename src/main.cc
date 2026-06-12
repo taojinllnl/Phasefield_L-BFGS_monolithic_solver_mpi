@@ -146,11 +146,14 @@
 
 #include <deal.II/physics/elasticity/standard_tensors.h>
 
+#include <chrono>
 #include <fstream>
 #include <iostream>
+#include <optional>
 
 #include "../include/Common/BlockDesc.h"
 #include "../include/Common/BlockSparseMatrixWrapper.h"
+#include "../include/Common/BlockVectorPool.h"
 #include "../include/Common/BlockVectorWrapper.h"
 #include "../include/Common/DataListReader.h"
 #include "../include/Common/FileSystem.h"
@@ -158,9 +161,12 @@
 #include "../include/Common/TimerOutputWrapper.h"
 #include "../include/Common/Traits.h"
 #include "../include/Common/cst/CstMaker.h"
+#include "../include/Common/grid/GridMaker.h"
 #include "../include/LASolver.h"
 #include "../include/MaterialConstants.h"
 #include "../include/OutputHelper.h"
+#include "../include/PFValues.h"
+#include "../include/QPHUpdateFlag.h"
 #include "../include/SpectrumDecomposition.h"
 #include "../include/Utilities.h"
 
