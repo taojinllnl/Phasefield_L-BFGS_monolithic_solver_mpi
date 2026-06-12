@@ -7727,9 +7727,11 @@ namespace PhaseField
          ++LBFGS_iteration)
       {
         if (m_parameters.m_output_iteration_history)
-          m_logfile << '\t' << '\t' << std::setw(4) << LBFGS_iteration << ' '
-                    << std::flush;
-
+          {
+            m_logfile << '\t' << '\t' << std::setw(4) << LBFGS_iteration << ' '
+                      << std::flush;
+          }
+        bool skip_LBFGS_update = false;
         make_constraints(LBFGS_iteration);
 
         // At the first step, we simply distribute the inhomogeneous part of
@@ -8003,10 +8005,52 @@ namespace PhaseField
 
         // If line search parameter is smaller the limit several times in a row
         // we set line search parameter to 1.0 to jump out of the local trap
-        if (line_search_tracker == small_line_search_max_allowed_time)
+        if (line_search_tracker >= small_line_search_max_allowed_time)
           {
-            line_search_parameter = 1.0;
+            line_search_parameter = line_search_parameter_lower_limit;
             line_search_tracker   = 0;
+
+            LBFGS_alpha_list.clear();
+            LBFGS_vector_list.clear();
+
+            m_logfile << "•" << std::flush;
+
+
+            LBFGS_vector_list.clear();
+            LBFGS_alpha_list.clear();
+
+            LBFGS_q_vector = m_system_rhs;
+
+            LBFGS_B0(LBFGS_r_vector, LBFGS_q_vector);
+
+            LBFGS_r_vector *= -1.0;
+            LBFGS_r_vector.distributeCst(m_constraints);
+            LBFGS_r_vector.updateRelevance();
+
+            skip_LBFGS_update = true;
+
+            num_line_search = 0;
+
+            if (m_parameters.m_type_line_search == "GradientBased")
+              {
+                // LBFGS_r_vector is the search direction
+                line_search_parameter =
+                  line_search_stepsize_gradient_based(LBFGS_r_vector,
+                                                      solution_delta,
+                                                      num_line_search);
+              }
+            else if (m_parameters.m_type_line_search == "StrongWolfe")
+              {
+                const double phi_0       = calculate_energy_functional();
+                const double phi_0_prime = m_system_rhs * LBFGS_r_vector;
+
+                line_search_parameter =
+                  line_search_stepsize_strong_wolfe(phi_0,
+                                                    phi_0_prime,
+                                                    LBFGS_r_vector,
+                                                    solution_delta,
+                                                    num_line_search);
+              }
           }
 
 
@@ -8071,18 +8115,20 @@ namespace PhaseField
 
         const double sxs = LBFGS_s_vector * LBFGS_s_vector;
 
-        if (yxs / sxs >= 1.0e-6 * g_norm)
+        if (!skip_LBFGS_update)
           {
-            if (LBFGS_iteration > LBFGS_m)
-              LBFGS_vector_list.pop_back();
+            if (yxs / sxs >= 1.0e-6 * g_norm)
+              {
+                if (LBFGS_vector_list.size() >= LBFGS_m)
+                  LBFGS_vector_list.pop_back();
 
-            rho = 1.0 / yxs;
+                rho = 1.0 / yxs;
 
-            LBFGS_vector_list.push_front(
-              std::make_pair(std::make_pair(LBFGS_s_vector, LBFGS_y_vector),
-                             rho));
+                LBFGS_vector_list.push_front(
+                  std::make_pair(std::make_pair(LBFGS_s_vector, LBFGS_y_vector),
+                                 rho));
+              }
           }
-
         if (m_parameters.m_output_iteration_history)
           {
             const double energy_functional = calculate_energy_functional();
