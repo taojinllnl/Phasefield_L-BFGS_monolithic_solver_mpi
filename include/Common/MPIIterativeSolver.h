@@ -32,7 +32,7 @@ public:
 private:
     const common::MPIInfo&          __mpiInfo;
     const std::string   __name;
-    const float         __tol;
+    const double        __tol;
     const unsigned int  __maxStep;
     
     unsigned int        __failAt = 0;
@@ -63,7 +63,7 @@ private:
 public:
     MPIIterativeSolver(const common::MPIInfo& mpiInfo,
                        const std::string& name,
-                       const float tol,
+                       const double tol,
                 const unsigned int maxStep);
     
     
@@ -82,7 +82,7 @@ template <typename MatrixType, typename CGType>
 MPIIterativeSolver<MatrixType, CGType>
 ::MPIIterativeSolver(const common::MPIInfo&          mpiInfo,
                      const std::string& name,
-                     const float tol,
+                     const double tol,
               const unsigned int maxStep)
 : __mpiInfo(mpiInfo)
 , __name(name)
