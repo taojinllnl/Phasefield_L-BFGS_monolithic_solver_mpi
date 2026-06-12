@@ -6137,9 +6137,8 @@ namespace PhaseField
             0.0;
 
         const double coefN =
-          viscosity_term +
-          diff_degradation * history_value
-          + matConst.gc_over_c_alpha_l0 * phasefield_geo_derivative;
+          viscosity_term + diff_degradation * history_value +
+          matConst.gc_over_c_alpha_l0 * phasefield_geo_derivative;
 
         for (const unsigned int i : m_u_local_dofs)
           {
@@ -6234,8 +6233,7 @@ namespace PhaseField
     const auto &lqph = m_quadrature_point_history.get_data(cell);
     Assert(lqph.size() == m_n_q_points, ExcInternalError());
 
-    const double                time_ramp = (m_time.current() / m_time.end());
-    std::vector<Tensor<1, dim>> rhs_values(m_n_q_points);
+    const double time_ramp = m_time.timeRamp();
 
     right_hand_side(scratch.m_fe_values.get_quadrature_points(),
                     scratch.rhs_values,
@@ -6319,15 +6317,14 @@ namespace PhaseField
         SymmetricTensor<2, dim> symm_grad_Nx_i_x_C;
 
         const double phasefield_geo_derivative =
-          phasefield_geometry_function_derivative(
-            phasefield_value, m_parameters.m_phasefield_name);
+          phasefield_geometry_function_derivative(phasefield_value,
+                                                  m_parameters.m_pf_model);
 
         const double phasefield_geo_2nd_order_derivative =
           phasefield_geometry_function_2nd_order_derivative(
-            phasefield_value, m_parameters.m_phasefield_name);
+            phasefield_value, m_parameters.m_pf_model);
 
-        const double phasefield_coeff_const =
-          phasefield_coefficient_constant(m_parameters.m_phasefield_name);
+        const double phasefield_coeff_const = m_pf_const_coef;
 
         for (const unsigned int i : scratch.m_fe_values.dof_indices())
           {
@@ -6340,7 +6337,8 @@ namespace PhaseField
                   (symm_grad_N_disp[i] * cauchy_stress) * JxW;
 
                 // contributions from the body force to right-hand side
-                data.m_cell_rhs(i) += N_disp[i] * rhs_values[q_point] * JxW;
+                data.m_cell_rhs(i) +=
+                  N_disp[i] * scratch.rhs_values[q_point] * JxW;
               }
             else if (i_group == m_d_dof)
               {
@@ -6350,13 +6348,12 @@ namespace PhaseField
                    (gc / length_scale / phasefield_coeff_const *
                       phasefield_geo_derivative +
                     eta / delta_time * (phasefield_value - old_phasefield) +
-                    degradation_function_derivative(
-                      phasefield_value,
-                      p,
-                      a1,
-                      a2,
-                      a3,
-                      m_parameters.m_phasefield_name) *
+                    degradation_function_derivative(phasefield_value,
+                                                    p,
+                                                    a1,
+                                                    a2,
+                                                    a3,
+                                                    m_parameters.m_pf_model) *
                       history_value) *
                      N_phasefield[i]) *
                   JxW;
@@ -6391,7 +6388,7 @@ namespace PhaseField
                           a1,
                           a2,
                           a3,
-                          m_parameters.m_phasefield_name) *
+                          m_parameters.m_pf_model) *
                           history_value) *
                          N_phasefield[i] * N_phasefield[j] +
                        2.0 / phasefield_coeff_const * gc * length_scale *
@@ -6402,13 +6399,12 @@ namespace PhaseField
                   {
                     data.m_cell_matrix(i, j) +=
                       symm_grad_N_disp[i] * cauchy_stress_positive *
-                      degradation_function_derivative(
-                        phasefield_value,
-                        p,
-                        a1,
-                        a2,
-                        a3,
-                        m_parameters.m_phasefield_name) *
+                      degradation_function_derivative(phasefield_value,
+                                                      p,
+                                                      a1,
+                                                      a2,
+                                                      a3,
+                                                      m_parameters.m_pf_model) *
                       N_phasefield[j] * JxW;
                   }
                 else if ((i_group == m_d_dof) && (j_group == m_u_dof))
@@ -6422,7 +6418,7 @@ namespace PhaseField
                           a1,
                           a2,
                           a3,
-                          m_parameters.m_phasefield_name) *
+                          m_parameters.m_pf_model) *
                         cauchy_stress_positive * symm_grad_N_disp[j] * JxW;
                     else
                       data.m_cell_matrix(i, j) += 0.0;
@@ -6450,8 +6446,8 @@ namespace PhaseField
               const Tensor<1, dim> &N =
                 scratch.m_fe_face_values.normal_vector(f_q_point);
 
-              const double         pressure = p0 * time_ramp;
-              const Tensor<1, dim> traction = pressure * N;
+              const double          pressure = p0 * time_ramp;
+              const Tensor<1, dim> &traction = pressure * N;
 
               for (const unsigned int i : scratch.m_fe_values.dof_indices())
                 {
@@ -6625,7 +6621,7 @@ namespace PhaseField
     Vector<double>                       cell_rhs(m_dofs_per_cell);
     std::vector<types::global_dof_index> local_dof_indices(m_dofs_per_cell);
 
-    const double time_ramp      = m_time.m_time_ramp;
+    const double time_ramp      = m_time.timeRamp();
     const double inv_delta_time = m_time.get_inv_delta_t();
 
     const UpdateFlags uf_cell(update_values | update_gradients |
@@ -6725,7 +6721,7 @@ namespace PhaseField
 
             const double phasefield_value =
               lqph[q_point]->get_phase_field_value();
-            const Tensor<1, dim> phasefield_grad =
+            const Tensor<1, dim> &phasefield_grad =
               lqph[q_point]->get_phase_field_gradient();
 
             const std::vector<double> &N_phasefield = Nx_phasefield[q_point];
@@ -6743,11 +6739,11 @@ namespace PhaseField
             const double JxW = fe_values.JxW(q_point);
 
             const double phasefield_geo_derivative =
-              phasefield_geometry_function_derivative(
-                phasefield_value, m_parameters.m_phasefield_name);
+              phasefield_geometry_function_derivative(phasefield_value,
+                                                      m_parameters.m_pf_model);
 
-            const double phasefield_coeff_const =
-              phasefield_coefficient_constant(m_parameters.m_phasefield_name);
+            const double phasefield_coeff_const = m_pf_const_coef;
+            //              phasefield_coefficient_constant(m_parameters.m_pf_model);
 
             for (const unsigned int i : fe_values.dof_indices())
               {
@@ -6762,19 +6758,25 @@ namespace PhaseField
                   }
                 else if (i_group == m_d_dof)
                   {
+                    const double viscosity_term =
+                      (matConst.has_viscosity) ?
+                        eta * inv_delta_time *
+                          (phasefield_value - old_phasefield) :
+                        0.0;
+
                     cell_rhs(i) +=
                       (2.0 / phasefield_coeff_const * gc * length_scale *
                          grad_N_phasefield[i] * phasefield_grad +
                        (gc / length_scale / phasefield_coeff_const *
                           phasefield_geo_derivative +
-                        eta / delta_time * (phasefield_value - old_phasefield) +
+                        viscosity_term +
                         degradation_function_derivative(
                           phasefield_value,
                           p,
                           a1,
                           a2,
                           a3,
-                          m_parameters.m_phasefield_name) *
+                          m_parameters.m_pf_model) *
                           history_value) *
                          N_phasefield[i]) *
                       JxW;
@@ -8144,7 +8146,7 @@ namespace PhaseField
     Vector<double>                       cell_rhs(m_dofs_per_cell);
     std::vector<types::global_dof_index> local_dof_indices(m_dofs_per_cell);
 
-    const double                time_ramp = (m_time.current() / m_time.end());
+    const double                time_ramp = m_time.timeRamp();
     std::vector<Tensor<1, dim>> rhs_values(m_n_q_points);
     const UpdateFlags           uf_cell(update_values | update_gradients |
                               /*update_quadrature_points |*/ update_JxW_values);
