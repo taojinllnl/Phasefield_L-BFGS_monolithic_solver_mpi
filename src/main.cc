@@ -1673,6 +1673,12 @@ namespace PhaseField
       m_history_reaction_force;
     std::vector<std::pair<double, std::array<double, 3>>> m_history_energy;
 
+
+
+    std::vector<unsigned int> m_u_local_dofs;
+    std::vector<unsigned int> m_d_local_dofs;
+
+
     bool                m_update_dofs_for_cst;
     bcs::CstMaker<Tria> m_cst_maker;
 
@@ -5126,6 +5132,23 @@ namespace PhaseField
     m_vec_pool_ghosted.initialize();
 
     setup_qph();
+
+
+    m_u_local_dofs.clear();
+    m_d_local_dofs.clear();
+
+    for (unsigned int i = 0; i < m_dofs_per_cell; ++i)
+      {
+        const unsigned int group = m_fe.system_to_base_index(i).first.first;
+
+        if (group == m_u_dof)
+          m_u_local_dofs.push_back(i);
+        else if (group == m_d_dof)
+          m_d_local_dofs.push_back(i);
+        else
+          AssertThrow(false, ExcInternalError());
+      }
+
 
     m_update_dofs_for_cst = true;
     m_timer.leave_subsection(sectionName);
