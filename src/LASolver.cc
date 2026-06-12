@@ -111,7 +111,7 @@ LASolver<LATraits>::solve(BVector        &LBFGS_r_vector,
                           const BVector  &LBFGS_q_vector,
                           const BSMatrix &tangent_matrix)
 {
-  LBFGS_r_vector.initialize();
+  LBFGS_r_vector = 0.0;
   if (__type == SolverType::Direct)
     {
       __directSolve(LBFGS_r_vector, LBFGS_q_vector, tangent_matrix);
@@ -143,6 +143,7 @@ LASolver<LATraits>::solve(BVector        &LBFGS_r_vector,
                                                   LBFGS_q_vector,
                                                   tangent_matrix);
     }
+    LBFGS_r_vector.updateRelevance();
 }
 
 
