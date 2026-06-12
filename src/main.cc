@@ -2276,8 +2276,7 @@ namespace PhaseField
         const MaterialConstants<dim> &matConst =
           m_material_const.at(material_id);
 
-        const std::vector<std::shared_ptr<PointHistory<dim>>> lqph =
-          m_quadrature_point_history.get_data(cell);
+        const auto &lqph = m_quadrature_point_history.get_data(cell);
         Assert(lqph.size() == m_n_q_points, ExcInternalError());
 
         for (unsigned int q_point = 0; q_point < m_n_q_points; ++q_point)
@@ -2453,8 +2452,7 @@ namespace PhaseField
 
     scratch.m_fe_values.reinit(cell);
 
-    const std::vector<std::shared_ptr<PointHistory<dim>>> lqph =
-      m_quadrature_point_history.get_data(cell);
+    const auto &lqph = m_quadrature_point_history.get_data(cell);
     Assert(lqph.size() == m_n_q_points, ExcInternalError());
 
     const FEValuesExtractors::Vector displacement(0);
@@ -6227,8 +6225,7 @@ namespace PhaseField
       scratch.m_solution_previous_step.relevance(),
       scratch.m_phasefield_previous_step_cell);
 
-    const std::vector<std::shared_ptr<const PointHistory<dim>>> lqph =
-      m_quadrature_point_history.get_data(cell);
+    const auto &lqph = m_quadrature_point_history.get_data(cell);
     Assert(lqph.size() == m_n_q_points, ExcInternalError());
 
     const double                time_ramp = (m_time.current() / m_time.end());
@@ -6656,8 +6653,8 @@ namespace PhaseField
         if constexpr (is_mpi)
           if (!cell->is_locally_owned())
             continue;
-        const std::vector<std::shared_ptr<PointHistory<dim>>> lqph =
-          m_quadrature_point_history.get_data(cell);
+          
+        const auto &lqph = m_quadrature_point_history.get_data(cell);
         Assert(lqph.size() == m_n_q_points, ExcInternalError());
 
         cell_rhs = 0.0;
@@ -6839,8 +6836,7 @@ namespace PhaseField
         if constexpr (is_mpi)
           if (!cell->is_locally_owned())
             continue;
-        std::vector<std::shared_ptr<PointHistory<dim>>> lqph =
-          m_quadrature_point_history.get_data(cell);
+        const auto &lqph = m_quadrature_point_history.get_data(cell);
         Assert(lqph.size() == m_n_q_points, ExcInternalError());
 
         for (unsigned int q_point = 0; q_point < m_n_q_points; ++q_point)
@@ -8156,8 +8152,7 @@ namespace PhaseField
         // if calculate_reaction_force() is defined as const, then
         // we also need to put a const in std::shared_ptr,
         // that is, std::shared_ptr<const PointHistory<dim>>
-        const std::vector<std::shared_ptr<PointHistory<dim>>> lqph =
-          m_quadrature_point_history.get_data(cell);
+        const auto &lqph = m_quadrature_point_history.get_data(cell);
         Assert(lqph.size() == m_n_q_points, ExcInternalError());
         cell_rhs = 0.0;
         fe_values.reinit(cell);
@@ -8401,8 +8396,7 @@ namespace PhaseField
             continue;
         fe_values.reinit(cell);
 
-        const std::vector<std::shared_ptr<const PointHistory<dim>>> lqph =
-          m_quadrature_point_history.get_data(cell);
+        const auto &lqph = m_quadrature_point_history.get_data(cell);
         Assert(lqph.size() == m_n_q_points, ExcInternalError());
 
         for (unsigned int q_point = 0; q_point < m_n_q_points; ++q_point)
@@ -8440,8 +8434,7 @@ namespace PhaseField
             continue;
         fe_values.reinit(cell);
 
-        const std::vector<std::shared_ptr<const PointHistory<dim>>> lqph =
-          m_quadrature_point_history.get_data(cell);
+        const auto &lqph = m_quadrature_point_history.get_data(cell);
         Assert(lqph.size() == m_n_q_points, ExcInternalError());
 
         for (unsigned int q_point = 0; q_point < m_n_q_points; ++q_point)
@@ -8780,8 +8773,7 @@ namespace PhaseField
               }
             fe_values.reinit(cell);
 
-            const std::vector<std::shared_ptr<PointHistory<dim>>> lqph =
-              m_quadrature_point_history.get_data(cell);
+            const auto &lqph = m_quadrature_point_history.get_data(cell);
 
             std::vector<double> history_variable_values_cell(m_n_q_points);
 
@@ -9172,8 +9164,7 @@ namespace PhaseField
                   }
                 fe_values.reinit(cell);
 
-                const std::vector<std::shared_ptr<PointHistory<dim>>> lqph =
-                  m_quadrature_point_history.get_data(cell);
+                const auto &lqph = m_quadrature_point_history.get_data(cell);
 
                 std::vector<double> history_variable_values_cell(m_n_q_points);
 
