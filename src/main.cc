@@ -8410,6 +8410,8 @@ namespace PhaseField
   double
   PhaseFieldMonolithicSolve<LATraits, Tria>::calculate_energy_functional() const
   {
+    const std::string sectionName = "Calculate Energy Functional";
+    m_timer.enter_subsection(sectionName);
     double energy_functional = 0.0;
 
     FEValues<dim> fe_values(m_fe, m_qf_cell, update_JxW_values);
@@ -8427,10 +8429,10 @@ namespace PhaseField
 
         for (unsigned int q_point = 0; q_point < m_n_q_points; ++q_point)
           {
-            const double JxW = fe_values.JxW(q_point);
-            energy_functional += lqph[q_point]->get_total_strain_energy() * JxW;
             energy_functional +=
-              lqph[q_point]->get_crack_energy_dissipation() * JxW;
+              (lqph[q_point]->get_total_strain_energy() +
+               lqph[q_point]->get_crack_energy_dissipation()) *
+              fe_values.JxW(q_point);
           }
       }
 
@@ -8439,6 +8441,7 @@ namespace PhaseField
       energy_functional =
         Utilities::MPI::sum(energy_functional, *m_mpiInfo.mpiCommPtr());
 
+    m_timer.leave_subsection(sectionName);
     return energy_functional;
   }
 
@@ -8447,6 +8450,8 @@ namespace PhaseField
   PhaseFieldMonolithicSolve<LATraits, Tria>::
     calculate_total_strain_energy_and_crack_energy_dissipation() const
   {
+    const std::string sectionName = "Calculate Total Strain Energy";
+    m_timer.enter_subsection(sectionName);
     double total_strain_energy      = 0.0;
     double crack_energy_dissipation = 0.0;
 
@@ -8481,7 +8486,13 @@ namespace PhaseField
         crack_energy_dissipation = Utilities::MPI::sum(crack_energy_dissipation,
                                                        *m_mpiInfo.mpiCommPtr());
       }
-    return std::make_pair(total_strain_energy, crack_energy_dissipation);
+
+    m_timer.leave_subsection(sectionName);
+
+    return std::array<double, 3>{
+      {total_strain_energy,
+       crack_energy_dissipation,
+       total_strain_energy + crack_energy_dissipation}};
   }
 
 #if ENABLE_CUSTOMIZED_REPARTITION_MODE == 0
@@ -9501,25 +9512,23 @@ namespace PhaseField
         // if (m_time.get_timestep() % 10 == 0)
         output_results();
 
-        double energy_functional_current = calculate_energy_functional();
-        m_logfile << "\t\tEnergy functional (J) = " << std::fixed
-                  << std::setprecision(10) << std::scientific
-                  << energy_functional_current << std::endl;
 
-        std::pair<double, double> energy_pair =
+        std::array<double, 3> energy_list =
           calculate_total_strain_energy_and_crack_energy_dissipation();
-        m_logfile << "\t\tTotal strain energy (J) = " << std::fixed
-                  << std::setprecision(10) << std::scientific
-                  << energy_pair.first << std::endl;
-        m_logfile << "\t\tCrack energy dissipation (J) = " << std::fixed
-                  << std::setprecision(10) << std::scientific
-                  << energy_pair.second << std::endl;
+        m_logfile << "\t\tEnergy functional (J) = " << std::fixed
+                  << std::setprecision(10) << std::scientific << energy_list[2]
+                  << std::endl;
 
-        std::pair<double, std::array<double, 3>> time_energy;
-        time_energy.first     = m_time.current();
-        time_energy.second[0] = energy_pair.first;
-        time_energy.second[1] = energy_pair.second;
-        time_energy.second[2] = energy_pair.first + energy_pair.second;
+
+        m_logfile << "\t\tTotal strain energy (J) = " << std::fixed
+                  << std::setprecision(10) << std::scientific << energy_list[0]
+                  << std::endl;
+        m_logfile << "\t\tCrack energy dissipation (J) = " << std::fixed
+                  << std::setprecision(10) << std::scientific << energy_list[1]
+                  << std::endl;
+
+        std::pair<double, std::array<double, 3>> time_energy = {
+          m_time.current(), energy_list};
         m_history_energy.push_back(time_energy);
 
         int face_ID = m_parameters.m_reaction_force_face_id;
