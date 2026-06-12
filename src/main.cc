@@ -1697,6 +1697,7 @@ namespace PhaseField
 
     AffineConstraints<double> m_constraints;
 
+    const double m_pf_const_coef;
 
     BSMatrix m_tangent_matrix;
     BVector  m_system_rhs;
@@ -2721,6 +2722,7 @@ namespace PhaseField
                               fe_cell.n_dofs_per_cell()))
       , m_solution_previous_step(solution_old)
       , m_phasefield_previous_step_cell(qf_cell.size())
+      , rhs_values(qf_cell.size(), Tensor<1, dim>())
     {}
 
     ScratchData_ASM_RHS_BFGS(const ScratchData_ASM_RHS_BFGS &rhs)
@@ -2737,6 +2739,7 @@ namespace PhaseField
       , m_symm_grad_Nx_disp(rhs.m_symm_grad_Nx_disp)
       , m_solution_previous_step(rhs.m_solution_previous_step)
       , m_phasefield_previous_step_cell(rhs.m_phasefield_previous_step_cell)
+      , rhs_values(rhs.rhs_values)
     {}
 
     void
@@ -2803,6 +2806,7 @@ namespace PhaseField
     , m_qf_face(m_parameters.m_quad_order)
     , m_n_q_points(m_qf_cell.size())
     , m_vol_reference(0.0)
+    , m_pf_const_coef(phasefield_coefficient_constant(m_parameters.m_pf_model))
     , m_tangent_matrix(m_mpiInfo,
                        m_blocks_desc,
                        [](unsigned int, unsigned int) {
@@ -4453,13 +4457,13 @@ namespace PhaseField
 
         // crack-plan sizes in top view
         const double L1 =
-          m_extra_data.at("L1"); // x-size of C1 patch from left boundary
+          m_extra_data.at("L1"); // x-size of C1 from left boundary
         const double L2 =
-          m_extra_data.at("L2"); // x-size of C2 patch from right boundary
+          m_extra_data.at("L2"); // x-size of C2 from right boundary
         const double W1 =
-          m_extra_data.at("W1"); // y-size of C1 patch from top boundary
+          m_extra_data.at("W1"); // y-size of C1 from top boundary
         const double W2 =
-          m_extra_data.at("W2"); // y-size of C2 patch from bottom boundary
+          m_extra_data.at("W2"); // y-size of C2 from bottom boundary
 
         // crack heights in front view
         const double H1 = m_extra_data.at("H1"); // height of C1 crack
@@ -5923,7 +5927,7 @@ namespace PhaseField
     m_tangent_matrix = 0.0;
 
     const UpdateFlags uf_cell(update_values | update_gradients |
-                              update_quadrature_points | update_JxW_values);
+                              update_JxW_values);
     const UpdateFlags uf_face(update_values | update_normal_vectors |
                               update_JxW_values);
 
@@ -5931,6 +5935,7 @@ namespace PhaseField
     ScratchData_ASM scratch_data(
       m_fe, m_qf_cell, uf_cell, m_qf_face, uf_face, solution_old);
 
+    scratch_data.reset();
     if constexpr (!is_mpi)
       {
         // non-mpi mode
