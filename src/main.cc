@@ -2489,7 +2489,6 @@ namespace PhaseField
     ScratchData_UQPH                                     &scratch,
     PerTaskData_UQPH & /*data*/)
   {
-
     constexpr QPHNeedFlag needFlags = generate_need(flags);
     scratch.m_fe_values.reinit(cell);
 
@@ -6108,21 +6107,21 @@ namespace PhaseField
         const Tensor<1, dim> &phasefield_grad =
           lqph[q_point]->get_phase_field_gradient();
 
-        
+
         const SymmetricTensor<2, dim> &cauchy_stress =
           lqph[q_point]->get_cauchy_stress();
 
-        
+
         const double JxW = scratch.m_fe_values.JxW(q_point);
 
         scratch.m_d_pf_values.init(matConst, phasefield_value);
 
         const double phasefield_geo_derivative =
           scratch.m_d_pf_values.geometric();
-        
+
 
         const double diff_degradation = scratch.m_d_pf_values.degradation();
-        
+
 
         const Tensor<1, dim> coefGradN =
           matConst.two_gc_l0_over_c_alpha * phasefield_grad;
@@ -6510,7 +6509,7 @@ namespace PhaseField
       {
         const MaterialConstants<dim> &matConst =
           lqph[q_point]->get_material_constents();
-        
+
         const double history_strain_energy =
           lqph[q_point]->get_history_max_positive_strain_energy();
         const double current_positive_strain_energy =
@@ -6545,10 +6544,10 @@ namespace PhaseField
 
         const double phasefield_geo_2nd_order_derivative =
           scratch.m_dd_pf_values.geometric();
-     
+
 
         const double ddiff_degradation = scratch.m_dd_pf_values.degradation();
-     
+
         const double viscosity_term = (matConst.has_viscosity) ?
                                         (matConst.viscosity * inv_delta_time) :
                                         0.0;
@@ -6558,7 +6557,7 @@ namespace PhaseField
 
 
         const double coefGradN = matConst.two_gc_l0_over_c_alpha;
-        
+
 
         const std::size_t n_u = m_u_local_dofs.size();
         for (unsigned int ii = 0; ii < n_u; ++ii)
@@ -6656,7 +6655,7 @@ namespace PhaseField
         if constexpr (is_mpi)
           if (!cell->is_locally_owned())
             continue;
-          
+
         const auto &lqph = m_quadrature_point_history.get_data(cell);
         Assert(lqph.size() == m_n_q_points, ExcInternalError());
 
@@ -6912,12 +6911,23 @@ namespace PhaseField
 
     for (; i <= ls_max; ++i)
       {
+        const double denominator = y_old * BFGS_p_vector;
+
+        if (!std::isfinite(denominator) || std::abs(denominator) < 1.0e-16)
+          {
+            break;
+          }
+
         delta_alpha_new =
-          -delta_alpha_old * (g_new * BFGS_p_vector) / (y_old * BFGS_p_vector);
-        alpha += delta_alpha_new;
+          -delta_alpha_old * (g_new * BFGS_p_vector) / (denominator);
+
+        delta_alpha_new = std::round(delta_alpha_new * 1e12) / 1e12;
+
 
         if (std::fabs(delta_alpha_new) < 1.0e-5)
           break;
+
+        alpha += delta_alpha_new;
 
         if (i == ls_max)
           {
@@ -7712,8 +7722,8 @@ namespace PhaseField
 
     auto     LBFGS_q_vector_handle = m_vec_pool.getHandle(false);
     BVector &LBFGS_q_vector        = LBFGS_q_vector_handle.get();
-    
-      
+
+
     std::list<std::pair<std::pair<BVector, BVector>, double>> LBFGS_vector_list;
 
     const unsigned int LBFGS_m = m_parameters.m_LBFGS_m;
@@ -7784,7 +7794,7 @@ namespace PhaseField
             else
               assemble_system_rhs_BFGS_parallel<false, false>(m_solution,
                                                               m_system_rhs);
- 
+
 
             // We cannot simply zero out the dofs that are constrained, since we
             // might have hanging node constraints. In this case, we need to
@@ -8895,7 +8905,7 @@ namespace PhaseField
     auto     solution_next_step_handle = m_vec_pool_ghosted.getHandle(false);
     BVector &solution_next_step        = solution_next_step_handle.get();
 
-    
+
     solution_next_step.base() = m_solution.base() + solution_delta.base();
     solution_next_step.updateRelevance();
 
