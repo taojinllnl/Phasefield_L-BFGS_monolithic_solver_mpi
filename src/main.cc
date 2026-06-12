@@ -1157,6 +1157,52 @@ namespace PhaseField
     bool                m_need_output;
   };
 
+  template <typename Tria>
+  class RatioCellSizeToLengthScaleStrategy : public grid::TriaStrategyBase<Tria>
+  {
+  private:
+    static constexpr int dim = Tria::dimension;
+    const double         hlRatio;
+    const std::unordered_map<unsigned int, MaterialConstants<dim>>
+      &materialTable;
+
+  public:
+    RatioCellSizeToLengthScaleStrategy(
+      const double hlRatio,
+      const std::unordered_map<unsigned int, MaterialConstants<dim>>
+        &materialTable)
+      : hlRatio(hlRatio)
+      , materialTable(materialTable)
+    {}
+
+    bool
+    setRefineFlag(const typename grid::TriaStrategyBase<Tria>::TCellIter &cell)
+      const override
+    {
+      static const unsigned int dim = Tria::dimension;
+
+      const double lengthScale = materialTable.at(cell->material_id()).l0;
+
+      double cellSize = 0;
+
+      if constexpr (dim == 2)
+        {
+          cellSize = std::sqrt(cell->measure());
+        }
+      else if constexpr (dim == 3)
+        {
+          cellSize = std::cbrt(cell->measure());
+        }
+      else
+        {
+          AssertThrow(false,
+                      ExcMessage("The dimension should be " +
+                                 std::to_string(dim)));
+        }
+      return cellSize > lengthScale * hlRatio;
+    }
+  };
+
   template <int dim>
   class LinearIsotropicElasticityAdditiveSplit
   {
@@ -1684,6 +1730,10 @@ namespace PhaseField
 
     OutputHelper<LATraits, Tria, PointHistory<dim>> m_output;
 
+    grid::GridMaker<Tria, supportRepartioning> m_grid_maker;
+    RatioCellSizeToLengthScaleStrategy<Tria>   m_hl_ratio_refine_strategy;
+
+
     struct Errors
     {
       Errors()
@@ -1946,7 +1996,7 @@ namespace PhaseField
   {
     bool initiation_point_refine_unfinished = false;
 
-    const double lengthScale = m_material_data[cell->material_id()][2];
+    const double lengthScale = m_material_const.at(cell->material_id()).l0;
 
     double cellSize = 0;
 
@@ -2786,6 +2836,9 @@ namespace PhaseField
                m_qf_cell,
                m_parameters.m_scenario,
                m_parameters.m_mpi_type)
+    , m_grid_maker(m_mpiInfo)
+    , m_hl_ratio_refine_strategy(m_parameters.m_allowed_max_h_l_ratio,
+                                 m_material_const)
   {}
 
 
@@ -4586,14 +4639,11 @@ namespace PhaseField
     const double W = m_extra_data.at("W"); // total width   (y direction)
 
     // crack-plan sizes in top view
-    const double L1 =
-      m_extra_data.at("L1"); // x-size of C1 patch from left boundary
-    const double L2 =
-      m_extra_data.at("L2"); // x-size of C2 patch from right boundary
-    const double W1 =
-      m_extra_data.at("W1"); // y-size of C1 patch from top boundary
+    const double L1 = m_extra_data.at("L1"); // x-size of C1 from left boundary
+    const double L2 = m_extra_data.at("L2"); // x-size of C2 from right boundary
+    const double W1 = m_extra_data.at("W1"); // y-size of C1 from top boundary
     const double W2 =
-      m_extra_data.at("W2"); // y-size of C2 patch from bottom boundary
+      m_extra_data.at("W2"); // y-size of C2 from bottom boundary
 
     // crack heights in front view
     const double H1 = m_extra_data.at("H1"); // height of C1 crack
@@ -4613,62 +4663,42 @@ namespace PhaseField
     double y1 = W2;
     double y2 = W - W1;
 
-    // z partition: [0, H2] [H2, H1] [H1, H]
-    double z1 = H2;
-    double z2 = H1;
-
-    const double hlRatio = m_parameters.m_allowed_max_h_l_ratio;
+    //    // z partition: [0, H2] [H2, H1] [H1, H]
+    //    double z1 = H2;
+    //    double z2 = H1;
 
     if (m_parameters.m_refinement_strategy == "adaptive-refine")
       {
-        bool initiation_point_refine_unfinished = true;
-        while (initiation_point_refine_unfinished)
-          {
-            initiation_point_refine_unfinished = false;
-            for (const auto &cell : m_triangulation.active_cell_iterators())
+        m_grid_maker.refineInitialMesh(
+          m_triangulation,
+          m_hl_ratio_refine_strategy,
+          m_parameters.m_max_adaptive_refine_times,
+          [H1, H2, x1, x2, bw_xy, bw_z](const TCellIter &cell) -> bool {
+            const double x = cell->center()[0];
+            const double y = cell->center()[1];
+
+            bool willBeRefined = false;
+
+            if constexpr (dim == 2)
               {
-                if constexpr (is_mpi)
-                  {
-                    if (!cell->is_locally_owned())
-                      continue;
-                  }
-
-                const double x = cell->center()[0];
-                const double y = cell->center()[1];
-
-                bool willBeRefined = false;
-
-                if constexpr (dim == 2)
-                  {
-                    willBeRefined =
-                      (std::fabs(y - H1) < bw_z && std::fabs(x - x1) < bw_xy) ||
-                      (std::fabs(y - H2) < bw_z && std::fabs(x - x2) < bw_xy);
-                  }
-                else if constexpr (dim == 3)
-                  {
-                    const double z = cell->center()[2];
-
-                    willBeRefined = (std::fabs(z - z1) < bw_z &&
-                                     (((std::fabs(x - x2) < bw_xy)))) ||
-                                    (std::fabs(z - z2) < bw_z &&
-                                     ((std::fabs(x - x1) < bw_xy)));
-                  }
-
-
-                if (willBeRefined)
-                  {
-                    initiation_point_refine_unfinished |=
-                      setRefineFlagByCellSize(cell, hlRatio);
-                  }
+                willBeRefined =
+                  (std::fabs(y - H1) < bw_z && std::fabs(x - x1) < bw_xy) ||
+                  (std::fabs(y - H2) < bw_z && std::fabs(x - x2) < bw_xy);
               }
-            executeRefinement(initiation_point_refine_unfinished);
-          }
+            else if constexpr (dim == 3)
+              {
+                const double z = cell->center()[2];
+
+                willBeRefined =
+                  (std::fabs(z - H2) < bw_z &&
+                   (((std::fabs(x - x2) < bw_xy)))) ||
+                  (std::fabs(z - H1) < bw_z && ((std::fabs(x - x1) < bw_xy)));
+              }
+            return willBeRefined;
+          });
       }
     else if (m_parameters.m_refinement_strategy == "pre-refine")
       {
-        bool initiation_point_refine_unfinished = true;
-
-
         double offset1 = 0.5 * lc;
         double offset2 = 0.5 * lc;
 
@@ -4680,37 +4710,27 @@ namespace PhaseField
         const double y1_mod = y1 - bw_xy;
         const double y2_mod = y2 + bw_xy;
 
-        while (initiation_point_refine_unfinished)
-          {
-            initiation_point_refine_unfinished = false;
-            for (const auto &cell : m_triangulation.active_cell_iterators())
+        m_grid_maker.refineInitialMesh(
+          m_triangulation,
+          m_hl_ratio_refine_strategy,
+          m_parameters.m_max_adaptive_refine_times,
+          [upper, lower, x1_mod, x2_mod, y1_mod, y2_mod](
+            const TCellIter &cell) -> bool {
+            if constexpr (dim == 3)
               {
-                if constexpr (is_mpi)
-                  {
-                    if (!cell->is_locally_owned())
-                      continue;
-                  }
-                if constexpr (dim == 3)
-                  {
-                    const double z = cell->center()[2];
+                const double z = cell->center()[2];
 
-                    if (!(z <= upper && z >= lower))
-                      continue;
-                    ;
-                  }
-
-                const double x = cell->center()[0];
-                const double y = cell->center()[1];
-                if ((x <= x1_mod && y <= y2_mod) ||
-                    (x >= x1_mod && x <= x2_mod) ||
-                    (x >= x2_mod && y >= y1_mod))
-                  {
-                    initiation_point_refine_unfinished |=
-                      setRefineFlagByCellSize(cell, hlRatio);
-                  }
+                if (!(z <= upper && z >= lower))
+                  return false;
               }
-            executeRefinement(initiation_point_refine_unfinished);
-          }
+
+            const double x = cell->center()[0];
+            const double y = cell->center()[1];
+            return (x <= x1_mod && y <= y2_mod) ||
+                   (x >= x1_mod && x <= x2_mod) || (x >= x2_mod && y >= y1_mod);
+            (void)upper;
+            (void)lower;
+          });
       }
     else
       {
@@ -4808,8 +4828,6 @@ namespace PhaseField
 
         m_triangulation.refine_global(m_parameters.m_global_refine_times);
 
-        const double hlRatio = m_parameters.m_allowed_max_h_l_ratio;
-
         // global dimensions
         const double x_crack_factor = m_extra_data.at("x_crack_factor");
         const double halfLength    = m_extra_data.at("length") * x_crack_factor;
@@ -4841,41 +4859,31 @@ namespace PhaseField
               ExcMessage("Selected mesh refinement strategy not implemented!"));
           }
 
+        m_grid_maker.refineInitialMesh(
+          m_triangulation,
+          m_hl_ratio_refine_strategy,
+          m_parameters.m_max_adaptive_refine_times,
+          [Hc,
+           halfLength,
+           tan_theta,
+           halfThickness,
+           bandWidth_x,
+           offset_z_above_crack,
+           offset_z_under_crack](const TCellIter &cell) -> bool {
+            const Point<3> center = cell->center();
+            const double   x      = center[0];
+            const double   y      = center[1];
+            const double   z      = center[2];
 
-        bool initiation_point_refine_unfinished = true;
-
-        while (initiation_point_refine_unfinished)
-          {
-            initiation_point_refine_unfinished = false;
-            for (const auto &cell : m_triangulation.active_cell_iterators())
-              {
-                if constexpr (is_mpi)
-                  {
-                    if (!cell->is_locally_owned())
-                      continue;
-                  }
-
-                const Point<3> center = cell->center();
-                const double   x      = center[0];
-                const double   y      = center[1];
-                const double   z      = center[2];
-
-                if (z <= (Hc + offset_z_above_crack) &&
+            return (z <= (Hc + offset_z_above_crack) &&
                     z > (Hc - offset_z_under_crack) &&
                     (std::fabs(x - halfLength -
-                               (y - halfThickness) * tan_theta) < bandWidth_x))
-                  {
-                    initiation_point_refine_unfinished |=
-                      setRefineFlagByCellSize(cell, hlRatio);
-                  }
-              }
-
-            executeRefinement(initiation_point_refine_unfinished);
-          }
+                               (y - halfThickness) * tan_theta) < bandWidth_x));
+          });
       }
     else
       {
-        AssertThrow(false, ExcMessage("The dimension has to be 2D!"));
+        AssertThrow(false, ExcMessage("The dimension has to be 3D!"));
       }
   }
 
@@ -4888,8 +4896,8 @@ namespace PhaseField
     for (unsigned int i = 0; i < 80; ++i)
       m_logfile << "*";
     m_logfile << std::endl;
-    m_logfile << "\t\t\tNooru-Mohamed test " << dim << "d (structured)"
-              << std::endl;
+    m_logfile << "\t\t\tNooru-Mohamed test " << dim
+              << "d (structured, rectangular cracks)" << std::endl;
     for (unsigned int i = 0; i < 80; ++i)
       m_logfile << "*";
     m_logfile << std::endl;
@@ -4939,14 +4947,11 @@ namespace PhaseField
     const double W = m_extra_data.at("W"); // total width   (y direction)
 
     // crack-plan sizes in top view
-    const double L1 =
-      m_extra_data.at("L1"); // x-size of C1 patch from left boundary
-    const double L2 =
-      m_extra_data.at("L2"); // x-size of C2 patch from right boundary
-    const double W1 =
-      m_extra_data.at("W1"); // y-size of C1 patch from top boundary
+    const double L1 = m_extra_data.at("L1"); // x-size of C1 from left boundary
+    const double L2 = m_extra_data.at("L2"); // x-size of C2 from right boundary
+    const double W1 = m_extra_data.at("W1"); // y-size of C1 from top boundary
     const double W2 =
-      m_extra_data.at("W2"); // y-size of C2 patch from bottom boundary
+      m_extra_data.at("W2"); // y-size of C2 from bottom boundary
 
 
     const double C1 = m_extra_data.at("C1"); // height of C1 crack
@@ -4969,44 +4974,22 @@ namespace PhaseField
     double x1 = L1;
     double x2 = L - L2;
 
-
-
-    const double hlRatio = m_parameters.m_allowed_max_h_l_ratio;
-
     if (m_parameters.m_refinement_strategy == "adaptive-refine")
       {
-        bool initiation_point_refine_unfinished = true;
-        while (initiation_point_refine_unfinished)
-          {
-            initiation_point_refine_unfinished = false;
-            for (const auto &cell : m_triangulation.active_cell_iterators())
-              {
-                if constexpr (is_mpi)
-                  {
-                    if (!cell->is_locally_owned())
-                      continue;
-                  }
+        m_grid_maker.refineInitialMesh(
+          m_triangulation,
+          m_hl_ratio_refine_strategy,
+          m_parameters.m_max_adaptive_refine_times,
+          [H1, H2, x1, x2, bw_xy, bw_z1, bw_z2](const TCellIter &cell) -> bool {
+            const double x = cell->center()[0];
+            const double y = cell->center()[1];
 
-                const double x = cell->center()[0];
-                const double y = cell->center()[1];
-
-                bool willBeRefined =
-                  (std::fabs(y - H1) < bw_z1 && std::fabs(x - x1) < bw_xy) ||
-                  (std::fabs(y - H2) < bw_z2 && std::fabs(x - x2) < bw_xy);
-
-                if (willBeRefined)
-                  {
-                    initiation_point_refine_unfinished |=
-                      setRefineFlagByCellSize(cell, hlRatio);
-                  }
-              }
-            executeRefinement(initiation_point_refine_unfinished);
-          }
+            return (std::fabs(y - H1) < bw_z1 && std::fabs(x - x1) < bw_xy) ||
+                   (std::fabs(y - H2) < bw_z2 && std::fabs(x - x2) < bw_xy);
+          });
       }
     else if (m_parameters.m_refinement_strategy == "pre-refine")
       {
-        bool initiation_point_refine_unfinished = true;
-
         // y partition: [0, W2] [middle] [W-W1, W]
         double y1 = W2;
         double y2 = W - W1;
@@ -5019,40 +5002,34 @@ namespace PhaseField
 
         const double x1_mod = x1 - bw_xy;
         const double x2_mod = x2 + bw_xy;
-        const double y1_mod = y1 - bw_xy;
-        const double y2_mod = y2 + bw_xy;
+        const double y1_mod = y1 + bw_xy;
+        const double y2_mod = y2 - bw_xy;
 
-        while (initiation_point_refine_unfinished)
-          {
-            initiation_point_refine_unfinished = false;
-            for (const auto &cell : m_triangulation.active_cell_iterators())
+        m_grid_maker.refineInitialMesh(
+          m_triangulation,
+          m_hl_ratio_refine_strategy,
+          m_parameters.m_max_adaptive_refine_times,
+          [upper, lower, x1_mod, x2_mod, y1_mod, y2_mod](
+            const TCellIter &cell) -> bool {
+            if constexpr (dim == 3)
               {
-                if constexpr (is_mpi)
-                  {
-                    if (!cell->is_locally_owned())
-                      continue;
-                  }
-                if constexpr (dim == 3)
-                  {
-                    const double z = cell->center()[2];
+                const double z = cell->center()[2];
 
-                    if (!(z <= upper && z >= lower))
-                      continue;
-                    ;
-                  }
-
-                const double x = cell->center()[0];
-                const double y = cell->center()[1];
-                if ((x <= x1_mod && y <= y2_mod) ||
-                    (x >= x1_mod && x <= x2_mod) ||
-                    (x >= x2_mod && y >= y1_mod))
-                  {
-                    initiation_point_refine_unfinished |=
-                      setRefineFlagByCellSize(cell, hlRatio);
-                  }
+                if (!(z <= upper && z >= lower))
+                  return false;
               }
-            executeRefinement(initiation_point_refine_unfinished);
-          }
+
+            const double x = cell->center()[0];
+            const double y = cell->center()[1];
+
+            return (x > x1_mod && x < x2_mod) && (y > y1_mod && y < y2_mod);
+
+            if constexpr (dim == 2)
+              {
+                (void)upper;
+                (void)lower;
+              }
+          });
       }
     else
       {
@@ -5827,11 +5804,11 @@ namespace PhaseField
 
 
             VectorTools::interpolate_boundary_values(
-              m_dof_handler, m_bcs_id.at("H1"), dx_, m_constraints, shear);
+              m_dof_handler, m_bcs_id.at("H1"), dx, m_constraints, shear);
 
 
             VectorTools::interpolate_boundary_values(
-              m_dof_handler, m_bcs_id.at("H2"), dx, m_constraints, shear);
+              m_dof_handler, m_bcs_id.at("H2"), dx_, m_constraints, shear);
           }
         else
           Assert(false, ExcMessage("The scenario has not been implemented!"));
