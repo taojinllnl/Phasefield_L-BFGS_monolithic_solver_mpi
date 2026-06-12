@@ -9685,7 +9685,7 @@ main(int argc, char *argv[])
       const auto setting = DTria<3>::default_setting;
 #endif
       const auto smooth = RTria<3>::MeshSmoothing(
-        RTria<2>::smoothing_on_refinement | RTria<2>::smoothing_on_coarsening);
+        RTria<3>::smoothing_on_refinement | RTria<3>::smoothing_on_coarsening);
       if (parameters.m_mpi_type == "PETSc")
         {
 #ifdef HAVE_PETSC
