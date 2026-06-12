@@ -2323,6 +2323,8 @@ namespace PhaseField
                                        solution_old,
                                        m_time.get_delta_t());
 
+    scratch_data_UQPH.reset();
+
     if constexpr (!is_mpi)
       {
         // non-mpi mode
@@ -2439,7 +2441,6 @@ namespace PhaseField
     ScratchData_UQPH                                     &scratch,
     PerTaskData_UQPH & /*data*/)
   {
-    scratch.reset();
 
     constexpr QPHNeedFlag needFlags = generate_need(flags);
     scratch.m_fe_values.reinit(cell);
