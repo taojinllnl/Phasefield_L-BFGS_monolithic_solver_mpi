@@ -78,3 +78,18 @@ MPIInfo::summary(std::ostream &stream)
       stream << "Non-MPI mode" << std::endl;
     }
 }
+
+
+
+bool
+MPIInfo::syncFlag(const bool localFlag) const
+{
+  if (__MPISupport)
+    {
+      return MPIInfo::syncBool<true>(localFlag, *__mpiCommPtr);
+    }
+  else
+    {
+      return localFlag;
+    }
+}

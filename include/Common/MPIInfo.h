@@ -71,6 +71,9 @@ namespace common
     template <bool is_mpi>
     static bool
     syncBool(const bool localFlag, const MPI_Comm &mpiComm);
+
+    bool
+    syncFlag(const bool localFlag) const;
   };
 
   template <bool is_mpi>
@@ -85,6 +88,7 @@ namespace common
           dealii::Utilities::MPI::sum(localFlagInt, mpiComm);
         return (globalFlagInt > 0u);
       }
+    return localFlag;
   }
 
 } // namespace common
