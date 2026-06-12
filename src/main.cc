@@ -164,7 +164,6 @@
 #include "../include/SpectrumDecomposition.h"
 #include "../include/Utilities.h"
 
-
 namespace PhaseField
 {
   using namespace dealii;
@@ -6866,7 +6865,7 @@ namespace PhaseField
     // BFGS_p_vector is the search direction
     auto     solution_delta_trial_handle = m_vec_pool_ghosted.getHandle(false);
     BVector &solution_delta_trial        = solution_delta_trial_handle.get();
-    solution_delta_trial.base()          = solution_delta.base();        
+    solution_delta_trial.base()          = solution_delta.base();
     // take a full step size 1.0
     solution_delta_trial.add(1.0, BFGS_p_vector);
     solution_delta_trial.updateRelevance();
@@ -7214,12 +7213,9 @@ namespace PhaseField
     const std::string sectionName = "Solve B0";
     m_timer.enter_subsection(sectionName);
 
-    LBFGS_r_vector = 0.0;
     assemble_system_B0(m_solution);
 
     m_diag_la_solver.solve(LBFGS_r_vector, LBFGS_q_vector, m_tangent_matrix);
-    LBFGS_r_vector.updateRelevance();
-
 
     m_timer.leave_subsection(sectionName);
   }
@@ -7913,14 +7909,14 @@ namespace PhaseField
              itr != LBFGS_vector_list.end();
              ++itr)
           {
-            LBFGS_s_vector = (itr->first).first;
-            LBFGS_y_vector = (itr->first).second;
-            rho            = itr->second;
+            const BVector &s = itr->first.first;
+            const BVector &y = itr->first.second;
+            rho              = itr->second;
 
-            const double alpha = rho * (LBFGS_s_vector * LBFGS_q_vector);
+            const double alpha = rho * (s * LBFGS_q_vector);
             LBFGS_alpha_list.push_back(alpha);
 
-            LBFGS_q_vector.add(-alpha, LBFGS_y_vector);
+            LBFGS_q_vector.add(-alpha, y);
           }
         /*
          double scale_gamma = 0.0;
@@ -7946,16 +7942,16 @@ namespace PhaseField
              itr != LBFGS_vector_list.rend();
              ++itr)
           {
-            LBFGS_s_vector = (itr->first).first;
-            LBFGS_y_vector = (itr->first).second;
-            rho            = itr->second;
+            const BVector &s = itr->first.first;
+            const BVector &y = itr->first.second;
+            rho              = itr->second;
 
-            LBFGS_beta = rho * (LBFGS_y_vector * LBFGS_r_vector);
+            LBFGS_beta = rho * (y * LBFGS_r_vector);
 
             const double alpha = LBFGS_alpha_list.back();
             LBFGS_alpha_list.pop_back();
 
-            LBFGS_r_vector.add(alpha - LBFGS_beta, LBFGS_s_vector);
+            LBFGS_r_vector.add(alpha - LBFGS_beta, s);
           }
 
 
@@ -8063,7 +8059,7 @@ namespace PhaseField
         // m_constraints.condense(m_system_rhs);
         LBFGS_y_vector += m_system_rhs;
 
-        LBFGS_s_vector = LBFGS_update;
+        const BVector &LBFGS_s_vector = LBFGS_update;
 
         const double g_norm = m_system_rhs.l2_norm();
 
@@ -9066,7 +9062,6 @@ namespace PhaseField
             m_triangulation.execute_coarsening_and_refinement();
 
             setup_system();
-            solution_next_step.initialize();
 
             dof_handler_L2.distribute_dofs(fe_L2);
             constraints.clear();
