@@ -1230,12 +1230,14 @@ namespace PhaseField
       return m_grad_phasefield;
     }
 
+    template <QPHUpdateFlag flags>
     void
     update_material_data(const SymmetricTensor<2, dim> &strain,
                          const double                   phase_field_value,
                          const Tensor<1, dim>          &grad_phasefield,
-                         const double phase_field_value_previous_step,
-                         const double delta_time);
+                         const double      phase_field_value_previous_step,
+                         const double      delta_time,
+                         PFValues<0, dim> &m_pf_values);
 
   private:
     const MaterialConstants<dim> &matConst;
@@ -1252,13 +1254,15 @@ namespace PhaseField
   };
 
   template <int dim>
+  template <QPHUpdateFlag flags>
   void
   LinearIsotropicElasticityAdditiveSplit<dim>::update_material_data(
     const SymmetricTensor<2, dim> &strain,
     const double                   phase_field_value,
     const Tensor<1, dim>          &grad_phasefield,
     const double                   phase_field_value_previous_step,
-    const double                   delta_time)
+    const double                   delta_time,
+    PFValues<0, dim>              &pf_values)
   {
     using namespace usr_spectrum_decomposition;
     constexpr QPHNeedFlag needFlags = generate_need(flags);
@@ -1421,8 +1425,8 @@ namespace PhaseField
 
             m_crack_energy_dissipation =
               matConst.gc *
-                ( matConst .I_over_c_alpha_l0 * phase_field_geo_value 
-                 + matConst.l0_over_c_alpha * grad_phasefield * grad_phasefield)
+                (matConst.I_over_c_alpha_l0 * phase_field_geo_value +
+                 matConst.l0_over_c_alpha * grad_phasefield * grad_phasefield)
               // the term due to viscosity regularization
               + viscosity_term;
           }
@@ -1430,8 +1434,8 @@ namespace PhaseField
           {
             m_crack_energy_dissipation =
               matConst.gc *
-              ( matConst.I_over_c_alpha_l0 * phase_field_geo_value
-               + matConst.l0_over_c_alpha * grad_phasefield * grad_phasefield);
+              (matConst.I_over_c_alpha_l0 * phase_field_geo_value +
+               matConst.l0_over_c_alpha * grad_phasefield * grad_phasefield);
           }
       }
     //(void)delta_time;
@@ -1443,14 +1447,7 @@ namespace PhaseField
   {
   public:
     PointHistory()
-      : m_length_scale(0.0)
-      , m_gc(0.0)
-      , m_viscosity(0.0)
-      , m_p(0.0)
-      , m_a1(0.0)
-      , m_a2(0.0)
-      , m_a3(0.0)
-      , m_history_max_positive_strain_energy(0.0)
+      : m_history_max_positive_strain_energy(0.0)
     {}
 
     virtual ~PointHistory() = default;
@@ -1461,7 +1458,7 @@ namespace PhaseField
       matConstsPtr = &matConst;
 
       m_history_max_positive_strain_energy = matConst.max_strain_energy;
-     
+
       m_material.emplace(matConst);
 
       PFValues<0, dim> pf_values;
@@ -1471,18 +1468,22 @@ namespace PhaseField
         SymmetricTensor<2, dim>(), 0.0, Tensor<1, dim>(), 0.0, 1.0, pf_values);
     }
 
+    template <QPHUpdateFlag flags>
     void
     update_field_values(const SymmetricTensor<2, dim> &strain,
                         const double                   phase_field_value,
                         const Tensor<1, dim>          &grad_phasefield,
-                        const double phase_field_value_previous_step,
-                        const double delta_time)
+                        const double      phase_field_value_previous_step,
+                        const double      delta_time,
+                        PFValues<0, dim> &pf_values)
     {
-      m_material->update_material_data(strain,
-                                       phase_field_value,
-                                       grad_phasefield,
-                                       phase_field_value_previous_step,
-                                       delta_time);
+      m_material->template update_material_data<flags>(
+        strain,
+        phase_field_value,
+        grad_phasefield,
+        phase_field_value_previous_step,
+        delta_time,
+        pf_values);
     }
 
     void
@@ -1556,48 +1557,15 @@ namespace PhaseField
       return m_history_max_positive_strain_energy;
     }
 
-    double
-    get_length_scale() const
-    {
-      return m_length_scale;
-    }
-
-    double
-    get_critical_energy_release_rate() const
-    {
-      return m_gc;
-    }
-
-    double
-    get_viscosity() const
-    {
-      return m_viscosity;
-    }
-
-    double
-    get_p() const
-    {
-      return m_p;
-    }
-
-    double
-    get_a1() const
-    {
-      return m_a1;
-    }
-
-    double
-    get_a2() const
-    {
-      return m_a2;
-    }
-
     const MaterialConstants<dim> &
     get_material_constents() const
     {
       return *matConstsPtr;
     }
 
+  private:
+    std::optional<LinearIsotropicElasticityAdditiveSplit<dim>> m_material;
+    double                        m_history_max_positive_strain_energy;
     const MaterialConstants<dim> *matConstsPtr = nullptr;
   };
 
@@ -1606,6 +1574,7 @@ namespace PhaseField
   {
   public:
     constexpr static int dim = Tria::dimension;
+
 
 #if ENABLE_CUSTOMIZED_REPARTITION_MODE == 1
     constexpr static bool supportRepartioning = true;
@@ -1813,6 +1782,7 @@ namespace PhaseField
       ScratchData_ASM                                      &scratch,
       PerTaskData_ASM                                      &data) const;
 
+    template <bool has_body_force, bool has_surface_pressure>
     void
     assemble_system_rhs_BFGS_one_cell(
       const typename DoFHandler<dim>::active_cell_iterator &cell,
@@ -2279,16 +2249,7 @@ namespace PhaseField
       }
 
     unsigned int material_id;
-    double       lame_lambda      = 0.0;
-    double       lame_mu          = 0.0;
-    double       length_scale     = 0.0;
-    double       gc               = 0.0;
-    double       viscosity        = 0.0;
-    double       residual_k       = 0.0;
-    double       tensile_strength = 0.0;
-    double       p                = 0.0;
-    double       a2               = 0.0;
-    double       a3               = 0.0;
+
 
     for (const auto &cell : m_triangulation.active_cell_iterators())
       {
@@ -2414,6 +2375,8 @@ namespace PhaseField
   {
     const BVector &m_solution_UQPH;
 
+    PFValues<0, dim> m_pf_values;
+
     std::vector<SymmetricTensor<2, dim>> m_solution_symm_grads_u_cell;
     std::vector<double>                  m_solution_values_phasefield_cell;
     std::vector<Tensor<1, dim>>          m_solution_grad_phasefield_cell;
@@ -2478,6 +2441,7 @@ namespace PhaseField
   {
     scratch.reset();
 
+    constexpr QPHNeedFlag needFlags = generate_need(flags);
     scratch.m_fe_values.reinit(cell);
 
     const auto &lqph = m_quadrature_point_history.get_data(cell);
@@ -2486,28 +2450,37 @@ namespace PhaseField
     const FEValuesExtractors::Vector displacement(0);
 
     const auto &solution_relevance = scratch.m_solution_UQPH.relevance();
-    const auto &solution_previous_step_relevance =
-      scratch.m_solution_previous_step.relevance();
 
-    scratch.m_fe_values[m_u_fe].get_function_symmetric_gradients(
-      solution_relevance, scratch.m_solution_symm_grads_u_cell);
-    scratch.m_fe_values[m_d_fe].get_function_values(
-      solution_relevance, scratch.m_solution_values_phasefield_cell);
-    scratch.m_fe_values[m_d_fe].get_function_gradients(
-      solution_relevance, scratch.m_solution_grad_phasefield_cell);
 
-    scratch.m_fe_values[m_d_fe].get_function_values(
-      solution_previous_step_relevance,
-      scratch.m_phasefield_previous_step_cell);
+    if constexpr (has_flag(needFlags, QPHNeedFlag::u_gradient))
+      scratch.m_fe_values[m_u_fe].get_function_symmetric_gradients(
+        solution_relevance, scratch.m_solution_symm_grads_u_cell);
+
+    if constexpr (has_flag(needFlags, QPHNeedFlag::phasefield_value))
+      scratch.m_fe_values[m_d_fe].get_function_values(
+        solution_relevance, scratch.m_solution_values_phasefield_cell);
+
+    if constexpr (has_flag(needFlags, QPHNeedFlag::phasefield_gradient))
+      scratch.m_fe_values[m_d_fe].get_function_gradients(
+        solution_relevance, scratch.m_solution_grad_phasefield_cell);
+
+    if constexpr (has_flag(needFlags, QPHNeedFlag::previous_phasefield))
+      {
+        scratch.m_fe_values[m_d_fe].get_function_values(
+          scratch.m_solution_previous_step.relevance(),
+          scratch.m_phasefield_previous_step_cell);
+      }
+
 
     for (const unsigned int q_point :
          scratch.m_fe_values.quadrature_point_indices())
-      lqph[q_point]->update_field_values(
+      lqph[q_point]->template update_field_values<flags>(
         scratch.m_solution_symm_grads_u_cell[q_point],
         scratch.m_solution_values_phasefield_cell[q_point],
         scratch.m_solution_grad_phasefield_cell[q_point],
         scratch.m_phasefield_previous_step_cell[q_point],
-        scratch.m_delta_time);
+        scratch.m_delta_time,
+        scratch.m_pf_values);
   }
 
   template <typename LATraits, typename Tria>
