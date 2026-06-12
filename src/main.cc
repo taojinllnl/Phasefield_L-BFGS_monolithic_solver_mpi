@@ -1870,11 +1870,13 @@ namespace PhaseField
     void
     setup_qph();
 
+    template <QPHUpdateFlag flags>
     void
     update_qph_incremental(const BVector &solution_delta,
                            const BVector &solution_old,
                            const bool     is_print);
 
+    template <QPHUpdateFlag flags>
     void
     update_qph_incremental_one_cell(
       const typename DoFHandler<dim>::active_cell_iterator &cell,
@@ -2310,6 +2312,7 @@ namespace PhaseField
   }
 
   template <typename LATraits, typename Tria>
+  template <QPHUpdateFlag flags>
   void
   PhaseFieldMonolithicSolve<LATraits, Tria>::update_qph_incremental(
     const BVector &solution_delta,
@@ -2344,7 +2347,9 @@ namespace PhaseField
           [this](const typename DoFHandler<dim>::active_cell_iterator &cell,
                  ScratchData_UQPH                                     &scratch,
                  PerTaskData_UQPH                                     &data) {
-            this->update_qph_incremental_one_cell(cell, scratch, data);
+            this->template update_qph_incremental_one_cell<flags>(cell,
+                                                                  scratch,
+                                                                  data);
           };
 
         auto copier = [this](const PerTaskData_UQPH &data) {
@@ -2364,9 +2369,9 @@ namespace PhaseField
         for (const auto &cell : m_dof_handler.active_cell_iterators())
           if (cell->is_locally_owned())
             {
-              update_qph_incremental_one_cell(cell,
-                                              scratch_data_UQPH,
-                                              per_task_data_UQPH);
+              update_qph_incremental_one_cell<flags>(cell,
+                                                     scratch_data_UQPH,
+                                                     per_task_data_UQPH);
               copy_local_to_global_UQPH(per_task_data_UQPH);
             }
       }
@@ -2442,6 +2447,7 @@ namespace PhaseField
   };
 
   template <typename LATraits, typename Tria>
+  template <QPHUpdateFlag flags>
   void
   PhaseFieldMonolithicSolve<LATraits, Tria>::update_qph_incremental_one_cell(
     const typename DoFHandler<dim>::active_cell_iterator &cell,
@@ -6866,7 +6872,10 @@ namespace PhaseField
     solution_delta_trial.updateRelevance();
 
 
- 
+    update_qph_incremental<residualFlag>(solution_delta_trial,
+                                         m_solution,
+                                         /*is_print=*/false);
+
     auto     g_new_handle = m_vec_pool.getHandle(false);
     BVector &g_new        = g_new_handle.get();
 
@@ -6920,6 +6929,9 @@ namespace PhaseField
         solution_delta_trial.add(alpha, BFGS_p_vector);
         solution_delta_trial.updateRelevance();
 
+        update_qph_incremental<residualFlag>(solution_delta_trial,
+                                             m_solution,
+                                             /*is_print=*/false);
 
         if (m_parameters.has_body_force && m_parameters.has_surface_pressure)
           assemble_system_rhs_BFGS_parallel<true, true>(m_solution, g_new);
@@ -7171,6 +7183,9 @@ namespace PhaseField
 
     solution_delta_trial.updateRelevance();
 
+    update_qph_incremental<residualFlag | energyFlag>(solution_delta_trial,
+                                                      m_solution,
+                                                      /*is_print=*/false);
 
     auto     system_rhs_handle = m_vec_pool.getHandle(false);
     BVector &system_rhs        = system_rhs_handle.get();
@@ -7737,7 +7752,10 @@ namespace PhaseField
               }
             m_solution.updateRelevance();
 
-            update_qph_incremental(solution_delta, m_solution, false);
+            update_qph_incremental<residualFlag | tangentFlag | energyFlag>(
+              solution_delta,
+              m_solution,
+              /*is_print=*/false);
 
             if (m_parameters.m_output_iteration_history)
               {
@@ -8019,7 +8037,10 @@ namespace PhaseField
 
         solution_delta += LBFGS_update;
         solution_delta.updateRelevance();
-        update_qph_incremental(solution_delta, m_solution, false);
+        update_qph_incremental<residualFlag | tangentFlag | energyFlag>(
+          solution_delta,
+          m_solution,
+          /*is_print=*/false);
 
         LBFGS_y_vector = m_system_rhs;
         LBFGS_y_vector *= -1.0;
@@ -9193,6 +9214,11 @@ namespace PhaseField
         BVector &temp_solution_delta    = temp_solution_delta_handle.get();
 
 
+
+        constexpr QPHUpdateFlag flags = residualFlag | tangentFlag | energyFlag;
+        update_qph_incremental<flags>(temp_solution_delta,
+                                      m_solution,
+                                      /*is_print=*/false);
         // Since we want to map the history variable in the previous time step
         // from the coarse mesh to the refined mesh, we should not update them
         // here. update_history_field_step();
