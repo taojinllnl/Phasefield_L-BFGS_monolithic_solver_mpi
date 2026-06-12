@@ -1224,7 +1224,7 @@ namespace PhaseField
       return m_phase_field_value;
     }
 
-    const Tensor<1, dim>
+    const Tensor<1, dim> &
     get_phase_field_gradient() const
     {
       return m_grad_phasefield;
@@ -1545,7 +1545,7 @@ namespace PhaseField
       return m_material->get_phase_field_value();
     }
 
-    const Tensor<1, dim>
+    const Tensor<1, dim> &
     get_phase_field_gradient() const
     {
       return m_material->get_phase_field_gradient();
@@ -1581,6 +1581,9 @@ namespace PhaseField
 #else
     constexpr static bool supportRepartioning = false;
 #endif
+
+    using TCellIter =
+      typename grid::GridMaker<Tria, supportRepartioning>::TCellIter;
 
     using BSMatrix = ::common::BlockSparseMatrixWrapper<LATraits>;
     using BVector  = ::common::BlockVectorWrapper<LATraits>;
@@ -1914,7 +1917,7 @@ namespace PhaseField
     double
     calculate_energy_functional() const;
 
-    std::pair<double, double>
+    std::array<double, 3>
     calculate_total_strain_energy_and_crack_energy_dissipation() const;
 
     bool
@@ -6082,12 +6085,11 @@ namespace PhaseField
 
     if constexpr (has_body_force)
       {
-        right_hand_side(
-          m_n_q_points,
-          scratch.rhs_values,
-          m_parameters.m_x_component * 1.0,
-          m_parameters.m_y_component * 1.0,
-          m_parameters.m_z_component * 1.0);
+        right_hand_side(m_n_q_points,
+                        scratch.rhs_values,
+                        m_parameters.m_x_component * 1.0,
+                        m_parameters.m_y_component * 1.0,
+                        m_parameters.m_z_component * 1.0);
       }
     const double inv_delta_time = m_time.get_inv_delta_t();
 
@@ -6299,7 +6301,7 @@ namespace PhaseField
           history_value = current_positive_strain_energy;
 
         const double phasefield_value = lqph[q_point]->get_phase_field_value();
-        const Tensor<1, dim> phasefield_grad =
+        const Tensor<1, dim> &phasefield_grad =
           lqph[q_point]->get_phase_field_gradient();
 
         const std::vector<double> &N_phasefield =
@@ -6630,13 +6632,12 @@ namespace PhaseField
     Vector<double>                       cell_rhs(m_dofs_per_cell);
     std::vector<types::global_dof_index> local_dof_indices(m_dofs_per_cell);
 
-    const double time_ramp  = (m_time.current() / m_time.end());
-    const double delta_time = m_time.get_delta_t();
+    const double time_ramp      = m_time.m_time_ramp;
+    const double inv_delta_time = m_time.get_inv_delta_t();
 
-    std::vector<Tensor<1, dim>> rhs_values(m_n_q_points);
-    const UpdateFlags           uf_cell(update_values | update_gradients |
+    const UpdateFlags uf_cell(update_values | update_gradients |
                               update_quadrature_points | update_JxW_values);
-    const UpdateFlags           uf_face(update_values | update_normal_vectors |
+    const UpdateFlags uf_face(update_values | update_normal_vectors |
                               update_JxW_values);
 
     FEValues<dim>     fe_values(m_fe, m_qf_cell, uf_cell);
@@ -6657,6 +6658,8 @@ namespace PhaseField
       m_qf_cell.size(), std::vector<Tensor<1, dim>>(m_dofs_per_cell));
 
     std::vector<double> phasefield_previous_step_cell(m_qf_cell.size());
+
+    std::vector<Tensor<1, dim>> rhs_values(m_n_q_points);
 
     for (const auto &cell : m_dof_handler.active_cell_iterators())
       {
@@ -6805,8 +6808,8 @@ namespace PhaseField
                     const Tensor<1, dim> &N =
                       fe_face_values.normal_vector(f_q_point);
 
-                    const double         pressure = p0 * time_ramp;
-                    const Tensor<1, dim> traction = pressure * N;
+                    const double          pressure = p0 * time_ramp;
+                    const Tensor<1, dim> &traction = pressure * N;
 
                     for (const unsigned int i : fe_values.dof_indices())
                       {
@@ -6906,7 +6909,7 @@ namespace PhaseField
 
     double delta_alpha_old = alpha - alpha_old;
 
-    double delta_alpha_new;
+    double delta_alpha_new = 0.0;
 
     unsigned int ls_max = 10;
 
@@ -7687,7 +7690,7 @@ namespace PhaseField
     // is smaller than a threshold (1.0e-3) CONSECUTIVELY. If the line
     // search parameter is too small several times in a row, we set it to
     // 1.0 to jump out of the local trap.
-    int                line_search_tracker                = 0;
+    unsigned int       line_search_tracker                = 0;
     const double       line_search_parameter_lower_limit  = 1.0e-3;
     const unsigned int small_line_search_max_allowed_time = 5;
 
@@ -8151,7 +8154,7 @@ namespace PhaseField
     const double                time_ramp = (m_time.current() / m_time.end());
     std::vector<Tensor<1, dim>> rhs_values(m_n_q_points);
     const UpdateFlags           uf_cell(update_values | update_gradients |
-                              update_quadrature_points | update_JxW_values);
+                              /*update_quadrature_points |*/ update_JxW_values);
     const UpdateFlags           uf_face(update_values | update_normal_vectors |
                               update_JxW_values);
 
@@ -8179,7 +8182,7 @@ namespace PhaseField
         Assert(lqph.size() == m_n_q_points, ExcInternalError());
         cell_rhs = 0.0;
         fe_values.reinit(cell);
-        right_hand_side(fe_values.get_quadrature_points(),
+        right_hand_side(m_n_q_points, // fe_values.get_quadrature_points(),
                         rhs_values,
                         m_parameters.m_x_component * time_ramp,
                         m_parameters.m_y_component * time_ramp,
@@ -8243,8 +8246,8 @@ namespace PhaseField
                     const Tensor<1, dim> &N =
                       fe_face_values.normal_vector(f_q_point);
 
-                    const double         pressure = p0 * time_ramp;
-                    const Tensor<1, dim> traction = pressure * N;
+                    const double          pressure = p0 * time_ramp;
+                    const Tensor<1, dim> &traction = pressure * N;
 
                     for (const unsigned int i : fe_values.dof_indices())
                       {
@@ -8440,7 +8443,7 @@ namespace PhaseField
   }
 
   template <typename LATraits, typename Tria>
-  std::pair<double, double>
+  std::array<double, 3>
   PhaseFieldMonolithicSolve<LATraits, Tria>::
     calculate_total_strain_energy_and_crack_energy_dissipation() const
   {
@@ -8886,7 +8889,7 @@ namespace PhaseField
                         m_parameters.m_phasefield_refine_threshold)
                       {
                         material_id  = cell->material_id();
-                        length_scale = m_material_data[material_id][2];
+                        length_scale = m_material_const.at(material_id).l0;
                         if (dim == 2)
                           cell_length = std::sqrt(cell->measure());
                         else
