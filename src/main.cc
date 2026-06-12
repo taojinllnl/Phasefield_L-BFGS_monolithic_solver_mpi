@@ -2529,6 +2529,9 @@ namespace PhaseField
     FEValues<dim>     m_fe_values;
     FEFaceValues<dim> m_fe_face_values;
 
+    PFValues<1, dim> m_d_pf_values;
+    PFValues<2, dim> m_dd_pf_values;
+
     std::vector<std::vector<double>>
       m_Nx_phasefield; // shape function values for phase-field
     std::vector<std::vector<Tensor<1, dim>>>
@@ -2627,6 +2630,10 @@ namespace PhaseField
     FEValues<dim>     m_fe_values;
     FEFaceValues<dim> m_fe_face_values;
 
+
+    PFValues<1, dim> m_d_pf_values;
+    PFValues<2, dim> m_dd_pf_values;
+
     std::vector<std::vector<double>>
       m_Nx_phasefield; // shape function values for phase-field
     std::vector<std::vector<Tensor<1, dim>>>
@@ -2642,6 +2649,8 @@ namespace PhaseField
 
     const BVector      &m_solution_previous_step;
     std::vector<double> m_phasefield_previous_step_cell;
+
+    std::vector<Tensor<1, dim>> rhs_values;
 
     ScratchData_ASM_RHS_BFGS(const FiniteElement<dim> &fe_cell,
                              const QGauss<dim>        &qf_cell,
