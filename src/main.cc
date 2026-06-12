@@ -2098,7 +2098,6 @@ namespace PhaseField
     double a2;
     double a3;
     int    material_region;
-    double poisson_ratio;
     if (myfile.is_open())
       {
         m_logfile << "Reading material data file ..." << std::endl;
@@ -2324,18 +2323,7 @@ namespace PhaseField
         Assert(lqph.size() == m_n_q_points, ExcInternalError());
 
         for (unsigned int q_point = 0; q_point < m_n_q_points; ++q_point)
-          lqph[q_point]->setup_lqp(lame_lambda,
-                                   lame_mu,
-                                   length_scale,
-                                   gc,
-                                   viscosity,
-                                   residual_k,
-                                   tensile_strength,
-                                   p,
-                                   a2,
-                                   a3,
-                                   m_parameters.m_phasefield_name,
-                                   m_parameters.m_plane_stress);
+          lqph[q_point]->setup_lqp(matConst);
       }
   }
 
