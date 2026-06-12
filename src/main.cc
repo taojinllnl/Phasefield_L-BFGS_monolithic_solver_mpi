@@ -175,6 +175,23 @@ namespace PhaseField
   using namespace dealii;
   using namespace common;
   using namespace bcs;
+  using namespace flags;
+
+
+  static constexpr QPHUpdateFlag residualFlag = complete_update_checked<
+    QPHUpdateFlag::strain_decomp | QPHUpdateFlag::stress_positive |
+    QPHUpdateFlag::stress | QPHUpdateFlag::strain_energy_pos>();
+
+  static constexpr QPHUpdateFlag tangentFlag =
+    complete_update_checked<QPHUpdateFlag::strain_decomp | QPHUpdateFlag::CCCC |
+                            QPHUpdateFlag::strain_energy_pos>();
+
+  static constexpr QPHUpdateFlag energyFlag = complete_update_checked<
+    QPHUpdateFlag::strain_decomp | QPHUpdateFlag::strain_energy_pos |
+    QPHUpdateFlag::strain_energy_neg | QPHUpdateFlag::strain_energy_tot |
+    QPHUpdateFlag::energy_dissipation>();
+
+
 
   // body force
   template <int dim>
