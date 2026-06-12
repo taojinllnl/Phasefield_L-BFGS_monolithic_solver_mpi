@@ -208,3 +208,93 @@ void BlockDesc::summary(std::ostream& stream)
 
 
 
+
+template <int dim, int spacedim>
+void BlockDesc::updateDoFsInfo(::dealii::DoFHandler<dim, spacedim>& dof_handler)
+{
+    using namespace ::dealii;
+    
+    
+    if(!__dofs_per_block)
+    {
+        __dofs_per_block = std::make_unique<std::vector<types::global_dof_index>>();
+    }
+    
+    // the __dofs_per_block is rank-independent
+    (*__dofs_per_block) = DoFTools::count_dofs_per_fe_block(dof_handler, __groupIDs);
+    
+    
+    if (__mpiInfo.isMPI())
+    {
+        /*  *  *  *   *   *   *   *   *  MPI  *   *   *   *   *   *   *   *   */
+        if (!__owned_partitioning)
+        {
+            __owned_partitioning =
+            std::make_unique<std::vector<IndexSet>>(__nBlocks);
+            __owned_partitioning->resize(__nBlocks);
+        }
+        else if (__owned_partitioning->size() != __nBlocks)
+        {
+            __owned_partitioning->assign(__nBlocks, IndexSet());
+        }
+        
+        if (!__relevant_partitioning)
+        {
+            __relevant_partitioning =
+            std::make_unique<std::vector<IndexSet>>(__nBlocks);
+            __relevant_partitioning->resize(__nBlocks);
+        }
+        else if (__relevant_partitioning->size() != __nBlocks)
+        {
+            __relevant_partitioning->assign(__nBlocks, IndexSet());
+        }
+        
+        if (!__localRelevantDoFs)
+        {
+            __localRelevantDoFs = std::make_unique<IndexSet>();
+        }
+        
+        
+        
+        const IndexSet& locally_owned_dofs = dof_handler.locally_owned_dofs();
+        (*__localRelevantDoFs) = DoFTools::extract_locally_relevant_dofs(dof_handler);
+        
+        
+        
+        std::vector<IndexSet::size_type> dofsOffsets(__nBlocks+1, 0);
+        for(unsigned int i = 0; i < __nBlocks; ++i)
+        {
+            dofsOffsets[i+1] = (*__dofs_per_block)[i] + dofsOffsets[i];
+        }
+        
+        
+        for(unsigned int i = 0; i < __nBlocks; ++i)
+        {
+            (*__owned_partitioning)[i]
+            = locally_owned_dofs.get_view(dofsOffsets[i],
+                                          dofsOffsets[i+1]);
+            (*__relevant_partitioning)[i]
+            = __localRelevantDoFs->get_view(dofsOffsets[i],
+                                            dofsOffsets[i+1]);
+        }
+        /*  *  *  *   *   *   *   *   *  MPI  *   *   *   *   *   *   *   *   */
+    }
+}
+
+
+
+
+template void BlockDesc::updateDoFsInfo<1, 1>(dealii::DoFHandler<1, 1>&);
+template void BlockDesc::updateDoFsInfo<1, 2>(dealii::DoFHandler<1, 2>&);
+template void BlockDesc::updateDoFsInfo<1, 3>(dealii::DoFHandler<1, 3>&);
+
+template void BlockDesc::updateDoFsInfo<2, 2>(dealii::DoFHandler<2, 2>&);
+template void BlockDesc::updateDoFsInfo<2, 3>(dealii::DoFHandler<2, 3>&);
+
+
+template void BlockDesc::updateDoFsInfo<3, 3>(dealii::DoFHandler<3, 3>&);
+
+
+
+
+
