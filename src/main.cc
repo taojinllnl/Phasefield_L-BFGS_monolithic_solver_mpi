@@ -9436,8 +9436,7 @@ namespace PhaseField
   {
     print_parameter_information();
 
-    read_material_data(m_parameters.m_library_dir +
-                         m_parameters.m_material_file_name,
+    read_material_data(m_parameters.m_material_file_name,
                        m_parameters.m_total_material_regions);
 
 
