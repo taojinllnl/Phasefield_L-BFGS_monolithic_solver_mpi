@@ -2999,7 +2999,7 @@ namespace PhaseField
       }
     else if (m_parameters.m_scenario == 11)
       {
-        double const length = m_extra_data.at("length");
+        const double length = m_extra_data.at("length");
 
         for (const auto &face : m_triangulation.active_face_iterators())
           {
@@ -3016,8 +3016,8 @@ namespace PhaseField
       }
     else if (m_parameters.m_scenario == 12)
       {
-        double const length = 200.0;
-        double const width  = 1.0;
+        const double length = 200.0;
+        const double width  = 1.0;
 
         for (const auto &face : m_triangulation.active_face_iterators())
           {
@@ -3047,7 +3047,7 @@ namespace PhaseField
             m_bcs_id.emplace("btm", 900);
           }
 
-        double const H = m_extra_data.at("H");
+        const double H = m_extra_data.at("H");
         if constexpr (dim == 3)
           {
             for (const auto &face : m_triangulation.active_face_iterators())
@@ -3162,7 +3162,7 @@ namespace PhaseField
     else if (m_parameters.m_scenario == 16)
       {
         AssertThrow(!m_extra_data.empty(),
-                    ExcMessage("The geo data has not been read in Case 13."));
+                    ExcMessage("The geo data has not been read in Case 16."));
 
         const double L  = m_extra_data.at("L");
         const double H  = m_extra_data.at("H");
@@ -4206,12 +4206,12 @@ namespace PhaseField
         m_extra_data.emplace("delta_L", 25.0);
       }
 
-    double const length  = m_extra_data.at("length");
-    double const width   = m_extra_data.at("width");
-    double const height  = m_extra_data.at("height");
-    double const delta_L = m_extra_data.at("delta_L");
+    const double length  = m_extra_data.at("length");
+    const double width   = m_extra_data.at("width");
+    const double height  = m_extra_data.at("height");
+    const double delta_L = m_extra_data.at("delta_L");
 
-    double const tan_theta = delta_L / (0.5 * width);
+    const double tan_theta = delta_L / (0.5 * width);
 
     std::vector<unsigned int> repetitions(2, 1);
     repetitions[0] = 20;
@@ -4388,9 +4388,9 @@ namespace PhaseField
 
     AssertThrow(dim == 2, ExcMessage("The dimension has to be 2D!"));
 
-    double const length = 200.0;
-    double const width  = 1.0;
-    double const h_size = 0.1;
+    const double length = 200.0;
+    const double width  = 1.0;
+    const double h_size = 0.1;
 
     std::vector<unsigned int> repetitions(dim, 1);
     repetitions[0] = (unsigned int)(length / h_size);
@@ -4926,6 +4926,7 @@ namespace PhaseField
           "C1",
           "C2",
           "lc",
+          "pre_refined_band_width_offset_y"
         };
         ::common::DataListReader::read_keys_values(
           m_parameters.m_extra_data_file, parameter_names, m_extra_data);
@@ -4934,16 +4935,13 @@ namespace PhaseField
 
 
     // global dimensions
-    const double L = m_extra_data.at("L"); // total length  (x direction)
-    const double W = m_extra_data.at("W"); // total width   (y direction)
-
+    const double L = m_extra_data.at("L"); // total length      (x direction)
+    const double H = m_extra_data.at("H"); // total length      (y direction)
+    
     // crack-plan sizes in top view
     const double L1 = m_extra_data.at("L1"); // x-size of C1 from left boundary
     const double L2 = m_extra_data.at("L2"); // x-size of C2 from right boundary
-    const double W1 = m_extra_data.at("W1"); // y-size of C1 from top boundary
-    const double W2 =
-      m_extra_data.at("W2"); // y-size of C2 from bottom boundary
-
+    
 
     const double C1 = m_extra_data.at("C1"); // height of C1 crack
     const double C2 = m_extra_data.at("C2"); // height of C2 crack
@@ -4981,45 +4979,49 @@ namespace PhaseField
       }
     else if (m_parameters.m_refinement_strategy == "pre-refine")
       {
-        // y partition: [0, W2] [middle] [W-W1, W]
-        double y1 = W2;
-        double y2 = W - W1;
+        const double refined_band_width_offset_y = m_extra_data.at("pre_refined_band_width_offset_y");
+          
+        // y partition: [0, H2] [middle] [H-H1, H]
+        double y1 = H2;
+        double y2 = H - H1 - C1;
 
-        double offset1 = 0.5 * lc;
-        double offset2 = 0.5 * lc;
+//        double offset1 = 0.5 * lc;
+//        double offset2 = 0.5 * lc;
+//
+//        const double upper = H1 + offset1;
+//        const double lower = H2 - offset2;
 
-        const double upper = H1 + offset1;
-        const double lower = H2 - offset2;
+//        const double x1_mod = x1 - bw_xy;
+//        const double x2_mod = x2 + bw_xy;
+        const double y1_mod = y1 - refined_band_width_offset_y;
+        const double y2_mod = y2 + refined_band_width_offset_y ;
 
-        const double x1_mod = x1 - bw_xy;
-        const double x2_mod = x2 + bw_xy;
-        const double y1_mod = y1 + bw_xy;
-        const double y2_mod = y2 - bw_xy;
-
+        
+          
         m_grid_maker.refineInitialMesh(
           m_triangulation,
           m_hl_ratio_refine_strategy,
           m_parameters.m_max_adaptive_refine_times,
-          [upper, lower, x1_mod, x2_mod, y1_mod, y2_mod](
-            const TCellIter &cell) -> bool {
-            if constexpr (dim == 3)
-              {
-                const double z = cell->center()[2];
+          [y1_mod, y2_mod](const TCellIter &cell) -> bool {
+//            if constexpr (dim == 3)
+//              {
+//                const double z = cell->center()[2];
+//
+//                if (!(z <= upper && z >= lower))
+//                  return false;
+//              }
 
-                if (!(z <= upper && z >= lower))
-                  return false;
-              }
-
-            const double x = cell->center()[0];
+//            const double x = cell->center()[0];
             const double y = cell->center()[1];
-
-            return (x > x1_mod && x < x2_mod) && (y > y1_mod && y < y2_mod);
-
-            if constexpr (dim == 2)
-              {
-                (void)upper;
-                (void)lower;
-              }
+//
+//            return (x > x1_mod && x < x2_mod) && (y > y1_mod && y < y2_mod);
+//
+//            if constexpr (dim == 2)
+//              {
+//                (void)upper;
+//                (void)lower;
+//              }
+                return (y > y1_mod && y < y2_mod);
           });
       }
     else
