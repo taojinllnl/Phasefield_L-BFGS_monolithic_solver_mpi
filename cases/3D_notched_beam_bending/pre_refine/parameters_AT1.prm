@@ -103,7 +103,7 @@ subsection Scenario
   set Material regions = 1
   
   # Material data file name
-  set Material data file = material/PolyMethyl_MethAccrylate_PMMA/l=1.0/AT1/materialDataFile
+  set Material data file = ./library/material/PolyMethyl_MethAccrylate_PMMA/l=1.0/AT1/materialDataFile
   
   # Reaction forces face ID (negative number means not to find reaction force)
   set Reaction force face ID = 0

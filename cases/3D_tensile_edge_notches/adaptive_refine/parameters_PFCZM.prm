@@ -13,14 +13,14 @@ subsection Scenario
   set Output dir = ./output/Case_13/
   
   # Library directory
-  set Library dir = ./library/
+  set Library dir = ./library/grids/edgeNothcedCube/1mmX1mmX1mm/0.3mmX0.3mmCracks/
   
   
   # Mesh file name (starting from `Library dir`)
-  set Mesh file name = mesh/mshFiles/edgeNothcedCube/1mmX1mmX1mm/0.3mmX0.3mmCracks/0.2mmDistance.msh
+  set Mesh file name = 0.2mmDistance.msh
   
   # Extra data file (starting from `Library dir`. default: `N/A`)
-  set Extra data file = mesh/prms/edgeNothcedCube/1mmX1mmX1mm/0.3mmX0.3mmCracks/0.2mmDistance.geo
+  set Extra data file = 0.2mmDistance.geo
   
   # If it is yes, the .vtu file of the coarse original mesh will be created. (yes|no)
   set Output coarse original mesh = yes
@@ -107,7 +107,7 @@ subsection Scenario
   set Material regions = 1
   
   # Material data file name
-  set Material data file = material/concrete/A/ft=0.003/l=0.0075/PFCZM/materialDataFile_exponential
+  set Material data file = ./library/material/concrete/A/ft=0.003/l=0.0075/PFCZM/materialDataFile_exponential
   
   # Reaction forces face ID (negative number means not to find reaction force)
   set Reaction force face ID = 900

@@ -13,14 +13,14 @@ subsection Scenario
   set Output dir = ./output/Case_16/3D/
   
   # Library directory
-  set Library dir = ./library/
+  set Library dir = ./library/grids/throughRecNotchedCube/200mmX200mmX200mm/25mmX5mmCracks/
 
   
   # Mesh file name (starting from `Library dir`)
-  set Mesh file name = mesh/mshFiles/throughRecNotchedCube/1mmX1mmX1mm/0.1mmX0.3mmCracks/0.0mmDistance.msh
+  set Mesh file name = 0.0mmDistance.msh
   
   # Extra data file (starting from `Library dir`. default: `N/A`)
-  set Extra data file = mesh/prms/throughRecNotchedCube/1mmX1mmX1mm/0.1mmX0.3mmCracks/0.0mmDistance.geo
+  set Extra data file = 25mmX5mmCracks/0.0mmDistance.geo
 
 
   # If it is yes, the .vtu file of the coarse original mesh will be created. (yes|no)
@@ -101,13 +101,13 @@ subsection Scenario
   
   # Allowed maximum ratio between mesh size h and phasefield length scale l
   # insdie the crack zone (nodal phasefield value larger than threshold)
-  set Allowed max hl ratio = 0.5
+  set Allowed max hl ratio = 0.25
   
   # Total number of material regions
   set Material regions = 1
   
   # Material data file name
-  set Material data file = material/concrete/A/ft=0.003/l=0.03/AT2/materialDataFile
+  set Material data file = ./library/material/concrete/A/ft=0.003/l=1.0/AT2/materialDataFile
   
   # Reaction forces face ID (negative number means not to find reaction force)
   set Reaction force face ID = 900
@@ -161,15 +161,10 @@ end
 
 subsection Time
   # End time
-  set End time       = 11.0e-3
+  set End time       = 14.0e-3
   
   # Number of factors
   set n factors = 2
-
-
-  # Number of factors
-  set n factors = 2
-
 
   # Time data groups
   set Time data file = cases/through_notches/settings/timeDataFile_AT2

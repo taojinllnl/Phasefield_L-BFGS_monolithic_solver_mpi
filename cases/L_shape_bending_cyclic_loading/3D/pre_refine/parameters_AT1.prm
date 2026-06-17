@@ -13,14 +13,14 @@ subsection Scenario
   set Output dir = ./output/Case_9/3D/
   
   # Library directory
-  set Library dir = ./library/
+  set Library dir = ./library/grids/LShapeBending/250mmX250mmX250mmX250mm/
   
   
   # Mesh file name (starting from `Library dir`)
-  set Mesh file name = mesh/mshFiles/LShapeBending/250mmX250mmX250mmX250mm/50mmThickness30mmLoading.msh
+  set Mesh file name = 50mmThickness30mmLoading.msh
   
   # Extra data file (starting from `Library dir`. default: `N/A`)
-  set Extra data file = mesh/prms/LShapeBending/250mmX250mmX250mmX250mm/50mmThickness30mmLoading.geo
+  set Extra data file = 50mmThickness30mmLoading.geo
   
   # If this is set to yes, the visualization file for the initial state will be written. (yes|no)
   set Output timestep 0 = yes
@@ -101,7 +101,7 @@ subsection Scenario
   set Material regions = 1
   
   # Material data file name
-  set Material data file =  material/concrete/B/ft=2.7e-3/l=5.0/AT1/materialDataFile
+  set Material data file =  ./library/material/concrete/B/ft=2.7e-3/l=5.0/AT1/materialDataFile
   
   # Reaction forces face ID (negative number means not to find reaction force)
   set Reaction force face ID = 0
