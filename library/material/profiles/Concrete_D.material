@@ -1,0 +1,5 @@
+// Fixed properties of DENS-4a(48-03) / DENS-4b (46-05)
+lambda 		 = 8.33333;
+mu 		 = 12.5;		
+gc 		 = 1.1e-4;
+tensile_strength = 0.003;

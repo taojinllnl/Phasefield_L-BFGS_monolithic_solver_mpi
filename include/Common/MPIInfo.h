@@ -1,0 +1,96 @@
+//
+//  MPIInfo.h
+//  main
+//
+//
+
+#ifndef MPIInfo_h
+#define MPIInfo_h
+
+#include <deal.II/base/mpi.h>
+
+#include <memory>
+#include <ostream>
+
+/**
+ * MPIInfo is a small wrapper that provides a unified interface for
+ * serial execution and MPI-parallel execution.
+ *
+ * - If MPI support is disabled (serial mode), this class does not perform
+ *   MPI initialization and does not expose a communicator;
+ *      - `mpiCommPtr()` returns `nullptr`
+ *      - `rank()` returns 0
+ *      - `nRanks()` returns 1
+ *
+ * - If MPI support is enabled (MPI mode), this class initializes MPI
+ *   (via `dealii::Utilities::MPI::MPI_InitFinalize`) during construction and
+ *   provides access to the communicator `MPI_Comm`.
+ *   This class must be initialized before calling any MPI-related functions and
+ * keep alive during entire executable running.
+ */
+
+
+namespace common
+{
+  class MPIInfo
+  {
+  private:
+    const bool __MPISupport;
+
+    std::unique_ptr<::dealii::Utilities::MPI::MPI_InitFinalize> __mpiInitPtr;
+    std::unique_ptr<MPI_Comm>                                   __mpiCommPtr;
+
+    const unsigned int __rank;
+    const unsigned int __nRanks;
+
+  public:
+    virtual ~MPIInfo() = default;
+
+    MPIInfo(const bool mpiSupport, int argc, char *argv[]);
+
+
+    MPI_Comm *
+    mpiCommPtr() noexcept;
+
+    const MPI_Comm *
+    mpiCommPtr() const noexcept;
+
+    bool
+    isMPI() const;
+    unsigned int
+    rank() const;
+    unsigned int
+    nRanks() const;
+    bool
+    isRankEqualsTo(const unsigned int rank = 0) const;
+
+    void
+    summary(std::ostream &stream);
+
+
+    template <bool is_mpi>
+    static bool
+    syncBool(const bool localFlag, const MPI_Comm &mpiComm);
+
+    bool
+    syncFlag(const bool localFlag) const;
+  };
+
+  template <bool is_mpi>
+  bool
+  MPIInfo::syncBool(const bool localFlag, const MPI_Comm &mpiComm)
+  {
+    if constexpr (is_mpi)
+      {
+        // accumulate local flag over all ranks
+        const unsigned int localFlagInt = localFlag ? 1u : 0u;
+        const unsigned int globalFlagInt =
+          dealii::Utilities::MPI::sum(localFlagInt, mpiComm);
+        return (globalFlagInt > 0u);
+      }
+    return localFlag;
+  }
+
+} // namespace common
+
+#endif /* MPIInfo_h */

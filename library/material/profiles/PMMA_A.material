@@ -1,0 +1,5 @@
+// Fixed properties of PMMA material A
+lambda = 3.21;
+mu = 1.01;
+gc = 5.1e-4;
+tensile_strength = 0.02;

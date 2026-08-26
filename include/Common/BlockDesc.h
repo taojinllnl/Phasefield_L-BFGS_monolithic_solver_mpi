@@ -1,0 +1,143 @@
+//
+//  BlockDesc.hpp
+//  main
+//
+//
+
+#ifndef BlockDesc_hpp
+#define BlockDesc_hpp
+
+#include <vector>
+#include <string>
+#include <initializer_list>
+#include <ostream>
+
+#include <utility>
+#include <memory>
+#include "MPIInfo.h"
+
+#include <deal.II/dofs/dof_handler.h>
+#include <deal.II/dofs/dof_tools.h>
+#include <deal.II/dofs/dof_renumbering.h>
+#include <deal.II/fe/fe_system.h>
+
+
+/**
+ *
+ * The class, `BlockDesc`, stores a list of blocks (`BlockDesc::Block`) that define the number of components in a block, block name and group ID (block index) in the coupled system.
+ * During construction of `BlockDesc`, a list of (dimension, name) pairs is required to build up the basic information of the coupled system.
+ * A contiguous group ID (0, 1, 2, ...) is assigned to each block according to its order in the given list.
+ *
+ * After construction, basic information of the coupled system is available, including:
+ * - number of blocks,
+ * - a list of component-to-group-ID mapping (group IDs),
+ * - total number of components,
+ * - per-block component index ranges.
+ *
+ * Calling `updateDoFsInfo()` computes and caches DoF-related information from the provided `dealii::DoFHandler`, depending on the execution mode described by `MPIInfo`.
+ * In both serial and MPI modes, the DoFs per block will be counted.
+ * In MPI modes, the locally relevant dofs (`IndexSet`) will be updated and cached.
+ * Correspondingly, the owned and relevant partitionings `std::vector<IndexSet>` will be extracted from the locally owned and relevant DoFs.
+ *
+ * Note:
+ * 1. Calling `updateDoFsInfo()` before using DoF-related getters, otherwise
+ *       they may return `nullptr` or incorrrect results.
+ * 2. Before calling `updateDoFsInfo()`, the function `dealii::DoFRenumbering::component_wise(...)` should be applied to guarantee the correct distribution of the DoFs in `dealii::DoFHandler`.
+ * 3. Getters for DoFs-related data return raw pointers (may be `nullptr`). Call `updateDoFsInfo()` first to update the cached data and check the pointers for `nullptr`.
+ */
+
+namespace common{
+
+class BlockDesc
+{
+private:
+    using IndexSet = ::dealii::IndexSet;
+    using InitType = std::pair<unsigned int, std::string>;
+    
+public:
+    struct Block {
+        const unsigned int dim;
+        const std::string  name;
+        const unsigned int groupID;
+        
+        Block(const unsigned int dim,
+              const unsigned int groupID,
+              const std::string& name = "N/A");
+    };
+    
+    
+private:
+    static unsigned int __nComponentsInit(const std::vector<Block>& blocks);
+    
+    static std::vector<std::array<unsigned int, 2>>
+    __dimRangeInit(const std::vector<Block>& blocks);
+    
+    static std::vector<unsigned int> __groupIDsInit(const std::vector<Block>& blocks);
+    
+    static std::vector<Block> __blockInit(const std::initializer_list<InitType>& blocks);
+    
+private:
+    
+    const MPIInfo&                                        __mpiInfo;
+    
+    const std::vector<Block>                              __blocks;
+    
+    // the number of blocks
+    const std::size_t                                    __nBlocks;
+    
+    // the index range for each block
+    const std::vector<std::array<unsigned int, 2>>       __dimRange;
+    
+    // the total number of dofs per node
+    const unsigned int                                   __nComponents;
+    
+    // tags for each component in a vector
+    const std::vector<unsigned int>                       __groupIDs;
+    
+    // dofs per block
+    std::unique_ptr<std::vector<dealii::types::global_dof_index>> __dofs_per_block{};
+    
+    
+    std::unique_ptr<std::vector<std::vector<dealii::types::global_dof_index>>> __local_dofs_indices{};
+    
+    
+    std::unique_ptr<std::vector<IndexSet>>  __owned_partitioning{};
+    
+    std::unique_ptr<IndexSet>               __localRelevantDoFs{};
+    std::unique_ptr<std::vector<IndexSet>>  __relevant_partitioning{};
+    
+public:
+    
+    BlockDesc(const MPIInfo&                            mpiInfo,
+              const std::initializer_list<InitType>     blocks);
+    
+    const std::vector<std::array<unsigned int, 2>>& dimRange() const;
+    const std::array<unsigned int, 2>& dimRange(unsigned int ithGroup) const;
+    
+    std::size_t nBlocks() const;
+    unsigned int nComponents() const;
+    
+    std::size_t nGroups() const;
+    const std::vector<unsigned int>& groupIDs() const;
+    unsigned int ithGroupID(const unsigned int ithComponent) const;
+    unsigned int ithGroupID(const std::string& name) const;
+    
+    
+    template <int dim, int spacedim=dim>
+    void updateDoFsInfo(dealii::DoFHandler<dim, spacedim>& dof_handler);
+    
+    const std::vector<dealii::types::global_dof_index>* dofsPerBlockPtr() const;
+    
+    const std::vector<IndexSet>* ownedPartitionPtr() const;
+    const std::vector<IndexSet>* relevantPartitionPtr() const;
+    
+    const IndexSet* localRelevantPartition() const;
+    
+    void summary(std::ostream& stream);
+};
+
+
+
+}
+
+#endif /* BlockDesc_hpp */

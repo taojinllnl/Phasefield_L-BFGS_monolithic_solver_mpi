@@ -1,0 +1,4 @@
+// Preserved cohesive cases whose coefficients were all zero
+p = 0.0;
+a2 = 0.0;
+a3 = 0.0;

@@ -1,0 +1,180 @@
+# Listing of Parameters
+# ---------------------
+subsection Scenario
+
+  # Dimension
+  set dimension = 3
+
+    # underlying mpi type: (PETSc|Trilinos|Serial)
+  set mpi type = PETSc
+  
+  # Output directory
+  set Output dir = ./output/Case_14/3D/
+  
+  # Library directory
+  set Library dir = ./library/grids/throughVNotchedCube/1mmX1mmX1mm/0.3X0.3mmCracks/
+
+  
+  # Mesh file name (starting from `Library dir`)
+  set Mesh file name = 0.0mmDistance.msh
+  
+  # Extra data file (starting from `Library dir`. default: `N/A`)
+  set Extra data file = 0.0mmDistance.geo
+
+  # If it is yes, the .vtu file of the coarse original mesh will be created. (yes|no)
+  set Output coarse original mesh = yes
+  
+  # If it is yes, the .vtu file of the original mesh will be created. (yes|no)
+  set Output original mesh = no
+
+  # If this is set to yes, the visualization file for the initial state will be written. (yes|no)
+  set Output timestep 0 = yes
+
+  # Geometry, loading and boundary conditions scenario
+  # 1 - square tension (2D unstructured mesh)
+  # 2 - square shear   (2D unstructured mesh)
+  # 3 - square tension (2D structured mesh)
+  # 4 - square shear   (2D structured mesh)
+  # 5 - three-point bending (2D structured mesh)
+  # 6 - 3D sphere inclusion (3D structured mesh 1)
+  # 7 - 3D sphere inclusion (3D structured mesh 2)
+  # 8 - 3D sphere inclusion (3D structured mesh 2 with barriers)
+  # 9 - 2D L-shape bending (2D structured)
+  #11 - 3D torsion (3D structured)
+  #12 - one-dimensional bar represented by a 2D structured mesh
+  #13 - 3D tensile notches (3D structured)
+  #14 - 2D/3D Nooru-Mohamed test (2D/3D structured)
+  #15 - 3D notched beam bending (3D structured)
+  #16 - Nooru-Mohamed rectangular-notch test (2D or 3D)
+  set Scenario number = 14
+  
+  # Name of the log file
+  set Log file name = 3D_Nooru_Mohamed_structured
+  
+  # Shall we write the iteration history to the log file? (yes or no)
+  set Output iteration history = yes
+  
+  # Phase-field model type (AT1, AT1-Cohesive, AT2 or PFCZM)
+  set Phase-field model type = AT1-Cohesive
+  set Plane stress = no
+  
+  # Nonlinear solver type (Newton or BFGS or LBFGS)
+  set Nonlinear solver type = LBFGS
+  
+  # Line search method type (GradientBased or StrongWolfe)
+  set Line search type = GradientBased
+
+  # Linear solver type for B0 (Direct | CG | GMRes | Bicgstab)
+  set Linear solver type = CG
+  
+  # Preconditioner type for iterative linear solver:
+  # Works for both Trilinos and PETSc:  None|Jacobi|ILU|SOR|SSOR|AMG
+  # Only works for Trilinos:            Chebyshev|IC|ILUT
+  # Only works for PETSc:               ICC|ParaSails|Shell
+  set Preconditioner type for iterative linear solver = Jacobi
+
+  # Mesh refinement strategy (pre-refine or adaptive-refine)
+  set Mesh refinement strategy = adaptive-refine
+  
+  # The threshold for repartitioning
+  set Repartitioning ratio = 1.3
+  
+  # Number of vectors used in LBFGS
+  set LBFGS m = 20
+
+  # Global refinement times across the entire domain
+  set Global refinement times = 1
+  
+  # Local pre-refinement times along the crack path that is known a priori
+  set Local prerefinement times = 0
+  
+  # Maximum number of adaptive mesh refinement allowed in each step
+  # A large number means that we don't terminate adaptive refinement
+  set Max adaptive refinement times = 100
+  
+  # Maximum allowed cell refinement level
+  # A large number means there are no restrictions
+  set Max allowed refinement level = 100
+  
+  # Phasefield-based refinement threshold value 
+  # (when nodal phasefield value is larger than threshold, elmt needs to be refined)
+  set Phasefield refine threshold = 0.01
+  
+  # Allowed maximum ratio between mesh size h and phasefield length scale l
+  # insdie the crack zone (nodal phasefield value larger than threshold)
+  set Allowed max hl ratio = 0.2 
+
+  # Reaction forces face ID (negative number means not to find reaction force)
+  set Reaction force face ID = 0
+end
+
+subsection Materials
+  # Fixed profiles and softening laws are selected by name
+  set Library directory = ./library/material/
+  set Material regions = 1
+  set Profiles = 0: Concrete_A
+  set Softening laws = 0: AT1Cohesive_QuasiLinear
+
+  # Case-dependent phase-field parameters
+  set Length scales = 0: 0.0075
+  set Viscosities = 0: 0.0e-6
+  set Residual ks = 0: 0.0e-9
+end
+
+subsection Finite element system
+  # Displacement system polynomial order
+  set Polynomial degree = 1
+
+  # Gauss quadrature order
+  set Quadrature order  = 2
+end
+
+subsection Body force
+  # Body force in the reference configuration, unit: N/m^3
+  # If the body force is gravity, then the body force = (0, 0, rho_0*g)
+  # x component
+  set Body force x component = 0.0
+
+  # y component
+  set Body force y component = 0.0
+
+  # z component
+  set Body force z component = 0.0
+end
+
+subsection Nonlinear solver
+  # Number of Newton-Raphson iterations allowed
+  set Max iterations Newton-Raphson = 20
+  
+  # Number of BFGS iterations allowed
+  set Max iterations BFGS = 10000
+
+  # Relative residual (yes|no)
+  # yes - relative residual
+  # no  - absolute residual
+  set Relative residual = no
+
+  # Displacement residual tolerance
+  set Tolerance displacement residual       = 1.0e-6
+
+  # Phasefield residual tolerance
+  set Tolerance phasefield residual         = 1.0e-6
+  
+  # Displacement increment tolerance
+  set Tolerance displacement increment      = 1.0e-1
+  
+  # Phasefield increment tolerance
+  set Tolerance phasefield increment        = 1.0e-1
+end
+
+subsection Time
+  # End time
+  set End time       = 20.0e-3
+  set Time data file = ./cases/through_notches/settings/timeDataFile_AT1_cohesive
+
+  # Number of factors
+  set n factors = 2
+
+
+  # Time data groups
+end

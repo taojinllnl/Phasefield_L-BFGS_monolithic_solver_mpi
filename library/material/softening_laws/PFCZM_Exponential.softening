@@ -1,0 +1,4 @@
+// Exponential softening law for PFCZM
+p = 2.5;
+a2 = 0.1748;
+a3 = 0.0;
