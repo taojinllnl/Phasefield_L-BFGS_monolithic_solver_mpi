@@ -1246,6 +1246,7 @@ namespace PhaseField
       , m_time_end(time_end)
       , m_delta_t(0.0)
       , m_magnitude_list(1, 1.0)
+      , m_load_list(1, 1.0)
       , m_need_output(output_step_0)
     {}
 
@@ -1280,6 +1281,14 @@ namespace PhaseField
     get_magnitude(const unsigned int ith = 0) const
     {
       return m_magnitude_list[ith];
+    }
+    
+    // the computed value = inc \times magnitude
+    double
+    get_inc_x_magnitude(const unsigned int ith = 0) const
+    {
+        AssertIndexRange(ith, m_load_list.size());
+        return m_load_list[ith];
     }
     unsigned int
     get_timestep() const
@@ -1390,6 +1399,7 @@ namespace PhaseField
     double              m_inv_delta_t;
     double              m_time_ramp;
     std::vector<double> m_magnitude_list;
+    std::vector<double> m_load_list;
     bool                m_need_output;
   };
 
@@ -4680,7 +4690,7 @@ namespace PhaseField
     if (m_extra_data.empty())
       {
         const std::vector<std::string> parameter_names = {
-          "L", "W", "H", "L1", "L2", "W1", "W2", "H1", "H2", "C1", "C2", "lc"};
+          "L", "W", "H", "L1", "L2", "W1", "W2", "H1", "H2", "C1", "C2", "lc", "pre_refinement_factor_z"};
         common::DataListReader::read_keys_values(m_parameters.m_extra_data_file,
                                                  parameter_names,
                                                  m_extra_data);
@@ -4704,13 +4714,17 @@ namespace PhaseField
 
         m_triangulation.refine_global(m_parameters.m_global_refine_times);
 
-        const double bw_z  = 0.030;
-        const double bw_xy = 0.030;
-
         // global dimensions
         const double L = m_extra_data.at("L"); // total length  (x direction)
         const double W = m_extra_data.at("W"); // total width   (y direction)
+        //const double H = m_extra_data.at("H"); // total width   (z direction)
+    
+        const double lc = m_extra_data.at("lc"); // cell size
+          
+        const double bw_z  = 0.6 * lc;
+        const double bw_xy = 0.6 * lc;
 
+          
         // crack-plan sizes in top view
         const double L1 =
           m_extra_data.at("L1"); // x-size of C1 from left boundary
@@ -4776,9 +4790,9 @@ namespace PhaseField
           {
             bool initiation_point_refine_unfinished = true;
 
-
-            const double upper = H1 + 0.05;
-            const double lower = H2 - 0.05;
+            const double factor_z = m_extra_data.at("pre_refinement_factor_z");
+            const double upper = H1 + factor_z * lc;
+            const double lower = H2 - factor_z * lc;
 
             const double x1_mod = x1 - bw_xy;
             const double x2_mod = x2 + bw_xy;
@@ -5003,6 +5017,8 @@ namespace PhaseField
                                                           "ex2",
                                                           "ex3",
                                                           "ex4",
+                                                          "lc",
+                                                          "pre_refine_factor",
                                                           "crack_depth",
                                                           "theta",
                                                           "x_crack_factor",
@@ -5084,21 +5100,24 @@ namespace PhaseField
         const double Hc = m_extra_data.at("height") -
                           m_extra_data.at("crack_depth"); // height of C1 crack
         const double tan_theta = std::tan(m_extra_data.at("theta"));
+        const double lc = m_extra_data.at("lc");
 
+        
+        
+        double offset_z_under_crack = Hc * 1.0;
+        double offset_z_above_crack = lc * 1.8;
+        double bandWidth_x          = lc;
 
-
-        double       bandWidth_x          = 5.0;
-        double       offset_z_under_crack = 0.0;
-        const double offset_z_above_crack = 1.0;
-
-        if (m_parameters.m_refinement_strategy == "adaptive-refine")
+          if (m_parameters.m_refinement_strategy == "adaptive-refine")
           {
-            offset_z_under_crack = 4.0;
+            offset_z_above_crack = lc * 0.8;
+            offset_z_under_crack = lc * 0.8;
           }
         else if (m_parameters.m_refinement_strategy == "pre-refine")
           {
-            bandWidth_x          = halfThickness * tan_theta * 1.35;
-            offset_z_under_crack = Hc;
+            double pre_refine_factor = m_extra_data.at("pre_refine_factor");
+            pre_refine_factor = (pre_refine_factor > 1.6) ? pre_refine_factor : 1.6;
+            bandWidth_x          = halfThickness * tan_theta * pre_refine_factor;
           }
         else
           {
@@ -5124,7 +5143,7 @@ namespace PhaseField
             const double   z      = center[2];
 
             return (z <= (Hc + offset_z_above_crack) &&
-                    z > (Hc - offset_z_under_crack) &&
+                    z >  (Hc - offset_z_under_crack) &&
                     (std::fabs(x - halfLength -
                                (y - halfThickness) * tan_theta) < bandWidth_x));
           });
@@ -5516,21 +5535,29 @@ namespace PhaseField
               {
                 const unsigned int xDoF = 0;
                 const unsigned int yDoF = 1;
-                // top-center node applied with y-displacement
-                const double time_inc       = m_time.get_delta_t();
-                const double disp_magnitude = m_time.get_magnitude();
-                const double du_y           = time_inc * disp_magnitude;
 
-                const CstEntry<Tria> loadingCst(yDoF, du_y);
+                const CstEntry<Tria> loadingCst(yDoF);
                 const CstEntry<Tria> fixedXCst(xDoF);
                 const CstEntry<Tria> fixedYCst(yDoF);
+                  
+                auto loadingFunc = [&time = m_time]
+                      (const double,
+                       const double,
+                       const double,
+                       std::vector<double> & values)
+                    {
+                        // top-center node applied with y-displacement
+                        values[1] = time.get_inc_x_magnitude();
+                    };
 
                 const CstPnt<Tria> fixedXY({{0.0, 0.0, 0.0}},
                                            {fixedXCst, fixedYCst});
 
                 const CstPnt<Tria> fixedY({{0.0, 8.0, 0.0}}, {fixedYCst});
 
-                const CstPnt<Tria> loadingY({{4.0, 2.0, 0.0}}, {loadingCst});
+                const CstPnt<Tria> loadingY({{4.0, 2.0, 0.0}}, 
+                                            {loadingCst},
+                                            loadingFunc);
 
 
                 m_cst_maker.addCstSelector(fixedXY)
@@ -5541,7 +5568,8 @@ namespace PhaseField
             m_cst_maker.makeCstIfPrepareNeeded(m_update_dofs_for_cst,
                                                m_constraints,
                                                m_triangulation,
-                                               m_dof_handler);
+                                               m_dof_handler,
+                                               /*updateValues=*/true);
           }
         else if (m_parameters.m_scenario == 6 || m_parameters.m_scenario == 7 ||
                  m_parameters.m_scenario == 8)
@@ -5589,9 +5617,6 @@ namespace PhaseField
             const double x_loading = X1 + X2 - a;
 
 
-            const double time_inc       = m_time.get_delta_t();
-            const double disp_magnitude = m_time.get_magnitude();
-            const double du_y           = disp_magnitude * time_inc;
 
             // Dirichlet B,C. bottom surface
             const int boundary_id_bottom_surface = 0;
@@ -5605,7 +5630,7 @@ namespace PhaseField
             if (!m_cst_maker.isAddedSelectors())
               {
                 const unsigned int yDoF = 1;
-                CstEntry<Tria>     loadingCst(yDoF, du_y);
+                CstEntry<Tria>     loadingCst(yDoF);
 
                 const auto pntSelFunc =
                   [x_loading, Y1](double x, double y, double) -> bool {
@@ -5613,8 +5638,19 @@ namespace PhaseField
                          (std::fabs(y - Y1) < 1.0e-9);
                 };
 
+                auto loadingFunc = [&time = m_time]
+                    (const double,
+                     const double,
+                     const double,
+                     std::vector<double> & values)
+                  {
+                      // top-center node applied with y-displacement
+                      values[1] = time.get_inc_x_magnitude();
+                  };
+                  
                 const CstFunc<Tria> singlePntLoadingCst(pntSelFunc,
-                                                        {loadingCst});
+                                                        {loadingCst},
+                                                        loadingFunc);
 
                 m_cst_maker.addCstSelector(singlePntLoadingCst);
               }
@@ -5622,7 +5658,8 @@ namespace PhaseField
             m_cst_maker.makeCstIfPrepareNeeded(m_update_dofs_for_cst,
                                                m_constraints,
                                                m_triangulation,
-                                               m_dof_handler);
+                                               m_dof_handler,
+                                               /*updateValues=*/true);
           }
         else if (m_parameters.m_scenario == 11)
           {
@@ -5647,14 +5684,12 @@ namespace PhaseField
 
             if (!m_cst_maker.isAddedSelectors())
               {
-                const double dt          = m_time.get_delta_t();
-                const double magnitude   = m_time.get_magnitude();
-                const double angle_theta = dt * magnitude;
-
-                const auto disp = [angle_theta](const double,
+                const auto disp = [&time = m_time](const double,
                                                 const double         y,
                                                 const double         z,
                                                 std::vector<double> &results) {
+                  
+                  const double angle_theta = time.get_inc_x_magnitude();
                   double disp_y = 0.0;
                   double disp_z = 0.0;
 
@@ -5685,7 +5720,8 @@ namespace PhaseField
             m_cst_maker.makeCstIfPrepareNeeded(m_update_dofs_for_cst,
                                                m_constraints,
                                                m_triangulation,
-                                               m_dof_handler);
+                                               m_dof_handler,
+                                               /*updateValues=*/true);
           }
         else if (m_parameters.m_scenario == 12)
           {
@@ -5895,10 +5931,7 @@ namespace PhaseField
                     const double intactZ  = 0.0;
                     const double notchedZ = m_extra_data.at("height");
 
-                    // top-center node applied with y-displacement
-                    const double time_inc       = m_time.get_delta_t();
-                    const double disp_magnitude = m_time.get_magnitude();
-                    double       dz             = time_inc * disp_magnitude;
+                    double dz = m_time.get_inc_x_magnitude();
 
                     if (!isFourPntBending)
                       {
@@ -5950,23 +5983,41 @@ namespace PhaseField
                     const CstEntry<Tria> fixedY(yDoF);
                     const CstEntry<Tria> fixedZ(zDoF);
 
-                    const CstEntry<Tria> loadingZ(zDoF, dz);
+                    const CstEntry<Tria> loadingZ(zDoF);
+                    auto loadingFunc = [&time = m_time, isFourPntBending]
+                      (const double,
+                       const double,
+                       const double,
+                       std::vector<double> & values)
+                    {
+                        double dz = time.get_inc_x_magnitude();
+                        if (!isFourPntBending && dz < 0)
+                          {
+                            // guarantee the dz is positive in the three-point
+                            // bending
+                            dz = -dz;
+                          }
+                        // top-center node applied with z-displacement
+                        values[2] = dz;
+                    };
 
                     if (isFourPntBending)
                       {
                         if (is1stFourPntBending)
                           {
                             // Four-point bending (1)
-                            const CstFunc<Tria> fixedXYZ(ex1_notchedZ,
-                                                         {loadingZ});
+                            const CstFunc<Tria> loadingPnt1(ex1_notchedZ,
+                                                         {loadingZ},
+                                                         loadingFunc);
 
-                            const CstFunc<Tria> fixedYZ(ex2_notchedZ,
-                                                        {loadingZ});
+                            const CstFunc<Tria> loadingPnt2(ex2_notchedZ,
+                                                        {loadingZ},
+                                                        loadingFunc);
 
-                            const CstFunc<Tria> loadingPnt1(
+                            const CstFunc<Tria> fixedXYZ(
                               ex3_intactZ, {fixedX, fixedY, fixedZ});
 
-                            const CstFunc<Tria> loadingPnt2(ex4_intactZ,
+                            const CstFunc<Tria> fixedYZ(ex4_intactZ,
                                                             {fixedY, fixedZ});
 
 
@@ -5985,10 +6036,12 @@ namespace PhaseField
                                                         {fixedY, fixedZ});
 
                             const CstFunc<Tria> loadingPnt1(ex1_notchedZ,
-                                                            {loadingZ});
+                                                            {loadingZ},
+                                                            loadingFunc);
 
                             const CstFunc<Tria> loadingPnt2(ex2_notchedZ,
-                                                            {loadingZ});
+                                                            {loadingZ},
+                                                            loadingFunc);
 
                             m_cst_maker.addCstSelector(fixedXYZ)
                               .addCstSelector(fixedYZ)
@@ -6005,19 +6058,21 @@ namespace PhaseField
                         const CstFunc<Tria> fixedYZ(ex2_notchedZ,
                                                     {fixedY, fixedZ});
 
-                        const CstFunc<Tria> loadingPnt(notchedX_intactZ,
-                                                       {loadingZ});
+                        const CstFunc<Tria> loadingPnts(notchedX_intactZ,
+                                                        {loadingZ},
+                                                        loadingFunc);
 
                         m_cst_maker.addCstSelector(fixedXYZ)
                           .addCstSelector(fixedYZ)
-                          .addCstSelector(loadingPnt);
+                          .addCstSelector(loadingPnts);
                       }
                   }
 
                 m_cst_maker.makeCstIfPrepareNeeded(m_update_dofs_for_cst,
                                                    m_constraints,
                                                    m_triangulation,
-                                                   m_dof_handler);
+                                                   m_dof_handler,
+                                                   /*updateValues=*/true);
               }
           }
         else if (m_parameters.m_scenario == 16)
