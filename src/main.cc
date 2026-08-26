@@ -158,6 +158,8 @@
 #include "../include/Common/DataListReader.h"
 #include "../include/Common/FileSystem.h"
 #include "../include/Common/MPIInfo.h"
+#include "../include/Common/Materials/MaterialProfile.h"
+#include "../include/Common/Materials/SofteningLawProfile.h"
 #include "../include/Common/TimerOutputWrapper.h"
 #include "../include/Common/Traits.h"
 #include "../include/Common/cst/CstMaker.h"
@@ -421,8 +423,6 @@ namespace PhaseField
       int          m_max_allowed_refinement_level;
       double       m_phasefield_refine_threshold;
       double       m_allowed_max_h_l_ratio;
-      unsigned int m_total_material_regions;
-      std::string  m_material_file_name;
       int          m_reaction_force_face_id;
 
       static void
@@ -587,16 +587,6 @@ namespace PhaseField
           Patterns::Double(),
           "Allowed maximum ratio between mesh size h and length scale l");
 
-        prm.declare_entry("Material regions",
-                          "1",
-                          Patterns::Integer(0),
-                          "Number of material regions");
-
-        prm.declare_entry("Material data file",
-                          "1",
-                          Patterns::FileName(Patterns::FileName::input),
-                          "Material data file");
-
         prm.declare_entry(
           "Reaction force face ID",
           "1",
@@ -678,9 +668,6 @@ namespace PhaseField
         m_phasefield_refine_threshold =
           prm.get_double("Phasefield refine threshold");
         m_allowed_max_h_l_ratio = prm.get_double("Allowed max hl ratio");
-        m_total_material_regions =
-          static_cast<unsigned int>(prm.get_integer("Material regions"));
-        m_material_file_name = prm.get("Material data file");
         m_reaction_force_face_id =
           static_cast<unsigned int>(prm.get_integer("Reaction force face ID"));
 
@@ -690,6 +677,237 @@ namespace PhaseField
       }
       prm.leave_subsection();
     }
+
+    namespace
+    {
+      template <typename ValueType>
+      std::map<unsigned int, ValueType>
+      parse_material_map(ParameterHandler    &prm,
+                         const std::string   &entry_name,
+                         const Patterns::Map &pattern)
+      {
+        const std::string raw_value = prm.get(entry_name);
+        const auto parsed =
+          Patterns::Tools::Convert<std::map<unsigned int, ValueType>>::to_value(
+            raw_value, pattern);
+
+        const auto entries =
+          dealii::Utilities::split_string_list(raw_value, ",");
+        AssertThrow(
+          entries.size() == parsed.size(),
+          ExcMessage("Duplicate material ID in entry '" + entry_name + "'."));
+
+        return parsed;
+      }
+
+
+      bool
+      is_valid_library_entry_name(const std::string &name)
+      {
+        if (name.empty())
+          return false;
+
+        const auto is_alpha = [](const char value) {
+          return std::isalpha(static_cast<unsigned char>(value)) != 0;
+        };
+        const auto is_alphanumeric = [](const char value) {
+          return std::isalnum(static_cast<unsigned char>(value)) != 0;
+        };
+
+        if (!is_alpha(name.front()) && name.front() != '_')
+          return false;
+
+        for (const char value : name)
+          if (!is_alphanumeric(value) && value != '_' && value != '-')
+            return false;
+
+        return true;
+      }
+
+
+      template <typename ValueType>
+      void
+      assert_same_material_ids(
+        const std::string                          &entry_name,
+        const std::map<unsigned int, ValueType>    &values,
+        const std::map<unsigned int, std::string> &profiles)
+      {
+        AssertThrow(
+          values.size() == profiles.size(),
+          ExcMessage("Entry '" + entry_name +
+                     "' must define exactly the same material IDs as "
+                     "'Profiles'."));
+
+        for (const auto &[material_id, profile_name] : profiles)
+          {
+            (void)profile_name;
+            AssertThrow(
+              values.count(material_id) == 1,
+              ExcMessage("Entry '" + entry_name +
+                         "' is missing material ID " +
+                         std::to_string(material_id) + "."));
+          }
+      }
+    } // namespace
+
+
+    struct Materials
+    {
+      unsigned int m_total_material_regions;
+      std::string  m_material_library_directory;
+
+      std::map<unsigned int, std::string> m_material_profiles;
+      std::map<unsigned int, std::string> m_material_softening_laws;
+      std::map<unsigned int, double>      m_material_length_scales;
+      std::map<unsigned int, double>      m_material_viscosities;
+      std::map<unsigned int, double>      m_material_residual_ks;
+
+      static void
+      declare_parameters(ParameterHandler &prm);
+
+      void
+      parse_parameters(ParameterHandler &prm, const PFModel pf_model);
+    };
+
+
+    void
+    Materials::declare_parameters(ParameterHandler &prm)
+    {
+      prm.enter_subsection("Materials");
+      {
+        prm.declare_entry(
+          "Library directory",
+          "./library/material/",
+          Patterns::FileName(Patterns::FileName::input),
+          "Directory containing the profiles and softening_laws folders");
+
+        prm.declare_entry("Material regions",
+                          "1",
+                          Patterns::Integer(1),
+                          "Number of material regions");
+
+        prm.declare_entry(
+          "Profiles",
+          "0: Default",
+          Patterns::Map(Patterns::Integer(0), Patterns::Anything(), 1),
+          "Map from material ID to profile name, without path or extension");
+
+        prm.declare_entry(
+          "Softening laws",
+          "N/A",
+          Patterns::Anything(),
+          "Optional map from material ID to softening-law name; required for "
+          "AT1-Cohesive and PFCZM");
+
+        prm.declare_entry(
+          "Length scales",
+          "0: 1.0",
+          Patterns::Map(Patterns::Integer(0), Patterns::Double(0.0), 1),
+          "Map from material ID to phase-field length scale");
+
+        prm.declare_entry(
+          "Viscosities",
+          "0: 0.0",
+          Patterns::Map(Patterns::Integer(0), Patterns::Double(0.0), 1),
+          "Map from material ID to viscosity");
+
+        prm.declare_entry(
+          "Residual ks",
+          "0: 0.0",
+          Patterns::Map(Patterns::Integer(0), Patterns::Double(0.0), 1),
+          "Map from material ID to residual stiffness");
+      }
+      prm.leave_subsection();
+    }
+
+
+    void
+    Materials::parse_parameters(ParameterHandler &prm, const PFModel pf_model)
+    {
+      const Patterns::Map profile_pattern(
+        Patterns::Integer(0), Patterns::Anything(), 1);
+      const Patterns::Map nonnegative_double_pattern(
+        Patterns::Integer(0), Patterns::Double(0.0), 1);
+
+      prm.enter_subsection("Materials");
+      {
+        m_material_library_directory = prm.get("Library directory");
+        m_total_material_regions =
+          static_cast<unsigned int>(prm.get_integer("Material regions"));
+
+        m_material_profiles =
+          parse_material_map<std::string>(prm, "Profiles", profile_pattern);
+        if (prm.get("Softening laws") == "N/A")
+          m_material_softening_laws.clear();
+        else
+          m_material_softening_laws = parse_material_map<std::string>(
+            prm, "Softening laws", profile_pattern);
+        m_material_length_scales = parse_material_map<double>(
+          prm, "Length scales", nonnegative_double_pattern);
+        m_material_viscosities = parse_material_map<double>(
+          prm, "Viscosities", nonnegative_double_pattern);
+        m_material_residual_ks = parse_material_map<double>(
+          prm, "Residual ks", nonnegative_double_pattern);
+      }
+      prm.leave_subsection();
+
+      AssertThrow(
+        m_material_profiles.size() == m_total_material_regions,
+        ExcMessage("'Material regions' must equal the number of entries in "
+                   "'Profiles'."));
+
+      assert_same_material_ids(
+        "Length scales", m_material_length_scales, m_material_profiles);
+      assert_same_material_ids(
+        "Viscosities", m_material_viscosities, m_material_profiles);
+      assert_same_material_ids(
+        "Residual ks", m_material_residual_ks, m_material_profiles);
+
+      const bool needs_softening_law =
+        pf_model == PFModel::AT1_Cohesive || pf_model == PFModel::PFCZM;
+      if (needs_softening_law)
+        assert_same_material_ids(
+          "Softening laws", m_material_softening_laws, m_material_profiles);
+      else
+        AssertThrow(
+          m_material_softening_laws.empty(),
+          ExcMessage("'Softening laws' must be omitted for AT1 and AT2."));
+
+      for (const auto &[material_id, profile_name] : m_material_profiles)
+        AssertThrow(
+          is_valid_library_entry_name(profile_name),
+          ExcMessage("Invalid profile name '" + profile_name +
+                     "' for material ID " + std::to_string(material_id) +
+                     ". Use a name without a path or file extension."));
+
+      for (const auto &[material_id, law_name] : m_material_softening_laws)
+        AssertThrow(
+          is_valid_library_entry_name(law_name),
+          ExcMessage("Invalid softening-law name '" + law_name +
+                     "' for material ID " + std::to_string(material_id) +
+                     ". Use a name without a path or file extension."));
+
+      for (const auto &[material_id, length_scale] : m_material_length_scales)
+        AssertThrow(
+          std::isfinite(length_scale) && length_scale > 0.0,
+          ExcMessage("Length scale must be positive and finite for material "
+                     "ID " +
+                     std::to_string(material_id) + "."));
+
+      const auto assert_nonnegative_finite =
+        [](const std::string                    &entry_name,
+           const std::map<unsigned int, double> &values) {
+          for (const auto &[material_id, value] : values)
+            AssertThrow(
+              std::isfinite(value) && value >= 0.0,
+              ExcMessage(entry_name +
+                         " must be nonnegative and finite for material ID " +
+                         std::to_string(material_id) + "."));
+        };
+      assert_nonnegative_finite("Viscosity", m_material_viscosities);
+      assert_nonnegative_finite("Residual k", m_material_residual_ks);
+    }
+
 
     struct FESystem
     {
