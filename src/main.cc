@@ -959,6 +959,7 @@ namespace PhaseField
     }
 
     struct AllParameters : public Scenario,
+                           public Materials,
                            public FESystem,
                            public BodyForce,
                            public SurfacePressure,
@@ -993,6 +994,7 @@ namespace PhaseField
     AllParameters::declare_parameters(ParameterHandler &prm)
     {
       Scenario::declare_parameters(prm);
+      Materials::declare_parameters(prm);
       FESystem::declare_parameters(prm);
       BodyForce::declare_parameters(prm);
       SurfacePressure::declare_parameters(prm);
@@ -1004,6 +1006,7 @@ namespace PhaseField
     AllParameters::parse_parameters(ParameterHandler &prm)
     {
       Scenario::parse_parameters(prm);
+      Materials::parse_parameters(prm, m_pf_model);
       FESystem::parse_parameters(prm);
       BodyForce::parse_parameters(prm);
       SurfacePressure::parse_parameters(prm);
@@ -1944,8 +1947,7 @@ namespace PhaseField
 
     // Should not make this function const
     void
-    read_material_data(const std::string &data_file,
-                       const unsigned int total_material_regions);
+    read_material_data();
 
     void
     read_time_data(const std::string                  &data_file,
@@ -2086,63 +2088,85 @@ namespace PhaseField
 
   template <typename LATraits, typename Tria>
   void
-  PhaseFieldMonolithicSolve<LATraits, Tria>::read_material_data(
-    const std::string &data_file,
-    const unsigned int total_material_regions)
+  PhaseFieldMonolithicSolve<LATraits, Tria>::read_material_data()
   {
-    std::ifstream myfile(data_file);
+    namespace fs = std::filesystem;
 
-    double lame_lambda, lame_mu, length_scale, gc, viscosity, residual_k;
-    // add the material tensile strength for non AT-2 models
-    double tensile_strength;
-    double p;
-    double a2;
-    double a3;
-    int    material_region;
-    if (myfile.is_open())
+    m_logfile << "Reading material profiles ..." << std::endl;
+    m_material_const.clear();
+
+    std::map<std::string, MaterialProfile>     profile_cache;
+    std::map<std::string, SofteningLawProfile> softening_law_cache;
+
+    for (const auto &[material_id, profile_name] :
+         m_parameters.m_material_profiles)
       {
-        m_logfile << "Reading material data file ..." << std::endl;
-
-        while (myfile >> material_region >> lame_lambda >> lame_mu >>
-               length_scale >> gc >> viscosity >> residual_k >>
-               tensile_strength >> p >> a2 >> a3)
+        auto cached_profile = profile_cache.find(profile_name);
+        if (cached_profile == profile_cache.end())
           {
-            m_material_const.emplace(
-              material_region,
-              MaterialConstants<dim>(m_parameters.m_pf_model,
-                                     lame_lambda,
-                                     lame_mu,
-                                     length_scale,
-                                     gc,
-                                     tensile_strength,
-                                     viscosity,
-                                     residual_k,
-                                     p,
-                                     a2,
-                                     a3,
-                                     m_parameters.m_plane_stress));
-
-            m_logfile << "\tRegion " << material_region << " : " << std::endl;
-            m_material_const.at(material_region).print(m_logfile);
+            const fs::path profile_file =
+              fs::path(m_parameters.m_material_library_directory) /
+              "profiles" /
+              (profile_name + ".material");
+            cached_profile =
+              profile_cache
+                .emplace(profile_name, read_material_profile(profile_file))
+                .first;
           }
 
-        if (m_material_const.size() != total_material_regions)
+        double p  = 0.0;
+        double a2 = 0.0;
+        double a3 = 0.0;
+        if (m_parameters.m_pf_model == PFModel::AT1_Cohesive ||
+            m_parameters.m_pf_model == PFModel::PFCZM)
           {
-            m_logfile << "Material data file has " << m_material_const.size()
-                      << " rows. However, "
-                      << "the mesh has " << total_material_regions
-                      << " material regions." << std::endl;
-            Assert(m_material_const.size() == total_material_regions,
-                   ExcDimensionMismatch(m_material_const.size(),
-                                        total_material_regions));
+            const std::string &law_name =
+              m_parameters.m_material_softening_laws.at(material_id);
+            auto cached_law = softening_law_cache.find(law_name);
+            if (cached_law == softening_law_cache.end())
+              {
+                const fs::path law_file =
+                  fs::path(m_parameters.m_material_library_directory) /
+                  "softening_laws" / (law_name + ".softening");
+                cached_law =
+                  softening_law_cache
+                    .emplace(law_name, read_softening_law_profile(law_file))
+                    .first;
+              }
+
+            p  = cached_law->second.p;
+            a2 = cached_law->second.a2;
+            a3 = cached_law->second.a3;
           }
-        myfile.close();
-      }
-    else
-      {
-        m_logfile << "Material data file : " << data_file << " not exist!"
-                  << std::endl;
-        Assert(false, ExcMessage("Failed to read material data file"));
+
+        const MaterialProfile &profile = cached_profile->second;
+        const auto insertion          = m_material_const.emplace(
+          material_id,
+          MaterialConstants<dim>(
+            m_parameters.m_pf_model,
+            profile.lambda,
+            profile.mu,
+            m_parameters.m_material_length_scales.at(material_id),
+            profile.gc,
+            profile.tensile_strength,
+            m_parameters.m_material_viscosities.at(material_id),
+            m_parameters.m_material_residual_ks.at(material_id),
+            p,
+            a2,
+            a3,
+            m_parameters.m_plane_stress));
+
+        AssertThrow(insertion.second,
+                    ExcMessage("Duplicate material ID " +
+                               std::to_string(material_id) + "."));
+
+        m_logfile << "\tRegion " << material_id << " [profile: "
+                  << profile_name;
+        if (m_parameters.m_material_softening_laws.count(material_id) == 1)
+          m_logfile << ", softening law: "
+                    << m_parameters.m_material_softening_laws.at(material_id);
+        m_logfile << "]:" << std::endl;
+        insertion.first->second.print(m_logfile);
       }
   }
 
@@ -9408,8 +9432,18 @@ namespace PhaseField
               << m_parameters.m_allowed_max_h_l_ratio << std::endl;
     m_logfile << "Total number of material types = "
               << m_parameters.m_total_material_regions << std::endl;
-    m_logfile << "Material data file name = "
-              << m_parameters.m_material_file_name << std::endl;
+    m_logfile << "Material library directory = "
+              << m_parameters.m_material_library_directory << std::endl;
+    for (const auto &[material_id, profile_name] :
+         m_parameters.m_material_profiles)
+      {
+        m_logfile << "\tRegion " << material_id << " uses profile "
+                  << profile_name;
+        if (m_parameters.m_material_softening_laws.count(material_id) == 1)
+          m_logfile << " and softening law "
+                    << m_parameters.m_material_softening_laws.at(material_id);
+        m_logfile << std::endl;
+      }
     if (m_parameters.m_reaction_force_face_id >= 0)
       m_logfile << "Calculate reaction forces on Face ID = "
                 << m_parameters.m_reaction_force_face_id << std::endl;
@@ -9436,8 +9470,7 @@ namespace PhaseField
   {
     print_parameter_information();
 
-    read_material_data(m_parameters.m_material_file_name,
-                       m_parameters.m_total_material_regions);
+    read_material_data();
 
 
     std::vector<std::array<double, 3>> time_table;
