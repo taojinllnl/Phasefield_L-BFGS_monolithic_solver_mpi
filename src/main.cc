@@ -147,8 +147,12 @@
 #include <deal.II/physics/elasticity/standard_tensors.h>
 
 #include <chrono>
+#include <cmath>
+#include <cctype>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <optional>
 
 #include "../include/Common/BlockDesc.h"
@@ -1315,7 +1319,7 @@ namespace PhaseField
           t_0           = time_group[0];
           t_1           = time_group[1];
           m_delta_t     = time_group[2];
-          m_inv_delta_t = 1.0 / m_delta_t;
+          
 
           if (m_delta_t <= 0.0)
             {
@@ -1323,7 +1327,8 @@ namespace PhaseField
                           ExcMessage(
                             "Time::increment: delta_t must be positive."));
             }
-
+          m_inv_delta_t = 1.0 / m_delta_t;
+            
           const double tol = 1.0e-6 * m_delta_t;
 
           if (m_time_current >= t_0 - tol && m_time_current < t_1 - tol)
@@ -1338,6 +1343,16 @@ namespace PhaseField
 
       m_time_current += m_delta_t;
       m_time_ramp = m_time_current / m_time_end;
+    
+      if (m_magnitude_list.size() != m_load_list.size())
+        {
+            m_load_list.resize(m_magnitude_list.size());
+        }
+
+      for(unsigned int i = 0; i < m_load_list.size(); ++i)
+      {
+          m_load_list[i] = m_magnitude_list[i] * m_delta_t;
+      }
 
       if (m_time_current < m_time_end && !found_slot)
         {
