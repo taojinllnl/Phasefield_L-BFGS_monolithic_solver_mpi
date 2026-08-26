@@ -106,7 +106,7 @@ namespace bcs
     const std::vector<CstPointRecord> &
     cstPointRecordsFound() const;
 
-    // Clear all cache data without changing cstInput.
+    // Clear all cached data without changing cstInput.
     void
     clear();
 
