@@ -26,7 +26,7 @@ template <typename Tria>
 CstPnt<Tria>::CstPnt(const CstPnt &cstPnt)
   : CstSelectorBase<Tria>(cstPnt)
   , pntCoorinates(cstPnt.pntCoorinates)
-  , valuesFunc(nullptr)
+  , valuesFunc(cstPnt.valuesFunc)
   , tol(cstPnt.tol)
 {}
 
