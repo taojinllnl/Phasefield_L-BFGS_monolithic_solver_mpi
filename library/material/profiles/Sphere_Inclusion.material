@@ -1,0 +1,5 @@
+// Fixed properties of the sphere inclusion
+lambda = 12.0e5;
+mu = 8.0e5;
+gc = 5.0e-4;
+tensile_strength = 0.18;

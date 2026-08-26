@@ -1,0 +1,5 @@
+// Fixed properties of concrete material B
+lambda = 6.16;
+mu = 10.95;
+gc = 9.0e-5;
+tensile_strength = 2.7e-3;

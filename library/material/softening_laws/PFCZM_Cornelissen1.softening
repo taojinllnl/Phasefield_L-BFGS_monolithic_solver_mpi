@@ -1,0 +1,4 @@
+// First Cornelissen softening law for PFCZM
+p = 2.0;
+a2 = 1.3868;
+a3 = 0.9106;

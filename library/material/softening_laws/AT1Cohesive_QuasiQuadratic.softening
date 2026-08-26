@@ -1,0 +1,4 @@
+// Quasi-quadratic degradation for the AT1 cohesive model
+p = 2.0;
+a2 = 1.0;
+a3 = 0.0;

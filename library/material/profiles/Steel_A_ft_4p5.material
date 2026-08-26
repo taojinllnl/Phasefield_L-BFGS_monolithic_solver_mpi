@@ -1,0 +1,5 @@
+// Fixed properties of steel material A with the specified tensile strength
+lambda = 121.15;
+mu = 80.77;
+gc = 2.7e-3;
+tensile_strength = 4.5;
