@@ -72,6 +72,8 @@ lc = 0.1;
 
 
 
+pre_refined_band_width_offset_y = 60;
+
 
 // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 // parameters config ends.

@@ -13,14 +13,14 @@ subsection Scenario
   set Output dir = ./output/Case_16/3D/
   
   # Library directory
-  set Library dir = ./library/grids/throughVNotchedCube/1mmX1mmX1mm/0.3X0.3mmCracks/
+  set Library dir = ./library/grids/throughRecNotchedCube/200mmX200mmX50mm/25mmX5mmCracks/
 
   
   # Mesh file name (starting from `Library dir`)
-  set Mesh file name = 0.1mmDistance.msh
+  set Mesh file name = 0.0mmDistance.msh
   
   # Extra data file (starting from `Library dir`. default: `N/A`)
-  set Extra data file = 0.1mmDistance.geo
+  set Extra data file = 0.0mmDistance.geo
 
 
   # If it is yes, the .vtu file of the coarse original mesh will be created. (yes|no)
@@ -44,9 +44,11 @@ subsection Scenario
   # 8 - 3D sphere inclusion (3D structured mesh 2 with barriers)
   # 9 - 2D L-shape bending (2D structured)
   #11 - 3D torsion (3D structured)
+  #12 - one-dimensional bar represented by a 2D structured mesh
   #13 - 3D tensile notches (3D structured)
   #14 - 2D/3D Nooru-Mohamed test (2D/3D structured)
   #15 - 3D notched beam bending (3D structured)
+  #16 - Nooru-Mohamed rectangular-notch test (2D or 3D)
   set Scenario number = 16
   
   # Name of the log file
@@ -57,6 +59,7 @@ subsection Scenario
   
   # Phase-field model type (AT1, AT1-Cohesive, AT2 or PFCZM)
   set Phase-field model type = PFCZM
+  set Plane stress = no
   
   # Nonlinear solver type (Newton or BFGS or LBFGS)
   set Nonlinear solver type = LBFGS
@@ -104,15 +107,22 @@ subsection Scenario
   # Allowed maximum ratio between mesh size h and phasefield length scale l
   # insdie the crack zone (nodal phasefield value larger than threshold)
   set Allowed max hl ratio = 0.5
-  
-  # Total number of material regions
-  set Material regions = 1
-  
-  # Material data file name
-  set Material data file = ./library/material/concrete/A/ft=0.003/l=0.0075/PFCZM/materialDataFile_exponential
-  
+
   # Reaction forces face ID (negative number means not to find reaction force)
   set Reaction force face ID = 900
+end
+
+subsection Materials
+  # Fixed profiles and softening laws are selected by name
+  set Library directory = ./library/material/
+  set Material regions  = 1
+  set Profiles          = 0: Concrete_D
+  set Softening laws    = 0: PFCZM_Exponential
+
+  # Case-dependent phase-field parameters
+  set Length scales = 0: 6.0
+  set Viscosities   = 0: 0.0e-6
+  set Residual ks   = 0: 0.0e-9
 end
 
 subsection Finite element system
@@ -155,15 +165,15 @@ subsection Nonlinear solver
   set Tolerance phasefield residual         = 1.0e-6
   
   # Displacement increment tolerance
-  set Tolerance displacement increment      = 1.0e-6
+  set Tolerance displacement increment      = 1.0e-2
   
   # Phasefield increment tolerance
-  set Tolerance phasefield increment        = 1.0e-6
+  set Tolerance phasefield increment        = 1.0e-2
 end
 
 subsection Time
   # End time
-  set End time       = 50.0e-3
+  set End time       = 40.0e-3
 
   # Number of factors
   set n factors = 2
@@ -171,5 +181,5 @@ subsection Time
   
   
   # Time data groups
-  set Time data file = cases/through_notches/settings/timeDataFile_PFCZM
+  set Time data file = ./cases/through_notches/settings/timeDataFile_PFCZM
 end

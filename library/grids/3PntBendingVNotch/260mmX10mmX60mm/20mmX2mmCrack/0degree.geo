@@ -80,3 +80,9 @@ lc = 5.0;
 // if ex3 or ex4 are nagative, the three-point bending test will be launched.
 ex3 = -100.0;
 ex4 = -100.0;
+
+
+
+
+// if pre_refine_factor = 0; the default factor (1.6) wiil be applied
+pre_refine_factor = 2.0;

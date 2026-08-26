@@ -9,14 +9,17 @@ subsection Scenario
   set mpi type = PETSc
   
   
-  # Configuration directory
-  set Config dir = ./cases/simple_tension_test/adaptive_refine/AT2/
+  # Library directory
+  set Library dir = ./cases/simple_tension_test/
   
   # Output directory
   set Output dir = ./output/Case_3/adaptive_refine/AT2/
   
-  # Mesh file name (starting from `Config dir`. default: `Config dir`)
-  set Mesh file name = ../../square_tension_structured.msh
+  # Mesh file name (starting from `Library dir`. default: `Library dir`)
+  set Mesh file name = square_tension_structured.msh
+  set Extra data file = N/A
+  set Output coarse original mesh = yes
+  set Output original mesh = no
   
   # If it is yes, the .vtu file of the timestep-1 will be created. (yes|no)
   set Output timestep 0 = yes
@@ -30,6 +33,13 @@ subsection Scenario
   # 6 - 3D sphere inclusion (3D structured mesh 1)
   # 7 - 3D sphere inclusion (3D structured mesh 2) 
   # 8 - 3D sphere inclusion (3D structured mesh 2 with barriers) 
+  # 9 - L-shape bending (2D or 3D structured mesh)
+  #11 - Brokenshire torsion (3D structured mesh)
+  #12 - one-dimensional bar represented by a 2D structured mesh
+  #13 - tensile test with two edge notches (3D structured mesh)
+  #14 - Nooru-Mohamed V-notch test (2D or 3D)
+  #15 - notched-beam bending (3D structured mesh)
+  #16 - Nooru-Mohamed rectangular-notch test (2D or 3D)
   set Scenario number = 3
   
   # Name of the log file
@@ -61,6 +71,7 @@ subsection Scenario
   
   # Mesh refinement strategy (pre-refine or adaptive-refine)
   set Mesh refinement strategy = adaptive-refine
+  set Repartitioning ratio = 2.0
   
   # Number of vectors used in LBFGS
   set LBFGS m = 40
@@ -86,15 +97,21 @@ subsection Scenario
   # Allowed maximum ratio between mesh size h and phasefield length scale l
   # insdie the crack zone (nodal phasefield value larger than threshold)
   set Allowed max hl ratio = 0.2
-  
-  # Total number of material regions
-  set Material regions = 1
-  
-  # Material data file name
-  set Material data file = materialDataFile
-  
+
   # Reaction forces face ID (negative number means not to find reaction force)
   set Reaction force face ID = 0
+end
+
+subsection Materials
+  # Fixed profiles and softening laws are selected by name
+  set Library directory = ./library/material/
+  set Material regions = 1
+  set Profiles = 1: Steel_A_ft_4p5
+
+  # Case-dependent phase-field parameters
+  set Length scales = 1: 0.0075
+  set Viscosities = 1: 0.0e-6
+  set Residual ks = 1: 0.0e-9
 end
 
 subsection Finite element system
@@ -148,5 +165,6 @@ subsection Time
   set End time       = 14.0e-3
   
   # Time data groups
-  set Time data file = ../../settings/timeDataFile
+  set Time data file = ./cases/simple_tension_test/settings/timeDataFile
+  set n factors = 1
 end

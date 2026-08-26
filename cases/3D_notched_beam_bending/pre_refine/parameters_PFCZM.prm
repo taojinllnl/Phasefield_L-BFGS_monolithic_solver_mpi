@@ -9,18 +9,22 @@ subsection Scenario
   set mpi type = PETSc
   
   
-  # Configuration directory
-  set Config dir = ./cases/3D_tensile_notches/
   
   # Output directory
   set Output dir = ./output/Case_15/
   
-  # Mesh file name (starting from `Config dir`. default: `Config dir`)
-  set Mesh file name = ../MeshLib/mshFiles/3PntBendingVNotch/260mmX10mmX60mm/20mmX2mmCrack/45degree.msh
   
-  # Extra data file (starting from `Config dir`. default: `N/A`)
-  set Extra data file = ../MeshLib/prms/3PntBendingVNotch/260mmX10mmX60mm/20mmX2mmCrack/45degree.geo
+  # Library directory
+  set Library dir = ./library/grids/3PntBendingVNotch/260mmX10mmX60mm/20mmX2mmCrack/
+
   
+  # Mesh file name (starting from `Library dir`)
+  set Mesh file name = 45degree.msh
+  
+  # Extra data file (starting from `Library dir`. default: `N/A`)
+  set Extra data file = 45degree.geo
+  
+
   # If it is yes, the .vtu file of the coarse original mesh will be created. (yes|no)
   set Output coarse original mesh = yes
   
@@ -40,11 +44,13 @@ subsection Scenario
   # 6 - 3D sphere inclusion (3D structured mesh 1)
   # 7 - 3D sphere inclusion (3D structured mesh 2)
   # 8 - 3D sphere inclusion (3D structured mesh 2 with barriers)
-  # 9 - 2D L-shape bending (2D structured)
+  # 9 - 2D/3D L-shape bending (2D/3D structured)
   #11 - 3D torsion (3D structured)
+  #12 - one-dimensional bar represented by a 2D structured mesh
   #13 - 3D tensile notches (3D structured)
   #14 - 3D shear notches (3D structured)
   #15 - 3D notched beam bending (3D structured)
+  #16 - Nooru-Mohamed rectangular-notch test (2D or 3D)
   set Scenario number = 15
   
   # Name of the log file
@@ -55,6 +61,7 @@ subsection Scenario
   
   # Phase-field model type (AT1, AT1-Cohesive, AT2 or PFCZM)
   set Phase-field model type = PFCZM
+  set Plane stress = no
   
   # Nonlinear solver type (Newton or BFGS or LBFGS)
   set Nonlinear solver type = LBFGS
@@ -71,7 +78,6 @@ subsection Scenario
   # Only works for PETSc:               ICC|ParaSails|Shell
   set Preconditioner type for iterative linear solver = Jacobi
 
-
   # Mesh refinement strategy (pre-refine or adaptive-refine)
   set Mesh refinement strategy = pre-refine
   
@@ -82,7 +88,7 @@ subsection Scenario
   set LBFGS m = 20
 
   # Global refinement times across the entire domain
-  set Global refinement times = 1
+  set Global refinement times = 0
   
   # Local pre-refinement times along the crack path that is known a priori
   set Local prerefinement times = 0
@@ -95,18 +101,29 @@ subsection Scenario
   # A large number means there are no restrictions
   set Max allowed refinement level = 100
   
+  # Phasefield-based refinement threshold value
+  # (when nodal phasefield value is larger than threshold, elmt needs to be refined)
+  set Phasefield refine threshold = 0.05
+  
   # Allowed maximum ratio between mesh size h and phasefield length scale l
   # insdie the crack zone (nodal phasefield value larger than threshold)
   set Allowed max hl ratio = 0.2
-  
-  # Total number of material regions
-  set Material regions = 1
-  
-  # Material data file name
-  set Material data file = ./library/material/PolyMethyl_MethAccrylate_PMMA/l=1.0/PFCZM/materialDataFile_exponential
-  
+
   # Reaction forces face ID (negative number means not to find reaction force)
-  set Reaction force face ID = 0
+  set Reaction force face ID = 900
+end
+
+subsection Materials
+  # Fixed profiles and softening laws are selected by name
+  set Library directory = ./library/material/
+  set Material regions = 1
+  set Profiles = 0: PMMA_A
+  set Softening laws = 0: PFCZM_Linear
+
+  # Case-dependent phase-field parameters
+  set Length scales = 0: 1.0
+  set Viscosities = 0: 0.0e-6
+  set Residual ks = 0: 0.0e-9
 end
 
 subsection Finite element system
@@ -157,8 +174,9 @@ end
 
 subsection Time
   # End time
-  set End time       = 50.0e-3
+  set End time       = 175.0e-2
   
   # Time data groups
-    set Time data file = ./cases/3D_notched_beam_bending/settings/timeDataFile_AT2
+  set Time data file = ./cases/3D_notched_beam_bending/settings/timeDataFile_PFCZM
+  set n factors = 1
 end

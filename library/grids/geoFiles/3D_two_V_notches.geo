@@ -1,6 +1,6 @@
 //Include "../throughVNotchedCube/1mmX1mmX1mm/0.3X0.3mmCracks/0.0mmDistance.geo";
 
-Include "../edgeNothcedCube/300mmX300mmX300mm/100mmX100mmCracks/60mmDistance.geo";
+Include "../edgeNothcedCube/300mmX300mmX300mm/100mmX100mmCracks/30mmDistance.geo";
 
 SetFactory("Built-in");
 

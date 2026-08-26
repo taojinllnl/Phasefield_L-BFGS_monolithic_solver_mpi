@@ -83,11 +83,13 @@ H1 = 180;    // height of C1 crack
 H2 = 120;    // height of C2 crack
 
 // crack opening widths (vertical opening size)
-C1 = 0.10;   // total opening of crack C1
-C2 = 0.10;   // total opening of crack C2
+C1 = 1;   // total opening of crack C1
+C2 = 1;   // total opening of crack C2
 
 
 lc = 15; // the size for elements
+
+pre_refinement_factor_z = 1.2;
 
 // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 // parameters config ends.

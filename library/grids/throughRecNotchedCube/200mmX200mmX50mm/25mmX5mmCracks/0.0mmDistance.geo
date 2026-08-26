@@ -46,29 +46,29 @@
 // parameters config starts.
 // vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
-L = 1.0;
-H = 1.0;
+L = 200.0;
+H = 200.0;
 
 // Right crack length
-L2 = 0.2;
+L2 = 25;
 
 // Left crack length
-L1 = 0.2;
+L1 = 25;
 
 // Right crack bottom height
-H2 = 0.45;
+H2 = 97.5;
 
 // Left crack bottom height
-H1 = 0.45;
+H1 = 97.5;
 
 // Right crack height
-C2 = 0.1;
+C2 = 5;
 
 // Left crack height
-C1 = 0.1;
+C1 = 5;
 
 // Characteristic mesh size
-lc = 0.1;
+lc = 5;
 
 
 pre_refined_band_width_offset_y = 60;
@@ -81,7 +81,7 @@ pre_refined_band_width_offset_y = 60;
 
 // If W = 0, generate 2D mesh.
 // If W > 0, generate 3D mesh.
-W = 1.0;
+W = 50.0;
 
 
 // Unused variables retained for compatibility

@@ -1,6 +1,15 @@
 # Listing of Parameters
 # ---------------------
 subsection Scenario  
+  set dimension = 2
+  set mpi type = Trilinos
+  set Library dir = ./cases/simple_shear_cyclic_loading/
+  set Output dir = ./output/Case_4_cyclic/
+  set Mesh file name = square_shear_structured.msh
+  set Extra data file = N/A
+  set Output coarse original mesh = yes
+  set Output original mesh = no
+  set Output timestep 0 = yes
   # Geometry, loading and boundary conditions scenario
   # 1 - square tension (2D unstructured mesh)
   # 2 - square shear   (2D unstructured mesh)
@@ -10,6 +19,13 @@ subsection Scenario
   # 6 - 3D sphere inclusion (3D structured mesh 1)
   # 7 - 3D sphere inclusion (3D structured mesh 2) 
   # 8 - 3D sphere inclusion (3D structured mesh 2 with barriers) 
+  # 9 - L-shape bending (2D or 3D structured mesh)
+  #11 - Brokenshire torsion (3D structured mesh)
+  #12 - one-dimensional bar represented by a 2D structured mesh
+  #13 - tensile test with two edge notches (3D structured mesh)
+  #14 - Nooru-Mohamed V-notch test (2D or 3D)
+  #15 - notched-beam bending (3D structured mesh)
+  #16 - Nooru-Mohamed rectangular-notch test (2D or 3D)
   set Scenario number = 4
   
   # Name of the log file
@@ -32,9 +48,11 @@ subsection Scenario
 
   # Linear solver type for B0 (Direct or CG)
   set Linear solver type = Direct
+  set Preconditioner type for iterative linear solver = Jacobi
   
   # Mesh refinement strategy (pre-refine or adaptive-refine)
   set Mesh refinement strategy = pre-refine
+  set Repartitioning ratio = 2.0
   
   # Number of vectors used in LBFGS
   set LBFGS m = 20
@@ -60,15 +78,21 @@ subsection Scenario
   # Allowed maximum ratio between mesh size h and phasefield length scale l
   # insdie the crack zone (nodal phasefield value larger than threshold)
   set Allowed max hl ratio = 0.5
-  
-  # Total number of material regions
-  set Material regions = 1
-  
-  # Material data file name
-  set Material data file = materialDataFile
-  
+
   # Reaction forces face ID (negative number means not to find reaction force)
   set Reaction force face ID = 0
+end
+
+subsection Materials
+  # Fixed profiles and softening laws are selected by name
+  set Library directory = ./library/material/
+  set Material regions = 1
+  set Profiles = 1: Steel_A_ft_0p18
+
+  # Case-dependent phase-field parameters
+  set Length scales = 1: 0.0075
+  set Viscosities = 1: 0.0e-6
+  set Residual ks = 1: 0.0e-9
 end
 
 subsection Finite element system
@@ -122,5 +146,6 @@ subsection Time
   set End time       = 30.0e-3
   
   # Time data groups
-  set Time data file = timeDataFile
+  set Time data file = ./cases/simple_shear_cyclic_loading/timeDataFile
+  set n factors = 0
 end

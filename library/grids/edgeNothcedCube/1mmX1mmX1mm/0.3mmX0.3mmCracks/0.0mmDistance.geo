@@ -89,6 +89,9 @@ C2 = 0.010;   // total opening of crack C2
 
 lc = 0.05; // the size for elements
 
+
+pre_refinement_factor_z = 1.2;
+
 // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 // parameters config ends.
 // Do not modify the following content after this point.

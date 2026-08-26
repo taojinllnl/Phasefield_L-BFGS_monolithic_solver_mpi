@@ -11,11 +11,16 @@ subsection Scenario
   set mpi type = Trilinos
   
   
-  # Configuration directory
-  set Config dir = ./cases/sphere_inclusion_test/without_barriers/adaptive_refine/PFCZM/
+  # Library directory
+  set Library dir = ./library/
   
   # Output directory
   set Output dir = ./output/Case_7/adaptive_refine/PFCZM/
+  set Mesh file name = ./
+  set Extra data file = N/A
+  set Output coarse original mesh = yes
+  set Output original mesh = no
+  set Output timestep 0 = yes
   
 
 
@@ -29,6 +34,13 @@ subsection Scenario
   # 6 - 3D sphere inclusion (3D structured mesh 1)
   # 7 - 3D sphere inclusion (3D structured mesh 2) 
   # 8 - 3D sphere inclusion (3D structured mesh 2 with barriers) 
+  # 9 - L-shape bending (2D or 3D structured mesh)
+  #11 - Brokenshire torsion (3D structured mesh)
+  #12 - one-dimensional bar represented by a 2D structured mesh
+  #13 - tensile test with two edge notches (3D structured mesh)
+  #14 - Nooru-Mohamed V-notch test (2D or 3D)
+  #15 - notched-beam bending (3D structured mesh)
+  #16 - Nooru-Mohamed rectangular-notch test (2D or 3D)
   set Scenario number = 7
   
   # Name of the log file
@@ -39,6 +51,7 @@ subsection Scenario
   
   # Phase-field model type (AT1, AT1-Cohesive, AT2 or PFCZM)
   set Phase-field model type = PFCZM
+  set Plane stress = no
   
   # Nonlinear solver type (Newton or BFGS or LBFGS)
   set Nonlinear solver type = LBFGS
@@ -85,15 +98,22 @@ subsection Scenario
   # Allowed maximum ratio between mesh size h and phasefield length scale l
   # insdie the crack zone (nodal phasefield value larger than threshold)
   set Allowed max hl ratio = 0.8
-  
-  # Total number of material regions
-  set Material regions = 2
-  
-  # Material data file name
-  set Material data file = materialDataFile
-  
+
   # Reaction forces face ID (negative number means not to find reaction force)
   set Reaction force face ID = 3
+end
+
+subsection Materials
+  # Fixed profiles and softening laws are selected by name
+  set Library directory = ./library/material/
+  set Material regions = 2
+  set Profiles = 0: Sphere_Matrix, 1: Sphere_Inclusion
+  set Softening laws = 0: PFCZM_Exponential, 1: PFCZM_Exponential
+
+  # Case-dependent phase-field parameters
+  set Length scales = 0: 0.01, 1: 0.01
+  set Viscosities = 0: 1.0e-6, 1: 1.0e-6
+  set Residual ks = 0: 0.0e-9, 1: 0.0e-9
 end
 
 subsection Finite element system
@@ -147,5 +167,6 @@ subsection Time
   set End time       = 1.3e-2
   
   # Time data groups
-  set Time data file = ../timeDataFile
+  set Time data file = ./cases/sphere_inclusion_test/without_barriers/timeDataFile
+  set n factors = 0
 end

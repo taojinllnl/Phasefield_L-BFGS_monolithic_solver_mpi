@@ -11,6 +11,8 @@ subsection Scenario
   
   # Output directory
   set Output dir = ./output/Case_11/
+  set Mesh file name = ./
+  set Extra data file = N/A
   
   # Library directory
   set Library dir = ./library/
@@ -36,9 +38,11 @@ subsection Scenario
   # 8 - 3D sphere inclusion (3D structured mesh 2 with barriers)
   # 9 - 2D L-shape bending (2D structured)
   #11 - 3D torsion (3D structured)
+  #12 - one-dimensional bar represented by a 2D structured mesh
   #13 - 3D tensile notches (3D structured)
   #14 - 2D/3D Nooru-Mohamed test (2D/3D structured)
   #15 - 3D notched beam bending (3D structured)
+  #16 - Nooru-Mohamed rectangular-notch test (2D or 3D)
   set Scenario number = 11
   
   # Name of the log file
@@ -49,6 +53,7 @@ subsection Scenario
   
   # Phase-field model type (AT1, AT1-Cohesive, AT2 or PFCZM)
   set Phase-field model type = AT1
+  set Plane stress = no
   
   # Nonlinear solver type (Newton or BFGS or LBFGS)
   set Nonlinear solver type = LBFGS
@@ -95,15 +100,21 @@ subsection Scenario
   # Allowed maximum ratio between mesh size h and phasefield length scale l
   # insdie the crack zone (nodal phasefield value larger than threshold)
   set Allowed max hl ratio = 0.2 
-  
-  # Total number of material regions
-  set Material regions = 1
-  
-  # Material data file name
-  set Material data file = ./library/material/concrete/A/ft=0.003/l=1.0/AT1_cohesive/materialDataFile_quasi_linear
-  
+
   # Reaction forces face ID (negative number means not to find reaction force)
   set Reaction force face ID = 0
+end
+
+subsection Materials
+  # Fixed profiles and softening laws are selected by name
+  set Library directory = ./library/material/
+  set Material regions = 1
+  set Profiles = 0: Concrete_A
+
+  # Case-dependent phase-field parameters
+  set Length scales = 0: 1.0
+  set Viscosities = 0: 0.0e-6
+  set Residual ks = 0: 0.0e-9
 end
 
 subsection Finite element system
@@ -157,5 +168,6 @@ subsection Time
   set End time       = 7.0e-3
   
   # Time data groups
-  set Time data file = cases/3D_torsion/settings/timeDataFile_AT1
+  set Time data file = ./cases/3D_torsion/settings/timeDataFile_AT1
+  set n factors = 1
 end

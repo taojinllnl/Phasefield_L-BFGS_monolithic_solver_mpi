@@ -42,9 +42,11 @@ subsection Scenario
   # 8 - 3D sphere inclusion (3D structured mesh 2 with barriers)
   # 9 - 2D L-shape bending (2D structured)
   #11 - 3D torsion (3D structured)
+  #12 - one-dimensional bar represented by a 2D structured mesh
   #13 - 3D tensile notches (3D structured)
   #14 - 2D/3D Nooru-Mohamed test (2D/3D structured)
   #15 - 3D notched beam bending (3D structured)
+  #16 - Nooru-Mohamed rectangular-notch test (2D or 3D)
   set Scenario number = 16
   
   # Name of the log file
@@ -55,6 +57,7 @@ subsection Scenario
   
   # Phase-field model type (AT1, AT1-Cohesive, AT2 or PFCZM)
   set Phase-field model type = PFCZM
+  set Plane stress = no
   
   # Nonlinear solver type (Newton or BFGS or LBFGS)
   set Nonlinear solver type = LBFGS
@@ -96,20 +99,27 @@ subsection Scenario
   
   # Phasefield-based refinement threshold value
   # (when nodal phasefield value is larger than threshold, elmt needs to be refined)
-  set Phasefield refine threshold = 0.05
+  set Phasefield refine threshold = 0.01
   
   # Allowed maximum ratio between mesh size h and phasefield length scale l
   # insdie the crack zone (nodal phasefield value larger than threshold)
   set Allowed max hl ratio = 0.25
-  
-  # Total number of material regions
-  set Material regions = 1
-  
-  # Material data file name
-  set Material data file = ./library/material/concrete/A/ft=0.003/l=1.0/PFCZM/materialDataFile_linear
-  
+
   # Reaction forces face ID (negative number means not to find reaction force)
   set Reaction force face ID = 900
+end
+
+subsection Materials
+  # Fixed profiles and softening laws are selected by name
+  set Library directory = ./library/material/
+  set Material regions = 1
+  set Profiles = 0: Concrete_D
+  set Softening laws = 0: PFCZM_Linear
+
+  # Case-dependent phase-field parameters
+  set Length scales = 0: 1.0
+  set Viscosities = 0: 0.0e-6
+  set Residual ks = 0: 0.0e-9
 end
 
 subsection Finite element system
@@ -162,10 +172,10 @@ end
 
 subsection Time
   # End time
-  set End time       = 15.0e-04
+  set End time       = 30.0e-3
   
   # Time data groups
-  set Time data file = cases/through_notches/settings/timeDataFile_PFCZM
+  set Time data file = ./cases/through_notches/settings/timeDataFile_PFCZM
   
   # Number of factors
   set n factors = 2

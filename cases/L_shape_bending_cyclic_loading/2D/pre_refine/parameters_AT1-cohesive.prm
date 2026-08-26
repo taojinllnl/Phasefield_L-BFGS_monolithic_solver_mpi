@@ -42,9 +42,11 @@ subsection Scenario
   # 8 - 3D sphere inclusion (3D structured mesh 2 with barriers)
   # 9 - 2D L-shape bending (2D structured)
   #11 - 3D torsion (3D structured)
+  #12 - one-dimensional bar represented by a 2D structured mesh
   #13 - 3D tensile notches (3D structured)
   #14 - 2D/3D Nooru-Mohamed test (2D/3D structured)
   #15 - 3D notched beam bending (3D structured)
+  #16 - Nooru-Mohamed rectangular-notch test (2D or 3D)
   set Scenario number = 9
   
   # Name of the log file
@@ -77,6 +79,7 @@ subsection Scenario
 
   # Mesh refinement strategy (pre-refine or adaptive-refine)
   set Mesh refinement strategy = pre-refine
+  set Repartitioning ratio = 2.0
   
   # Number of vectors used in LBFGS
   set LBFGS m = 40
@@ -102,15 +105,22 @@ subsection Scenario
   # Allowed maximum ratio between mesh size h and phasefield length scale l
   # insdie the crack zone (nodal phasefield value larger than threshold)
   set Allowed max hl ratio = 0.2
-  
-  # Total number of material regions
-  set Material regions = 1
-  
-  # Material data file name
-  set Material data file = ./library/material/concrete/B/ft=2.7e-3/l=5.0/AT1/materialDataFile
-  
+
   # Reaction forces face ID (negative number means not to find reaction force)
   set Reaction force face ID = 0
+end
+
+subsection Materials
+  # Fixed profiles and softening laws are selected by name
+  set Library directory = ./library/material/
+  set Material regions = 1
+  set Profiles = 0: Concrete_B
+  set Softening laws = 0: Legacy_Zero
+
+  # Case-dependent phase-field parameters
+  set Length scales = 0: 5.0
+  set Viscosities = 0: 0.0e-6
+  set Residual ks = 0: 0.0e-9
 end
 
 subsection Finite element system
@@ -165,4 +175,5 @@ subsection Time
   
   # Time data groups
   set Time data file = ./cases/L_shape_bending_cyclic_loading/settings/timeDataFile
+  set n factors = 1
 end
