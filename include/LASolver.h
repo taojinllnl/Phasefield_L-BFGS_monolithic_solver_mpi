@@ -194,8 +194,18 @@ LASolver<LATraits>
                     
                 case PhaseField::PrecType::AMG:
                 {
+                    typename LATraits::PrecAMG::AdditionalData amg_data;
+                    amg_data.symmetric_operator = true;
+                    amg_data.strong_threshold   = 0.5;
+                    amg_data.aggressive_coarsening_num_levels = 1;
+                    amg_data.output_details     = false;
+                    amg_data.n_sweeps_coarse = 1;
+                    amg_data.max_iter        = 1;
+                    amg_data.w_cycle         = false;
+                    
+                    
                     typename LATraits::PrecAMG prec;
-                    prec.initialize(A);
+                    prec.initialize(A, amg_data);
                     laSolver.solve(A, x, b, prec);
                     break;
                 }
