@@ -372,8 +372,8 @@ LASolver<LATraits>
                     AssertThrow(false, ExcMessage("Unsupported Trilinos preconditioner"));
             }
         }
-    }
 #endif
+    }
 }
 
 

@@ -120,17 +120,21 @@ LASolver<LATraits>::solve(BVector        &LBFGS_r_vector,
     {
       if constexpr(std::is_same_v<typename LATraits::TMTag, TagPETSc>)
       {
+#if defined(HAVE_PETSC) && HAVE_PETSC
           using SolverType = PETScWrappers::SolverCG;
           __iterativeSolve<SolverType>(LBFGS_r_vector,
                                        LBFGS_q_vector,
                                        tangent_matrix);
+#endif
       }
       else if constexpr(std::is_same_v<typename LATraits::TMTag, TagTrilinos>)
       {
+#if defined(HAVE_TRILINOS) && HAVE_TRILINOS
           using SolverType = TrilinosWrappers::SolverCG;
             __iterativeSolve<SolverType>(LBFGS_r_vector,
                                          LBFGS_q_vector,
                                          tangent_matrix);
+#endif
       }
       else
       {
@@ -144,17 +148,21 @@ LASolver<LATraits>::solve(BVector        &LBFGS_r_vector,
     {
         if constexpr(std::is_same_v<typename LATraits::TMTag, TagPETSc>)
         {
+#if defined(HAVE_PETSC) && HAVE_PETSC
             using SolverType = PETScWrappers::SolverGMRES;
             __iterativeSolve<SolverType>(LBFGS_r_vector,
                                          LBFGS_q_vector,
                                          tangent_matrix);
+#endif
         }
         else if constexpr(std::is_same_v<typename LATraits::TMTag, TagTrilinos>)
         {
+#if defined(HAVE_TRILINOS) && HAVE_TRILINOS
             using SolverType = TrilinosWrappers::SolverGMRES;
               __iterativeSolve<SolverType>(LBFGS_r_vector,
                                            LBFGS_q_vector,
                                            tangent_matrix);
+#endif
         }
         else
         {
@@ -168,17 +176,21 @@ LASolver<LATraits>::solve(BVector        &LBFGS_r_vector,
     {
         if constexpr(std::is_same_v<typename LATraits::TMTag, TagPETSc>)
         {
+#if defined(HAVE_PETSC) && HAVE_PETSC
             using SolverType = PETScWrappers::SolverBicgstab;
             __iterativeSolve<SolverType>(LBFGS_r_vector,
                                          LBFGS_q_vector,
                                          tangent_matrix);
+#endif
         }
         else if constexpr(std::is_same_v<typename LATraits::TMTag, TagTrilinos>)
         {
+#if defined(HAVE_TRILINOS) && HAVE_TRILINOS
             using SolverType = TrilinosWrappers::SolverBicgstab;
               __iterativeSolve<SolverType>(LBFGS_r_vector,
                                           LBFGS_q_vector,
                                           tangent_matrix);
+#endif
         }
         else
         {
@@ -266,8 +278,8 @@ LASolver<LATraits>::__directSolve(BVector        &LBFGS_r_vector,
           A_direct_T.vmult(LBFGS_r_vector.block(ithGroup),
                            LBFGS_q_vector.block(ithGroup));
         }
-    }
 #endif
+    }
 }
 
 
