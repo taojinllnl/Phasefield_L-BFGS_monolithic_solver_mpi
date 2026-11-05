@@ -118,30 +118,75 @@ LASolver<LATraits>::solve(BVector        &LBFGS_r_vector,
     }
   else if (__type == SolverType::CG)
     {
-      using SSolver = SolverCG<Vector<double>>;
-      using PSolver = PETScWrappers::SolverCG;
-      using TSolver = TrilinosWrappers::SolverCG;
-      __iterativeSolve<SSolver, PSolver, TSolver>(LBFGS_r_vector,
-                                                  LBFGS_q_vector,
-                                                  tangent_matrix);
+      if constexpr(std::is_same_v<typename LATraits::TMTag, TagPETSc>)
+      {
+          using SolverType = PETScWrappers::SolverCG;
+          __iterativeSolve<SolverType>(LBFGS_r_vector,
+                                       LBFGS_q_vector,
+                                       tangent_matrix);
+      }
+      else if constexpr(std::is_same_v<typename LATraits::TMTag, TagTrilinos>)
+      {
+          using SolverType = TrilinosWrappers::SolverCG;
+            __iterativeSolve<SolverType>(LBFGS_r_vector,
+                                         LBFGS_q_vector,
+                                         tangent_matrix);
+      }
+      else
+      {
+          using SolverType = SolverCG<Vector<double>>;
+          __iterativeSolve<SolverType>(LBFGS_r_vector,
+                                       LBFGS_q_vector,
+                                       tangent_matrix);
+      }
     }
   else if (__type == SolverType::GMRes)
     {
-      using SSolver = SolverGMRES<Vector<double>>;
-      using PSolver = PETScWrappers::SolverGMRES;
-      using TSolver = TrilinosWrappers::SolverGMRES;
-      __iterativeSolve<SSolver, PSolver, TSolver>(LBFGS_r_vector,
-                                                  LBFGS_q_vector,
-                                                  tangent_matrix);
+        if constexpr(std::is_same_v<typename LATraits::TMTag, TagPETSc>)
+        {
+            using SolverType = PETScWrappers::SolverGMRES;
+            __iterativeSolve<SolverType>(LBFGS_r_vector,
+                                         LBFGS_q_vector,
+                                         tangent_matrix);
+        }
+        else if constexpr(std::is_same_v<typename LATraits::TMTag, TagTrilinos>)
+        {
+            using SolverType = TrilinosWrappers::SolverGMRES;
+              __iterativeSolve<SolverType>(LBFGS_r_vector,
+                                           LBFGS_q_vector,
+                                           tangent_matrix);
+        }
+        else
+        {
+            using SolverType = SolverGMRES<Vector<double>>;
+            __iterativeSolve<SolverType>(LBFGS_r_vector,
+                                         LBFGS_q_vector,
+                                         tangent_matrix);
+        }
     }
   else if (__type == SolverType::Bicgstab)
     {
-      using SSolver = SolverBicgstab<Vector<double>>;
-      using PSolver = PETScWrappers::SolverBicgstab;
-      using TSolver = TrilinosWrappers::SolverBicgstab;
-      __iterativeSolve<SSolver, PSolver, TSolver>(LBFGS_r_vector,
-                                                  LBFGS_q_vector,
-                                                  tangent_matrix);
+        if constexpr(std::is_same_v<typename LATraits::TMTag, TagPETSc>)
+        {
+            using SolverType = PETScWrappers::SolverBicgstab;
+            __iterativeSolve<SolverType>(LBFGS_r_vector,
+                                         LBFGS_q_vector,
+                                         tangent_matrix);
+        }
+        else if constexpr(std::is_same_v<typename LATraits::TMTag, TagTrilinos>)
+        {
+            using SolverType = TrilinosWrappers::SolverBicgstab;
+              __iterativeSolve<SolverType>(LBFGS_r_vector,
+                                          LBFGS_q_vector,
+                                          tangent_matrix);
+        }
+        else
+        {
+            using SolverType = SolverBicgstab<Vector<double>>;
+            __iterativeSolve<SolverType>(LBFGS_r_vector,
+                                         LBFGS_q_vector,
+                                         tangent_matrix);
+        }
     }
     LBFGS_r_vector.updateRelevance();
 }

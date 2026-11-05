@@ -102,7 +102,7 @@ private:
                        const BVector & LBFGS_q_vector,
                        const BSMatrix& tangentMatrix);
     
-    template<typename SSolver, typename PSolver, typename TSolver>
+    template<typename SolverType>
     void __iterativeSolve(BVector & LBFGS_r_vector,
                           const BVector & LBFGS_q_vector,
                           const BSMatrix& tangentMatrix);
@@ -137,7 +137,7 @@ public:
 
 
 template <typename LATraits>
-template<typename SSolver, typename PSolver, typename TSolver>
+template<typename SolverType>
 void
 LASolver<LATraits>
 ::__iterativeSolve(BVector & LBFGS_r_vector,
@@ -151,7 +151,7 @@ LASolver<LATraits>
         {
             SolverControl            solver_control(__tolList[ithGroup].nIters,
                                                     __tolList[ithGroup].tol);
-            SSolver laSolver(solver_control);
+            SolverType laSolver(solver_control);
             
             PreconditionJacobi<SparseMatrix<double>> preconditioner;
             preconditioner.initialize(tangent_matrix.block(ithGroup,
@@ -168,7 +168,7 @@ LASolver<LATraits>
     } else if constexpr (std::is_same_v<typename LATraits::TMTag, TagPETSc>) {
 #ifdef HAVE_PETSC
         using MatBlock   = typename LATraits::MatrixBlock;
-        using LASolver = MPIIterativeSolver<MatBlock, PSolver>;
+        using LASolver = MPIIterativeSolver<MatBlock, SolverType>;
         
         
         for (unsigned int ithGroup = 0; ithGroup < __blockDesc.nBlocks(); ++ithGroup)
@@ -275,7 +275,7 @@ LASolver<LATraits>
     } else if constexpr (std::is_same_v<typename LATraits::TMTag, TagTrilinos>) {
 #ifdef HAVE_TRILINOS
         using MatBlock   = typename LATraits::MatrixBlock;
-        using LASolver = MPIIterativeSolver<MatBlock, TSolver>;
+        using LASolver = MPIIterativeSolver<MatBlock, SolverType>;
         
         
         for (unsigned int ithGroup = 0; ithGroup < __blockDesc.nBlocks(); ++ithGroup)
