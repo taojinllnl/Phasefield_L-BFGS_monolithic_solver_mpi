@@ -2349,7 +2349,6 @@ namespace PhaseField
           {
             const fs::path profile_file =
               fs::path(m_parameters.m_material_library_directory) /
-              "profiles" /
               (profile_name + ".material");
             cached_profile =
               profile_cache
@@ -2370,7 +2369,7 @@ namespace PhaseField
               {
                 const fs::path law_file =
                   fs::path(m_parameters.m_material_library_directory) /
-                  "softening_laws" / (law_name + ".softening");
+                  (law_name + ".softening");
                 cached_law =
                   softening_law_cache
                     .emplace(law_name, read_softening_law_profile(law_file))
