@@ -16,6 +16,7 @@
 #include <deal.II/lac/solver_bicgstab.h>
 
 
+#include <deal.II/base/config.h>
 
 #include <deal.II/lac/sparse_direct.h>
 #include <deal.II/lac/precondition.h>

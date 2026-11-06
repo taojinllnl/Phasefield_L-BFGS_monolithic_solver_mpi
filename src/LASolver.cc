@@ -246,8 +246,15 @@ LASolver<LATraits>::__directSolve(BVector        &LBFGS_r_vector,
           SolverControl solver_control(__tolList[ithGroup].nIters,
                                        __tolList[ithGroup].tol);
 
+#if DEAL_II_VERSION_GTE(9, 5, 0)
+          // The communicator is obtained from the matrix during solve().
+          PETScWrappers::SparseDirectMUMPS solver(solver_control);
+#else
+          // Older deal.II versions require an explicit communicator for MPI.
           PETScWrappers::SparseDirectMUMPS solver(solver_control,
                                                   *__mpiInfo.mpiCommPtr());
+#endif
+            
           solver.set_symmetric_mode(true);
 
           //            PrecType preconditioner;
